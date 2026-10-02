@@ -95,6 +95,7 @@ function openExternalHttps(value) {
 function createWindow() {
   mainWindow = new BrowserWindow({
     title: 'SoundCloud',
+    icon: path.join(__dirname, 'build/icons/512x512.png'),
     width: 1280,
     height: 800,
     minWidth: 800,
@@ -153,6 +154,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  app.setAppUserModelId('io.github.sykia.soundcloud-desktop');
   app.configureHostResolver({
     secureDnsMode: 'secure',
     secureDnsServers: ['https://dns.google/dns-query']

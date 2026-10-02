@@ -3,12 +3,50 @@
   "version": "0.1.0",
   "private": true,
   "description": "SoundCloud desktop client with playback and interface customization",
+  "author": { "name": "cusae", "email": "cusae@mail.ru" },
+  "homepage": "https://github.com/sykia/soundcloud-desktop",
+  "desktopName": "io.github.sykia.soundcloud-desktop.desktop",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "check": "node --check main.js && node --check preload.js"
+    "check": "node --check main.js && node --check preload.js",
+    "dist:linux": "electron-builder --linux pacman --x64 --publish never",
+    "dist:win": "electron-builder --win nsis --x64 --publish never"
   },
   "devDependencies": {
-    "electron": "44.5.1"
+    "electron": "44.5.1",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "io.github.sykia.soundcloud-desktop",
+    "productName": "SoundCloud Desktop",
+    "directories": { "output": "dist" },
+    "files": ["main.js", "preload.js", "package.json", "build/icons/512x512.png"],
+    "linux": {
+      "target": "pacman",
+      "icon": "build/icons",
+      "category": "AudioVideo",
+      "synopsis": "SoundCloud desktop client",
+      "executableName": "soundcloud-desktop",
+      "syncDesktopName": true
+    },
+    "pacman": {
+      "compression": "zstd",
+      "artifactName": "soundcloud-desktop-${version}-1-x86_64.pkg.tar.zst",
+      "depends": ["gtk3", "nss", "libxss", "libxtst", "xdg-utils", "at-spi2-core", "libsecret"]
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico",
+      "executableName": "SoundCloud Desktop"
+    },
+    "nsis": {
+      "artifactName": "SoundCloud-Desktop-Setup-${version}-x64.${ext}",
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "SoundCloud Desktop"
+    }
   }
 }
