@@ -1,0 +1,14 @@
+{
+  "name": "soundcloud-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SoundCloud desktop client with playback and interface customization",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "check": "node --check main.js && node --check preload.js"
+  },
+  "devDependencies": {
+    "electron": "44.5.1"
+  }
+}
