@@ -2,25 +2,45 @@ name: Release
 
 on:
   push:
-    tags: ["v*"]
+    branches: [main]
+    paths: [package.json]
 
 permissions:
   contents: write
 
 jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      release_needed: ${{ steps.version.outputs.release_needed }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: version
+        run: |
+          version=$(node -p "require('./package.json').version")
+          tag="v$version"
+          test -f "release-notes/$tag.md"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null; then
+            echo 'release_needed=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'release_needed=true' >> "$GITHUB_OUTPUT"
+          fi
+
   build:
+    needs: prepare
+    if: needs.prepare.outputs.release_needed == 'true'
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
             platform: linux
-            artifact: pacman
-            files: dist/*.pkg.tar.zst
+            artifact: linux
           - os: windows-latest
             platform: win
             artifact: windows
-            files: dist/*.exe
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -28,20 +48,39 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - name: Check version tag
+        env:
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+        run: node -e "if ('v' + require('./package.json').version !== process.env.RELEASE_TAG) process.exit(1)"
       - run: npm ci
       - run: npm run check
       - name: Install Linux packaging tools
         if: matrix.platform == 'linux'
-        run: sudo apt-get update && sudo apt-get install -y libarchive-tools zstd
+        run: sudo apt-get update && sudo apt-get install -y libarchive-tools zstd rpm
       - run: npm run dist:${{ matrix.platform }}
       - uses: actions/upload-artifact@v4
+        if: matrix.platform == 'linux'
         with:
           name: ${{ matrix.artifact }}
-          path: ${{ matrix.files }}
+          path: |
+            dist/*.AppImage
+            dist/*.deb
+            dist/*.rpm
+            dist/*.pkg.tar.zst
+            dist/latest-linux.yml
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: matrix.platform == 'win'
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            dist/*.exe
+            dist/*.blockmap
+            dist/latest.yml
           if-no-files-found: error
 
   publish:
-    needs: build
+    needs: [prepare, build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -52,11 +91,17 @@ jobs:
           merge-multiple: true
       - name: Check files and write checksums
         run: |
+          test "$(find release -maxdepth 1 -name '*.AppImage' | wc -l)" -eq 1
+          test "$(find release -maxdepth 1 -name '*.deb' | wc -l)" -eq 1
+          test "$(find release -maxdepth 1 -name '*.rpm' | wc -l)" -eq 1
           test "$(find release -maxdepth 1 -name '*.pkg.tar.zst' | wc -l)" -eq 1
           test "$(find release -maxdepth 1 -name '*.exe' | wc -l)" -eq 1
+          test -f release/latest.yml
+          test -f release/latest-linux.yml
           cd release
-          sha256sum *.pkg.tar.zst *.exe > SHA256SUMS
+          find . -maxdepth 1 -type f ! -name SHA256SUMS -printf '%f\0' | sort -z | xargs -0 sha256sum > SHA256SUMS
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" release/* --title "SoundCloud Desktop ${GITHUB_REF_NAME#v}" --notes-file "release-notes/$GITHUB_REF_NAME.md" --verify-tag
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+        run: gh release create "$RELEASE_TAG" release/* --target "$GITHUB_SHA" --title "SoundCloud Desktop ${RELEASE_TAG#v}" --notes-file "release-notes/$RELEASE_TAG.md"

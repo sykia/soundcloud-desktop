@@ -1,13 +1,45 @@
 const path = require('node:path');
 const fs = require('node:fs');
-const { app, BrowserWindow, Menu, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, Menu, Tray, Notification, ipcMain, session, shell } = require('electron');
+const discordRpc = require('./discord-rpc');
 
 const HOME_URL = 'https://soundcloud.com/';
+const DNS_SERVERS = [
+  { name: 'Google', url: 'https://dns.google/dns-query' },
+  { name: 'Cloudflare', url: 'https://cloudflare-dns.com/dns-query' },
+  { name: 'Quad9', url: 'https://dns.quad9.net/dns-query' }
+];
+const DNS_ERROR_CODES = new Set([-105, -137, -800, -801, -802, -803, -808]);
+const PAGE_LOAD_TIMEOUT_MS = 30000;
+const DNS_CACHE_TIMEOUT_MS = 3000;
+const PROTOCOL = 'soundcloud-desktop';
+const AUTOSTART_FILE = 'io.github.sykia.soundcloud-desktop.desktop';
+const DEFAULT_DISCORD_CLIENT_ID = '1555593977367887893';
 const DEFAULT_ACCENT_COLOR = '#ff5500';
 const DEFAULT_RADII = { avatarRadius: 50, trackRadius: 3, albumRadius: 3 };
 let mainWindow;
+let tray;
+let isQuitting = false;
+let updater;
+let updateReady = false;
+let availableUpdateVersion = '';
+let updateNotification;
+let updateCheckRunning = false;
+let manualUpdateCheck = false;
+let updateTimer;
+let initialUpdateTimer;
+let dnsServerIndex = 0;
+let pendingLaunchUrl = null;
+let lastPresenceKey = '';
+let lastPresenceSent = 0;
 let settings = {
   hideArtistTools: false,
+  hideNearbyEvents: false,
+  blockAudioAds: false,
+  discordRpc: false,
+  discordClientId: DEFAULT_DISCORD_CLIENT_ID,
+  autoStart: false,
+  startMinimized: false,
   accentColor: DEFAULT_ACCENT_COLOR,
   playbackVisualization: false,
   showYourLikesButton: true,
@@ -35,6 +67,13 @@ function loadSettings() {
   try {
     const saved = JSON.parse(fs.readFileSync(settingsPath(), 'utf8'));
     settings.hideArtistTools = saved.hideArtistTools === true;
+    settings.hideNearbyEvents = saved.hideNearbyEvents === true;
+    settings.blockAudioAds = saved.blockAudioAds === true;
+    settings.discordClientId = isDiscordClientId(saved.discordClientId)
+      ? saved.discordClientId : DEFAULT_DISCORD_CLIENT_ID;
+    settings.discordRpc = saved.discordRpc === true;
+    settings.autoStart = saved.autoStart === true;
+    settings.startMinimized = saved.startMinimized === true;
     settings.playbackVisualization = saved.playbackVisualization === true;
     settings.showYourLikesButton = saved.showYourLikesButton !== false;
     settings.appLanguage = saved.appLanguage === 'ru' ? 'ru' : 'site';
@@ -54,9 +93,56 @@ function saveSettings(nextSettings) {
   settings = nextSettings;
 }
 
-// Some system DNS providers return an unreachable address for SoundCloud.
-// Resolve through HTTPS so the app can reach the actual site.
+function isDiscordClientId(value) {
+  return typeof value === 'string' && /^\d{17,20}$/.test(value);
+}
+
+function desktopQuote(value) {
+  return `"${value.replace(/([\\"$`])/g, '\\$1').replace(/%/g, '%%')}"`;
+}
+
+function setAutoStart(enabled, minimized) {
+  if (process.platform === 'win32') {
+    const args = app.isPackaged ? ['--autostart'] : [app.getAppPath(), '--autostart'];
+    app.setLoginItemSettings({ openAtLogin: enabled, path: process.execPath,
+      args: minimized ? [...args, '--minimized'] : args });
+    if (app.getLoginItemSettings({ path: process.execPath,
+      args: minimized ? [...args, '--minimized'] : args }).openAtLogin !== enabled) {
+      throw new Error('Windows did not apply the autostart setting');
+    }
+    return;
+  }
+  if (process.platform !== 'linux') throw new Error('Autostart is unavailable on this platform');
+  const configHome = process.env.XDG_CONFIG_HOME || path.join(app.getPath('home'), '.config');
+  const file = path.join(configHome, 'autostart', AUTOSTART_FILE);
+  if (!enabled) { fs.rmSync(file, { force: true }); return; }
+  const args = app.isPackaged ? [process.execPath] : [process.execPath, app.getAppPath()];
+  args.push('--autostart');
+  if (minimized) args.push('--minimized');
+  const content = `[Desktop Entry]\nType=Application\nName=SoundCloud Desktop\nExec=${args.map(desktopQuote).join(' ')}\nIcon=soundcloud-desktop\nTerminal=false\nX-GNOME-Autostart-enabled=true\n`;
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, content, { mode: 0o600 });
+}
+
 app.disableHardwareAcceleration();
+
+function configureDnsServer(index) {
+  app.configureHostResolver({
+    secureDnsMode: 'secure',
+    secureDnsServers: [DNS_SERVERS[index].url]
+  });
+  dnsServerIndex = index;
+}
+
+function withTimeout(promise, timeoutMs) {
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error('Timed out')), timeoutMs);
+    })
+  ]).finally(() => clearTimeout(timer));
+}
 
 function isSoundCloudUrl(value) {
   try {
@@ -66,6 +152,49 @@ function isSoundCloudUrl(value) {
   } catch {
     return false;
   }
+}
+
+function normalizeSoundCloudUrl(value) {
+  if (typeof value !== 'string' || value.length > 4096) return null;
+  if (isSoundCloudUrl(value)) return value;
+  try {
+    const url = new URL(value);
+    if (url.protocol === 'http:' &&
+        (url.hostname === 'soundcloud.com' || url.hostname.endsWith('.soundcloud.com'))) {
+      url.protocol = 'https:';
+      return url.href;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function launchUrl(value) {
+  const direct = normalizeSoundCloudUrl(value);
+  if (direct) return direct;
+  if (typeof value !== 'string' || value.length > 8192) return null;
+  try {
+    const url = new URL(value);
+    if (url.protocol !== `${PROTOCOL}:` || url.hostname !== 'open') return null;
+    return normalizeSoundCloudUrl(url.searchParams.get('url'));
+  } catch {
+    return null;
+  }
+}
+
+function launchUrlFromArgs(args) {
+  return args.map(launchUrl).find(Boolean) || null;
+}
+
+function openSoundCloudUrl(url) {
+  if (!url) return;
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    pendingLaunchUrl = url;
+    return;
+  }
+  showMainWindow();
+  mainWindow.loadURL(url);
 }
 
 function isSignInPopupUrl(value) {
@@ -86,13 +215,165 @@ function isSignInPopupUrl(value) {
 
 function openExternalHttps(value) {
   try {
-    if (new URL(value).protocol === 'https:') shell.openExternal(value);
+    if (isSoundCloudUrl(value)) openSoundCloudUrl(value);
+    else if (new URL(value).protocol === 'https:') shell.openExternal(value);
   } catch {
     // Ignore malformed links from the website.
   }
 }
 
-function createWindow() {
+function isArtworkUrl(value) {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' &&
+      (url.hostname === 'sndcdn.com' || url.hostname.endsWith('.sndcdn.com'));
+  } catch {
+    return false;
+  }
+}
+
+function updateDiscordPresence(track) {
+  if (!settings.discordRpc || !settings.discordClientId) return;
+  if (track === null) {
+    lastPresenceKey = '';
+    discordRpc.update(null);
+    return;
+  }
+  if (!track || typeof track !== 'object' || Array.isArray(track) ||
+      typeof track.title !== 'string' || typeof track.artist !== 'string' ||
+      !isSoundCloudUrl(track.url) ||
+      typeof track.paused !== 'boolean' ||
+      !Number.isFinite(track.elapsed) || !Number.isFinite(track.duration) ||
+      track.elapsed < 0 || track.duration < 0 || track.duration > 86400 ||
+      track.elapsed > track.duration + 5) return;
+  const title = track.title.trim().slice(0, 128);
+  const artist = track.artist.trim().slice(0, 128);
+  if (!title || !artist) return;
+  const artwork = typeof track.artwork === 'string' && isArtworkUrl(track.artwork)
+    ? track.artwork : null;
+  const key = JSON.stringify([track.url, title, artist, artwork, track.paused]);
+  if (key === lastPresenceKey && Date.now() - lastPresenceSent < 15000) return;
+  lastPresenceKey = key;
+  lastPresenceSent = Date.now();
+  const activity = {
+    type: 2,
+    details: title,
+    state: track.paused ? `${artist.slice(0, 116)} · пауза` : artist,
+    assets: artwork ? { large_image: artwork, large_text: title } : {}
+  };
+  if (!track.paused && track.duration > 0) {
+    activity.timestamps = {
+      start: Math.floor(Date.now() / 1000 - track.elapsed),
+      end: Math.floor(Date.now() / 1000 + track.duration - track.elapsed)
+    };
+  }
+  discordRpc.update(activity);
+}
+
+function showMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    createWindow();
+    return;
+  }
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+}
+
+function releaseUrl() {
+  return /^\d+\.\d+\.\d+(?:-[\w.-]+)?$/.test(availableUpdateVersion)
+    ? `https://github.com/sykia/soundcloud-desktop/releases/tag/v${availableUpdateVersion}`
+    : 'https://github.com/sykia/soundcloud-desktop/releases/latest';
+}
+
+function showUpdateNotice(body, click) {
+  if (!Notification.isSupported()) return;
+  updateNotification = new Notification({ title: 'SoundCloud Desktop', body });
+  if (click) updateNotification.on('click', click);
+  updateNotification.show();
+}
+
+function refreshTrayMenu() {
+  if (!tray) return;
+  const updateAction = updateReady
+    ? { label: 'Установить обновление и перезапустить', click: () => updater.quitAndInstall(false, true) }
+    : availableUpdateVersion && !updater?.autoDownload
+      ? { label: `Открыть обновление ${availableUpdateVersion}`, click: () => shell.openExternal(releaseUrl()) }
+      : null;
+  tray.setContextMenu(Menu.buildFromTemplate([
+    { label: 'Открыть SoundCloud', click: showMainWindow },
+    { type: 'separator' },
+    ...(updateAction ? [updateAction] : []),
+    { label: 'Проверить обновления', enabled: !!updater && !updateCheckRunning,
+      click: () => checkForUpdates(true) },
+    { type: 'separator' },
+    { label: 'Выход', click: () => app.quit() }
+  ]));
+}
+
+async function checkForUpdates(manual = false) {
+  if (!updater || updateCheckRunning) return;
+  manualUpdateCheck = manual;
+  updateCheckRunning = true;
+  refreshTrayMenu();
+  try {
+    await updater.checkForUpdates();
+  } catch (error) {
+    console.error('Could not check for updates:', error);
+    if (manual) showUpdateNotice('Не удалось проверить обновления. Попробуйте позже.');
+  } finally {
+    updateCheckRunning = false;
+    manualUpdateCheck = false;
+    refreshTrayMenu();
+  }
+}
+
+function setupUpdates() {
+  if (!app.isPackaged || !['win32', 'linux'].includes(process.platform)) return;
+  ({ autoUpdater: updater } = require('electron-updater'));
+  updater.autoDownload = process.platform === 'win32' || !!process.env.APPIMAGE;
+  updater.autoInstallOnAppQuit = updater.autoDownload;
+  updater.on('update-available', info => {
+    const isNewVersion = availableUpdateVersion !== info.version;
+    availableUpdateVersion = info.version;
+    if (!updater.autoDownload && isNewVersion) {
+      showUpdateNotice(`Доступна версия ${info.version}. Откройте релиз для установки через менеджер пакетов.`,
+        () => shell.openExternal(releaseUrl()));
+    }
+    refreshTrayMenu();
+  });
+  updater.on('update-not-available', () => {
+    availableUpdateVersion = '';
+    if (manualUpdateCheck) showUpdateNotice('Установлена последняя версия.');
+    refreshTrayMenu();
+  });
+  updater.on('update-downloaded', () => {
+    updateReady = true;
+    showUpdateNotice(`Версия ${availableUpdateVersion} загружена. Нажмите, чтобы перезапустить приложение.`,
+      () => updater.quitAndInstall(false, true));
+    refreshTrayMenu();
+  });
+  updater.on('error', error => console.error('Update error:', error));
+  initialUpdateTimer = setTimeout(() => checkForUpdates(), 15000);
+  updateTimer = setInterval(() => checkForUpdates(), 6 * 60 * 60 * 1000);
+  refreshTrayMenu();
+}
+
+function createTray() {
+  const icon = process.platform === 'win32'
+    ? 'build/icon.ico' : 'build/icons/32x32.png';
+  try {
+    tray = new Tray(path.join(__dirname, icon));
+    tray.setToolTip('SoundCloud Desktop');
+    refreshTrayMenu();
+    tray.on('click', showMainWindow);
+  } catch (error) {
+    console.error('Could not create tray icon:', error);
+    tray = null;
+  }
+}
+
+function createWindow(hidden = false) {
   mainWindow = new BrowserWindow({
     title: 'SoundCloud',
     icon: path.join(__dirname, 'build/icons/512x512.png'),
@@ -102,25 +383,83 @@ function createWindow() {
     minHeight: 600,
     backgroundColor: '#121216',
     autoHideMenuBar: true,
+    show: !hidden || !tray,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
-      sandbox: true
+      sandbox: true,
+      backgroundThrottling: false
     }
   });
 
   const contents = mainWindow.webContents;
+  let loadTimer;
+  let loadId = 0;
+  let failureHandled = false;
 
-  contents.on('did-fail-load', (_event, code, description, url, isMainFrame) => {
-    if (!isMainFrame || code === -3) return;
+  function clearLoadTimer() {
+    clearTimeout(loadTimer);
+    loadTimer = undefined;
+  }
 
-    const message = `Не удалось открыть SoundCloud (${code}: ${description}).`;
-    console.error(`${message} ${url}`);
+  function showLoadError(code, description) {
+    if (contents.isDestroyed()) return;
+    const dnsFailure = DNS_ERROR_CODES.has(code);
+    const hint = code === -7
+      ? 'Превышено время ожидания ответа от SoundCloud.'
+      : dnsFailure
+        ? 'Не удалось определить адрес SoundCloud. Если доступ к сайту ограничен сетью, смена DNS не поможет.'
+        : 'Проверьте подключение к интернету и попробуйте ещё раз.';
+    console.error(`Не удалось открыть SoundCloud (${code}: ${description}). DNS: ${DNS_SERVERS[dnsServerIndex].name}`);
     const html = `<!doctype html><html lang="ru"><meta charset="utf-8"><title>SoundCloud</title>
-      <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#121216;color:#fff;font:16px system-ui}main{max-width:480px;padding:32px}h1{font-size:24px}p{color:#bbb;line-height:1.5}a{display:inline-block;margin-top:12px;padding:12px 18px;border-radius:8px;background:#f50;color:#fff;text-decoration:none}</style>
-      <main><h1>SoundCloud не загрузился</h1><p>Проверьте подключение к интернету и попробуйте ещё раз.</p><a href="${HOME_URL}">Повторить</a></main></html>`;
+      <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#121216;color:#fff;font:16px system-ui}main{max-width:480px;padding:32px}h1{font-size:24px}p{color:#bbb;line-height:1.5}small{color:#888}a{display:inline-block;margin-top:12px;padding:12px 18px;border-radius:8px;background:#f50;color:#fff;text-decoration:none}</style>
+      <main><h1>SoundCloud не загрузился</h1><p>${hint}</p><small>Код ошибки: ${code}</small><br><a href="${HOME_URL}">Повторить</a></main></html>`;
     contents.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+  }
+
+  contents.on('did-start-navigation', details => {
+    if (!details.isMainFrame || details.isSameDocument) return;
+    if (settings.discordRpc) {
+      lastPresenceKey = '';
+      discordRpc.update(null);
+    }
+    clearLoadTimer();
+    const currentLoadId = ++loadId;
+    if (!isSoundCloudUrl(details.url)) return;
+    failureHandled = false;
+    loadTimer = setTimeout(() => {
+      if (currentLoadId !== loadId || failureHandled || contents.isDestroyed()) return;
+      failureHandled = true;
+      clearLoadTimer();
+      contents.stop();
+      showLoadError(-7, 'Timed out');
+    }, PAGE_LOAD_TIMEOUT_MS);
+  });
+
+  contents.on('dom-ready', () => {
+    if (isSoundCloudUrl(contents.getURL())) clearLoadTimer();
+  });
+
+  contents.on('did-fail-load', async (_event, code, description, url, isMainFrame) => {
+    if (!isMainFrame || code === -3 || !isSoundCloudUrl(url) || failureHandled) return;
+    failureHandled = true;
+    clearLoadTimer();
+    const failedLoadId = loadId;
+
+    if (DNS_ERROR_CODES.has(code) && dnsServerIndex < DNS_SERVERS.length - 1) {
+      const nextIndex = dnsServerIndex + 1;
+      try {
+        configureDnsServer(nextIndex);
+        await withTimeout(session.defaultSession.clearHostResolverCache(), DNS_CACHE_TIMEOUT_MS);
+        if (failedLoadId === loadId && !contents.isDestroyed()) contents.loadURL(url);
+        return;
+      } catch (error) {
+        console.error(`Не удалось переключить DNS на ${DNS_SERVERS[nextIndex].name}:`, error);
+      }
+    }
+
+    if (failedLoadId === loadId && !contents.isDestroyed()) showLoadError(code, description);
   });
 
   contents.on('will-navigate', (event, url) => {
@@ -149,18 +488,60 @@ function createWindow() {
     return { action: 'deny' };
   });
 
-  mainWindow.loadURL(HOME_URL);
-  mainWindow.on('closed', () => { mainWindow = null; });
+  mainWindow.loadURL(pendingLaunchUrl || HOME_URL);
+  pendingLaunchUrl = null;
+  mainWindow.on('close', event => {
+    if (isQuitting || !tray) return;
+    event.preventDefault();
+    mainWindow.hide();
+  });
+  mainWindow.on('closed', () => {
+    clearLoadTimer();
+    if (settings.discordRpc) discordRpc.update(null);
+    mainWindow = null;
+  });
 }
 
-app.whenReady().then(() => {
+const hasInstanceLock = app.requestSingleInstanceLock();
+if (!hasInstanceLock) app.quit();
+pendingLaunchUrl = launchUrlFromArgs(process.argv);
+app.on('second-instance', (_event, argv) => {
+  const url = launchUrlFromArgs(argv);
+  if (url) openSoundCloudUrl(url);
+  else if (!argv.includes('--autostart')) showMainWindow();
+});
+app.on('open-url', (event, url) => {
+  event.preventDefault();
+  openSoundCloudUrl(launchUrl(url));
+});
+app.on('before-quit', () => {
+  isQuitting = true;
+  clearTimeout(initialUpdateTimer);
+  clearInterval(updateTimer);
+  discordRpc.stop();
+});
+
+if (hasInstanceLock) app.whenReady().then(() => {
   app.setAppUserModelId('io.github.sykia.soundcloud-desktop');
-  app.configureHostResolver({
-    secureDnsMode: 'secure',
-    secureDnsServers: ['https://dns.google/dns-query']
-  });
+  configureDnsServer(0);
 
   loadSettings();
+  if (settings.autoStart) {
+    try { setAutoStart(true, settings.startMinimized); }
+    catch (error) { console.error('Could not restore autostart:', error); }
+  }
+  if (settings.discordRpc && settings.discordClientId) {
+    discordRpc.start(settings.discordClientId);
+  }
+
+  session.defaultSession.webRequest.onBeforeRequest(
+    { urls: ['https://api-v2.soundcloud.com/audio-ads*'] },
+    (details, callback) => {
+      const isAudioAdRequest = details.method === 'GET' &&
+        new URL(details.url).pathname === '/audio-ads';
+      callback({ cancel: settings.blockAudioAds && isAudioAdRequest });
+    }
+  );
 
   ipcMain.handle('cusade:get-settings', event => {
     if (!isMainSoundCloudPage(event.sender)) throw new Error('Unavailable');
@@ -172,6 +553,68 @@ app.whenReady().then(() => {
       throw new Error('Invalid setting');
     }
     saveSettings({ ...settings, hideArtistTools: enabled });
+    return settings;
+  });
+
+  ipcMain.handle('cusade:set-hide-nearby-events', (event, enabled) => {
+    if (!isMainSoundCloudPage(event.sender) || typeof enabled !== 'boolean') {
+      throw new Error('Invalid setting');
+    }
+    saveSettings({ ...settings, hideNearbyEvents: enabled });
+    return settings;
+  });
+
+  ipcMain.handle('cusade:set-block-audio-ads', (event, enabled) => {
+    if (!isMainSoundCloudPage(event.sender) || typeof enabled !== 'boolean') {
+      throw new Error('Invalid setting');
+    }
+    saveSettings({ ...settings, blockAudioAds: enabled });
+    return settings;
+  });
+
+  ipcMain.handle('cusade:set-discord-rpc', (event, enabled) => {
+    if (!isMainSoundCloudPage(event.sender) || typeof enabled !== 'boolean') {
+      throw new Error('Invalid setting');
+    }
+    saveSettings({ ...settings, discordRpc: enabled });
+    lastPresenceKey = '';
+    if (enabled) discordRpc.start(settings.discordClientId);
+    else discordRpc.stop();
+    return settings;
+  });
+
+  ipcMain.handle('cusade:set-discord-client-id', (event, clientId) => {
+    if (!isMainSoundCloudPage(event.sender) ||
+        !(clientId === '' || isDiscordClientId(clientId))) {
+      throw new Error('Invalid Discord Application ID');
+    }
+    const selectedId = clientId || DEFAULT_DISCORD_CLIENT_ID;
+    saveSettings({ ...settings, discordClientId: selectedId });
+    lastPresenceKey = '';
+    if (settings.discordRpc) discordRpc.start(selectedId);
+    else discordRpc.stop();
+    return settings;
+  });
+
+  ipcMain.on('cusade:playback-state', (event, track) => {
+    if (isMainSoundCloudPage(event.sender)) updateDiscordPresence(track);
+  });
+
+  ipcMain.handle('cusade:set-auto-start', (event, enabled) => {
+    if (!isMainSoundCloudPage(event.sender) || typeof enabled !== 'boolean') {
+      throw new Error('Invalid setting');
+    }
+    setAutoStart(enabled, settings.startMinimized);
+    saveSettings({ ...settings, autoStart: enabled });
+    return settings;
+  });
+
+  ipcMain.handle('cusade:set-start-minimized', (event, enabled) => {
+    if (!isMainSoundCloudPage(event.sender) || typeof enabled !== 'boolean') {
+      throw new Error('Invalid setting');
+    }
+    if (settings.autoStart) setAutoStart(true, enabled);
+    saveSettings({ ...settings, startMinimized: enabled });
     return settings;
   });
 
@@ -252,9 +695,12 @@ app.whenReady().then(() => {
     }
   ]));
 
-  createWindow();
+  createTray();
+  createWindow(process.argv.includes('--autostart') &&
+    process.argv.includes('--minimized') && !pendingLaunchUrl);
+  setupUpdates();
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    showMainWindow();
   });
 });
 

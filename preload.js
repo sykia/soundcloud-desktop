@@ -1,9 +1,18 @@
 const { ipcRenderer } = require('electron');
 
 const DEFAULT_ACCENT_COLOR = '#ff5500';
+const DEFAULT_DISCORD_CLIENT_ID = '1555593977367887893';
 const DEFAULT_RADII = { avatarRadius: 50, trackRadius: 3, albumRadius: 3 };
 let panelHost;
 let hideArtistTools = false;
+let hideNearbyEvents = false;
+let blockAudioAds = false;
+let discordRpc = false;
+let discordClientId = DEFAULT_DISCORD_CLIENT_ID;
+let autoStart = false;
+let startMinimized = false;
+let lastDiscordStateKey = '';
+let lastDiscordSync = 0;
 let accentColor = DEFAULT_ACCENT_COLOR;
 let savedAccentColor = DEFAULT_ACCENT_COLOR;
 let playbackVisualization = false;
@@ -426,6 +435,10 @@ function applyArtistToolsVisibility() {
   document.documentElement?.classList.toggle('cusade-hide-artist-tools', hideArtistTools);
 }
 
+function applyNearbyEventsVisibility() {
+  document.documentElement?.classList.toggle('cusade-hide-nearby-events', hideNearbyEvents);
+}
+
 function applyAccentColor() {
   const root = document.documentElement;
   if (!root) return;
@@ -457,6 +470,10 @@ function initializeSettings() {
     html.cusade-hide-artist-tools .newUploadBanner,
     html.cusade-hide-artist-tools .banner,
     html.cusade-hide-artist-tools .sidebarModule:has(iframe[title="Artist tools" i], iframe[src*="/n/embeds/credit-tracker"]) {
+      display: none !important;
+    }
+    html.cusade-hide-nearby-events .mixedModularHome__item:has(.velvetCakeModule > .velvetCakeModule__iframe[src^="https://artist-events.soundcloud.com/banner"]),
+    html.cusade-hide-nearby-events .velvetCakeModule:has(> .velvetCakeModule__iframe[src^="https://artist-events.soundcloud.com/banner"]) {
       display: none !important;
     }
     html.cusade-custom-accent body {
@@ -579,6 +596,13 @@ function initializeSettings() {
 
   ipcRenderer.invoke('cusade:get-settings').then(saved => {
     hideArtistTools = saved.hideArtistTools === true;
+    hideNearbyEvents = saved.hideNearbyEvents === true;
+    blockAudioAds = saved.blockAudioAds === true;
+    discordRpc = saved.discordRpc === true;
+    discordClientId = /^\d{17,20}$/.test(saved.discordClientId)
+      ? saved.discordClientId : DEFAULT_DISCORD_CLIENT_ID;
+    autoStart = saved.autoStart === true;
+    startMinimized = saved.startMinimized === true;
     playbackVisualization = saved.playbackVisualization === true;
     showYourLikesButton = saved.showYourLikesButton !== false;
     appLanguage = saved.appLanguage === 'ru' ? 'ru' : 'site';
@@ -592,14 +616,20 @@ function initializeSettings() {
     savedAccentColor = accentColor;
     settingsLoaded = true;
     applyArtistToolsVisibility();
+    applyNearbyEventsVisibility();
     applyAccentColor();
     applyArtworkRadii();
     updatePanelToggle();
+    updateNearbyEventsToggle();
+    updateAudioAdsToggle();
+    updateDiscordControls();
+    updateAutoStartControls();
     updateVisualizationToggle();
     updateYourLikesToggle();
     updatePanelColor();
     syncPlaybackVisualization();
     syncHomeLikesButton();
+    syncDiscordPresence();
     refreshLocalizedUi();
     scheduleLocalization();
   }).catch(error => console.error('Could not load cusade settings:', error));
@@ -616,6 +646,48 @@ function updatePanelToggle() {
   if (!toggle) return;
   toggle.checked = hideArtistTools;
   toggle.disabled = !settingsLoaded;
+}
+
+function updateNearbyEventsToggle() {
+  const toggle = panelHost?.shadowRoot.querySelector('#hide-nearby-events');
+  if (!toggle) return;
+  toggle.checked = hideNearbyEvents;
+  toggle.disabled = !settingsLoaded;
+}
+
+function updateAudioAdsToggle() {
+  const toggle = panelHost?.shadowRoot.querySelector('#block-audio-ads');
+  if (!toggle) return;
+  toggle.checked = blockAudioAds;
+  toggle.disabled = !settingsLoaded;
+}
+
+function updateDiscordControls() {
+  const shadow = panelHost?.shadowRoot;
+  const toggle = shadow?.querySelector('#discord-rpc');
+  const input = shadow?.querySelector('#discord-client-id');
+  if (toggle) {
+    toggle.checked = discordRpc;
+    toggle.disabled = !settingsLoaded;
+  }
+  if (input) {
+    input.value = discordClientId;
+    input.disabled = !settingsLoaded;
+  }
+}
+
+function updateAutoStartControls() {
+  const shadow = panelHost?.shadowRoot;
+  const toggle = shadow?.querySelector('#auto-start');
+  const minimized = shadow?.querySelector('#start-minimized');
+  if (toggle) {
+    toggle.checked = autoStart;
+    toggle.disabled = !settingsLoaded;
+  }
+  if (minimized) {
+    minimized.checked = startMinimized;
+    minimized.disabled = !settingsLoaded || !autoStart;
+  }
 }
 
 function updateVisualizationToggle() {
@@ -801,6 +873,41 @@ function syncPlaybackVisualization() {
   times[1].textContent = document.querySelector('.playbackTimeline__duration [aria-hidden="true"]')?.textContent || '0:00';
 }
 
+function playbackSeconds(value) {
+  const parts = value.trim().split(':').map(Number);
+  if (parts.length < 2 || parts.length > 3 || parts.some(part => !Number.isInteger(part) || part < 0)) return 0;
+  return parts.reduce((total, part) => total * 60 + part, 0);
+}
+
+function syncDiscordPresence() {
+  if (!discordRpc || !discordClientId) return;
+  const badge = document.querySelector('.playbackSoundBadge');
+  const titleLink = badge?.querySelector('.playbackSoundBadge__titleLink');
+  const artistLink = badge?.querySelector('.playbackSoundBadge__lightLink');
+  if (!titleLink?.href || !artistLink?.textContent.trim()) {
+    if (lastDiscordStateKey) ipcRenderer.send('cusade:playback-state', null);
+    lastDiscordStateKey = '';
+    return;
+  }
+  const title = titleLink.title || titleLink.querySelector('[aria-hidden="true"]')?.textContent || titleLink.textContent;
+  const artwork = badge.querySelector('.image__full')?.style.backgroundImage.match(/url\(["']?(.*?)["']?\)/)?.[1]
+    ?.replace(/-t\d+x\d+\./, '-t500x500.');
+  const paused = badge.classList.contains('paused');
+  const key = `${titleLink.href}|${title}|${artistLink.textContent}|${artwork}|${paused}`;
+  if (key === lastDiscordStateKey && Date.now() - lastDiscordSync < 5000) return;
+  lastDiscordStateKey = key;
+  lastDiscordSync = Date.now();
+  ipcRenderer.send('cusade:playback-state', {
+    title: title?.trim() || '',
+    artist: artistLink.textContent.trim(),
+    artwork: artwork || '',
+    url: titleLink.href,
+    paused,
+    elapsed: playbackSeconds(document.querySelector('.playbackTimeline__timePassed [aria-hidden="true"]')?.textContent || ''),
+    duration: playbackSeconds(document.querySelector('.playbackTimeline__duration [aria-hidden="true"]')?.textContent || '')
+  });
+}
+
 function waitForPageElement(selector, path, timeout = 15000) {
   return new Promise((resolve, reject) => {
     const started = Date.now();
@@ -921,6 +1028,7 @@ setInterval(() => {
   syncArtworkPage();
   syncPlaybackVisualization();
   syncHomeLikesButton();
+  syncDiscordPresence();
 }, 750);
 
 function updatePanelColor() {
@@ -983,6 +1091,7 @@ function togglePanel() {
       .color-setting { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; }
       .color-control { display: flex; align-items: center; gap: 8px; }
       input[type="color"] { width: 42px; height: 34px; padding: 2px; border: 1px solid color-mix(in srgb, var(--font-primary-color, #fff) 25%, transparent); border-radius: 7px; background: var(--button-secondary-background-color, #242424); cursor: pointer; }
+      .text-input { width: 100%; margin-top: 8px; padding: 8px 10px; border: 1px solid color-mix(in srgb, var(--font-primary-color, #fff) 25%, transparent); border-radius: 7px; background: var(--button-secondary-background-color, #242424); color: var(--font-primary-color, #fff); font: inherit; }
       .color-value { min-width: 68px; color: var(--font-secondary-color, #aaa); font: 12px ui-monospace, monospace; }
       .radius-setting { display: grid; grid-template-columns: 74px 1fr 35px; align-items: center; gap: 10px; margin-top: 10px; }
       .radius-setting input { width: 100%; accent-color: var(--cusade-accent, #ff5500); cursor: pointer; }
@@ -1003,6 +1112,16 @@ function togglePanel() {
           <input id="hide-artist-tools" type="checkbox" disabled>
         </label>
         <label class="setting" style="margin-top: 18px">
+          <span><span class="setting-name">${ui('Скрыть «События рядом»', 'Hide Events near you')}</span>
+          <span class="hint">${ui('Убирает весь баннер с главной страницы.', 'Removes the entire banner from the home page.')}</span></span>
+          <input id="hide-nearby-events" type="checkbox" disabled>
+        </label>
+        <label class="setting" style="margin-top: 18px">
+          <span><span class="setting-name">${ui('Скрыть рекламу', 'Hide ads')}</span>
+          <span class="hint">${ui('Блокирует аудиорекламу при запуске следующих треков.', 'Blocks audio ads when starting the next tracks.')}</span></span>
+          <input id="block-audio-ads" type="checkbox" disabled>
+        </label>
+        <label class="setting" style="margin-top: 18px">
           <span><span class="setting-name">${ui('Визуализация воспроизведения', 'Playback visualization')}</span>
           <span class="hint">${ui('Показывает текущий трек над подборками на главной.', 'Shows the current track above the home page recommendations.')}</span></span>
           <input id="playback-visualization" type="checkbox" disabled>
@@ -1012,6 +1131,28 @@ function togglePanel() {
           <span class="hint">${ui('Кнопка перемешивания лайков вверху правого столбца.', 'Shuffle button at the top of the right sidebar.')}</span></span>
           <input id="show-your-likes-button" type="checkbox" disabled>
         </label>
+        <div class="section">
+          <label class="setting">
+            <span><span class="setting-name">Discord RPC</span>
+            <span class="hint">${ui('Показывает трек, исполнителя, обложку и время воспроизведения в Discord.', 'Shows the track, artist, artwork and playback time in Discord.')}</span></span>
+            <input id="discord-rpc" type="checkbox" disabled>
+          </label>
+          <label class="hint" for="discord-client-id">${ui('ID приложения Discord', 'Discord Application ID')}</label>
+          <input class="text-input" id="discord-client-id" type="text" inputmode="numeric" maxlength="20" placeholder="123456789012345678" disabled>
+          <span class="hint">${ui('По умолчанию используется ID cusade. Очистите поле, чтобы вернуть его.', 'Uses the cusade ID by default. Clear the field to restore it.')}</span>
+        </div>
+        <div class="section">
+          <label class="setting">
+            <span><span class="setting-name">${ui('Автозапуск', 'Start with system')}</span>
+            <span class="hint">${ui('Запускать приложение при входе в систему.', 'Launch the app when you sign in.')}</span></span>
+            <input id="auto-start" type="checkbox" disabled>
+          </label>
+          <label class="setting" style="margin-top: 18px">
+            <span><span class="setting-name">${ui('Запускать свёрнутым', 'Start minimized')}</span>
+            <span class="hint">${ui('При автозапуске оставлять окно в системном трее.', 'Keep the window in the system tray on automatic start.')}</span></span>
+            <input id="start-minimized" type="checkbox" disabled>
+          </label>
+        </div>
         <label class="color-setting">
           <span><span class="setting-name">${ui('Основной цвет', 'Accent color')}</span>
           <span class="hint">${ui('Выберите цвет акцентов SoundCloud.', 'Choose the SoundCloud accent color.')}</span></span>
@@ -1046,6 +1187,38 @@ function togglePanel() {
       updatePanelToggle();
     }
   });
+  const nearbyEventsToggle = shadow.querySelector('#hide-nearby-events');
+  nearbyEventsToggle.addEventListener('change', async () => {
+    const previous = hideNearbyEvents;
+    hideNearbyEvents = nearbyEventsToggle.checked;
+    applyNearbyEventsVisibility();
+    nearbyEventsToggle.disabled = true;
+    try {
+      await ipcRenderer.invoke('cusade:set-hide-nearby-events', hideNearbyEvents);
+    } catch (error) {
+      hideNearbyEvents = previous;
+      applyNearbyEventsVisibility();
+      shadow.querySelector('.status').textContent = ui('Не удалось сохранить настройку.', 'Could not save the setting.');
+      console.error('Could not save cusade nearby events visibility:', error);
+    } finally {
+      updateNearbyEventsToggle();
+    }
+  });
+  const audioAdsToggle = shadow.querySelector('#block-audio-ads');
+  audioAdsToggle.addEventListener('change', async () => {
+    const previous = blockAudioAds;
+    blockAudioAds = audioAdsToggle.checked;
+    audioAdsToggle.disabled = true;
+    try {
+      await ipcRenderer.invoke('cusade:set-block-audio-ads', blockAudioAds);
+    } catch (error) {
+      blockAudioAds = previous;
+      shadow.querySelector('.status').textContent = ui('Не удалось сохранить настройку.', 'Could not save the setting.');
+      console.error('Could not save cusade audio ad blocking:', error);
+    } finally {
+      updateAudioAdsToggle();
+    }
+  });
   const visualizationToggle = shadow.querySelector('#playback-visualization');
   visualizationToggle.addEventListener('change', async () => {
     const previous = playbackVisualization;
@@ -1078,6 +1251,75 @@ function togglePanel() {
       console.error('Could not save cusade Your likes visibility:', error);
     } finally {
       updateYourLikesToggle();
+    }
+  });
+  const discordToggle = shadow.querySelector('#discord-rpc');
+  discordToggle.addEventListener('change', async () => {
+    const previous = discordRpc;
+    discordRpc = discordToggle.checked;
+    discordToggle.disabled = true;
+    try {
+      await ipcRenderer.invoke('cusade:set-discord-rpc', discordRpc);
+      if (discordRpc) syncDiscordPresence();
+      else lastDiscordStateKey = '';
+    } catch (error) {
+      discordRpc = previous;
+      shadow.querySelector('.status').textContent = ui('Не удалось изменить Discord RPC.', 'Could not change Discord RPC.');
+      console.error('Could not change Discord RPC:', error);
+    } finally {
+      updateDiscordControls();
+    }
+  });
+  const discordIdInput = shadow.querySelector('#discord-client-id');
+  discordIdInput.addEventListener('change', async () => {
+    const selected = discordIdInput.value.trim();
+    if (selected && !/^\d{17,20}$/.test(selected)) {
+      shadow.querySelector('.status').textContent = ui('ID Discord должен содержать 17–20 цифр.', 'Discord ID must contain 17–20 digits.');
+      updateDiscordControls();
+      return;
+    }
+    discordIdInput.disabled = true;
+    try {
+      const saved = await ipcRenderer.invoke('cusade:set-discord-client-id', selected);
+      discordClientId = saved.discordClientId;
+      discordRpc = saved.discordRpc;
+      lastDiscordStateKey = '';
+      syncDiscordPresence();
+    } catch (error) {
+      shadow.querySelector('.status').textContent = ui('Не удалось сохранить ID Discord.', 'Could not save Discord ID.');
+      console.error('Could not save Discord ID:', error);
+    } finally {
+      updateDiscordControls();
+    }
+  });
+  const autoStartToggle = shadow.querySelector('#auto-start');
+  autoStartToggle.addEventListener('change', async () => {
+    const previous = autoStart;
+    autoStart = autoStartToggle.checked;
+    autoStartToggle.disabled = true;
+    try {
+      await ipcRenderer.invoke('cusade:set-auto-start', autoStart);
+    } catch (error) {
+      autoStart = previous;
+      shadow.querySelector('.status').textContent = ui('Не удалось настроить автозапуск.', 'Could not configure autostart.');
+      console.error('Could not configure autostart:', error);
+    } finally {
+      updateAutoStartControls();
+    }
+  });
+  const minimizedToggle = shadow.querySelector('#start-minimized');
+  minimizedToggle.addEventListener('change', async () => {
+    const previous = startMinimized;
+    startMinimized = minimizedToggle.checked;
+    minimizedToggle.disabled = true;
+    try {
+      await ipcRenderer.invoke('cusade:set-start-minimized', startMinimized);
+    } catch (error) {
+      startMinimized = previous;
+      shadow.querySelector('.status').textContent = ui('Не удалось настроить запуск свёрнутым.', 'Could not configure minimized start.');
+      console.error('Could not configure minimized start:', error);
+    } finally {
+      updateAutoStartControls();
     }
   });
   const picker = shadow.querySelector('#accent-color');
@@ -1124,8 +1366,12 @@ function togglePanel() {
   }
   document.body.appendChild(panelHost);
   updatePanelToggle();
+  updateNearbyEventsToggle();
+  updateAudioAdsToggle();
   updateVisualizationToggle();
   updateYourLikesToggle();
+  updateDiscordControls();
+  updateAutoStartControls();
   updatePanelColor();
   updateArtworkRadiusControls();
 }

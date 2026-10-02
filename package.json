@@ -1,6 +1,6 @@
 {
   "name": "soundcloud-desktop",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "private": true,
   "description": "SoundCloud desktop client with playback and interface customization",
   "author": {
@@ -12,8 +12,8 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "check": "node --check main.js && node --check preload.js",
-    "dist:linux": "electron-builder --linux pacman --x64 --publish never",
+    "check": "node --check main.js && node --check preload.js && node --check discord-rpc.js",
+    "dist:linux": "electron-builder --linux AppImage deb rpm pacman --x64 --publish never",
     "dist:win": "electron-builder --win nsis --x64 --publish never"
   },
   "devDependencies": {
@@ -23,17 +23,35 @@
   "build": {
     "appId": "io.github.sykia.soundcloud-desktop",
     "productName": "SoundCloud Desktop",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "sykia",
+        "repo": "soundcloud-desktop"
+      }
+    ],
     "directories": {
       "output": "dist"
     },
     "files": [
       "main.js",
+      "discord-rpc.js",
       "preload.js",
       "package.json",
-      "build/icons/512x512.png"
+      "build/icons/512x512.png",
+      "build/icons/32x32.png",
+      "build/icon.ico"
     ],
     "linux": {
-      "target": "pacman",
+      "target": [
+        "AppImage",
+        "deb",
+        "rpm",
+        "pacman"
+      ],
+      "mimeTypes": [
+        "x-scheme-handler/soundcloud-desktop"
+      ],
       "icon": "build/icons",
       "category": "AudioVideo",
       "synopsis": "SoundCloud desktop client",
@@ -53,8 +71,25 @@
         "libsecret"
       ]
     },
+    "appImage": {
+      "artifactName": "SoundCloud-Desktop-${version}-x86_64.AppImage"
+    },
+    "deb": {
+      "artifactName": "soundcloud-desktop_${version}_amd64.deb"
+    },
+    "rpm": {
+      "artifactName": "soundcloud-desktop-${version}-1.x86_64.rpm"
+    },
     "win": {
       "target": "nsis",
+      "protocols": [
+        {
+          "name": "SoundCloud Desktop",
+          "schemes": [
+            "soundcloud-desktop"
+          ]
+        }
+      ],
       "icon": "build/icon.ico",
       "executableName": "SoundCloud Desktop"
     },
@@ -66,5 +101,8 @@
       "createStartMenuShortcut": true,
       "shortcutName": "SoundCloud Desktop"
     }
+  },
+  "dependencies": {
+    "electron-updater": "6.8.10"
   }
 }
