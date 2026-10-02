@@ -1,9 +1,12 @@
 {
   "name": "soundcloud-desktop",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "SoundCloud desktop client with playback and interface customization",
-  "author": { "name": "cusae", "email": "cusae@mail.ru" },
+  "author": {
+    "name": "cusae",
+    "email": "cusae@mail.ru"
+  },
   "homepage": "https://github.com/sykia/soundcloud-desktop",
   "desktopName": "io.github.sykia.soundcloud-desktop.desktop",
   "main": "main.js",
@@ -20,8 +23,15 @@
   "build": {
     "appId": "io.github.sykia.soundcloud-desktop",
     "productName": "SoundCloud Desktop",
-    "directories": { "output": "dist" },
-    "files": ["main.js", "preload.js", "package.json", "build/icons/512x512.png"],
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "package.json",
+      "build/icons/512x512.png"
+    ],
     "linux": {
       "target": "pacman",
       "icon": "build/icons",
@@ -33,7 +43,15 @@
     "pacman": {
       "compression": "zstd",
       "artifactName": "soundcloud-desktop-${version}-1-x86_64.pkg.tar.zst",
-      "depends": ["gtk3", "nss", "libxss", "libxtst", "xdg-utils", "at-spi2-core", "libsecret"]
+      "depends": [
+        "gtk3",
+        "nss",
+        "libxss",
+        "libxtst",
+        "xdg-utils",
+        "at-spi2-core",
+        "libsecret"
+      ]
     },
     "win": {
       "target": "nsis",
