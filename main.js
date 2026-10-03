@@ -1,6 +1,6 @@
 const path = require('node:path');
 const fs = require('node:fs');
-const { app, BrowserWindow, Menu, Tray, Notification, ipcMain, session, shell } = require('electron');
+const { app, BrowserWindow, Menu, Tray, Notification, ipcMain, session, shell, dialog, clipboard, ClipboardItem, nativeImage } = require('electron');
 const discordRpc = require('./discord-rpc');
 
 const HOME_URL = 'https://soundcloud.com/';
@@ -32,6 +32,10 @@ let dnsServerIndex = 0;
 let pendingLaunchUrl = null;
 let lastPresenceKey = '';
 let lastPresenceSent = 0;
+let insights = { sessions: [] };
+let lastInsightEntry;
+let insightsSaveTimer;
+let insightsDirty = false;
 let settings = {
   hideArtistTools: false,
   hideNearbyEvents: false,
@@ -43,6 +47,8 @@ let settings = {
   accentColor: DEFAULT_ACCENT_COLOR,
   playbackVisualization: false,
   showYourLikesButton: true,
+  insightsHiddenUntil: 0,
+  insightsLayout: { location: 'sidebar', index: 0, width: 0, height: 0 },
   appLanguage: 'site',
   ...DEFAULT_RADII
 };
@@ -55,12 +61,66 @@ function isArtworkRadius(value) {
   return Number.isInteger(value) && value >= 0 && value <= 50;
 }
 
+function isInsightsLayout(value) {
+  return value && typeof value === 'object' &&
+    ['sidebar', 'main', 'feed'].includes(value.location) &&
+    Number.isInteger(value.index) && value.index >= 0 && value.index <= 100 &&
+    Number.isInteger(value.width) && (value.width === 0 || value.width >= 240 && value.width <= 900) &&
+    Number.isInteger(value.height) && (value.height === 0 || value.height >= 120 && value.height <= 800);
+}
+
 function isMainSoundCloudPage(contents) {
   return mainWindow && contents === mainWindow.webContents && isSoundCloudUrl(contents.getURL());
 }
 
 function settingsPath() {
   return path.join(app.getPath('userData'), 'settings.json');
+}
+
+function insightsPath() {
+  return path.join(app.getPath('userData'), 'insights.json');
+}
+
+function loadInsights() {
+  try {
+    const saved = JSON.parse(fs.readFileSync(insightsPath(), 'utf8'));
+    if (Array.isArray(saved.sessions)) insights.sessions = saved.sessions.slice(-20000);
+  } catch (error) {
+    if (error.code !== 'ENOENT') console.error('Could not load cusade Insights:', error);
+  }
+}
+
+function saveInsights() {
+  const file = insightsPath();
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const temporary = `${file}.tmp`;
+  fs.writeFileSync(temporary, JSON.stringify(insights), { mode: 0o600 });
+  fs.renameSync(temporary, file);
+  insightsDirty = false;
+}
+
+function scheduleInsightsSave() {
+  insightsDirty = true;
+  if (insightsSaveTimer) return;
+  insightsSaveTimer = setTimeout(() => {
+    insightsSaveTimer = undefined;
+    try { saveInsights(); }
+    catch (error) {
+      console.error('Could not save cusade Insights:', error);
+      if (insightsDirty) scheduleInsightsSave();
+    }
+  }, 15000);
+}
+
+function validInsightSample(sample) {
+  return sample && typeof sample === 'object' &&
+    typeof sample.sessionId === 'string' && /^[a-zA-Z0-9-]{8,80}$/.test(sample.sessionId) &&
+    typeof sample.title === 'string' && sample.title.length > 0 && sample.title.length <= 300 &&
+    typeof sample.artist === 'string' && sample.artist.length > 0 && sample.artist.length <= 300 &&
+    typeof sample.url === 'string' && sample.url.length <= 2048 && isSoundCloudUrl(sample.url) &&
+    (sample.artwork === '' || (typeof sample.artwork === 'string' &&
+      sample.artwork.length <= 2048 && /^https:\/\/([a-z0-9-]+\.)*sndcdn\.com\//i.test(sample.artwork))) &&
+    Number.isInteger(sample.seconds) && sample.seconds >= 1 && sample.seconds <= 10;
 }
 
 function loadSettings() {
@@ -76,6 +136,10 @@ function loadSettings() {
     settings.startMinimized = saved.startMinimized === true;
     settings.playbackVisualization = saved.playbackVisualization === true;
     settings.showYourLikesButton = saved.showYourLikesButton !== false;
+    settings.insightsHiddenUntil = Number.isFinite(saved.insightsHiddenUntil) && saved.insightsHiddenUntil > 0
+      ? saved.insightsHiddenUntil : 0;
+    settings.insightsLayout = isInsightsLayout(saved.insightsLayout)
+      ? saved.insightsLayout : { location: 'sidebar', index: 0, width: 0, height: 0 };
     settings.appLanguage = saved.appLanguage === 'ru' ? 'ru' : 'site';
     for (const key of Object.keys(DEFAULT_RADII)) {
       settings[key] = isArtworkRadius(saved[key]) ? saved[key] : DEFAULT_RADII[key];
@@ -518,14 +582,23 @@ app.on('before-quit', () => {
   isQuitting = true;
   clearTimeout(initialUpdateTimer);
   clearInterval(updateTimer);
+  clearTimeout(insightsSaveTimer);
+  if (insightsDirty) {
+    try { saveInsights(); }
+    catch (error) { console.error('Could not save cusade Insights on exit:', error); }
+  }
   discordRpc.stop();
 });
+for (const signal of ['SIGINT', 'SIGTERM']) {
+  process.once(signal, () => app.quit());
+}
 
 if (hasInstanceLock) app.whenReady().then(() => {
   app.setAppUserModelId('io.github.sykia.soundcloud-desktop');
   configureDnsServer(0);
 
   loadSettings();
+  loadInsights();
   if (settings.autoStart) {
     try { setAutoStart(true, settings.startMinimized); }
     catch (error) { console.error('Could not restore autostart:', error); }
@@ -546,6 +619,76 @@ if (hasInstanceLock) app.whenReady().then(() => {
   ipcMain.handle('cusade:get-settings', event => {
     if (!isMainSoundCloudPage(event.sender)) throw new Error('Unavailable');
     return settings;
+  });
+
+  ipcMain.handle('cusade:get-insights', event => {
+    if (!isMainSoundCloudPage(event.sender)) throw new Error('Unavailable');
+    return insights.sessions;
+  });
+
+  ipcMain.handle('cusade:hide-insights', event => {
+    if (!isMainSoundCloudPage(event.sender)) throw new Error('Unavailable');
+    saveSettings({ ...settings, insightsHiddenUntil: Date.now() + 3 * 24 * 60 * 60 * 1000 });
+    return settings.insightsHiddenUntil;
+  });
+
+  ipcMain.handle('cusade:show-insights', event => {
+    if (!isMainSoundCloudPage(event.sender)) throw new Error('Unavailable');
+    saveSettings({ ...settings, insightsHiddenUntil: 0 });
+    return true;
+  });
+
+  ipcMain.handle('cusade:set-insights-layout', (event, layout) => {
+    if (!isMainSoundCloudPage(event.sender) || !isInsightsLayout(layout)) {
+      throw new Error('Invalid Insights layout');
+    }
+    saveSettings({ ...settings, insightsLayout: layout });
+    return settings.insightsLayout;
+  });
+
+  ipcMain.handle('cusade:record-insight', (event, sample) => {
+    if (!isMainSoundCloudPage(event.sender) || !validInsightSample(sample)) {
+      throw new Error('Invalid listening sample');
+    }
+    let entry = lastInsightEntry?.id === sample.sessionId
+      ? lastInsightEntry : insights.sessions.find(session => session.id === sample.sessionId);
+    if (!entry) {
+      entry = { id: sample.sessionId, title: sample.title, artist: sample.artist,
+        url: sample.url, artwork: sample.artwork, startedAt: Date.now(),
+        lastPlayedAt: Date.now(), seconds: 0 };
+      insights.sessions.push(entry);
+      if (insights.sessions.length > 20000) insights.sessions.shift();
+    }
+    if (entry.url !== sample.url) throw new Error('Session track mismatch');
+    lastInsightEntry = entry;
+    entry.seconds += sample.seconds;
+    entry.lastPlayedAt = Date.now();
+    scheduleInsightsSave();
+    return true;
+  });
+
+  ipcMain.handle('cusade:export-insight-card', async (event, dataUrl, action) => {
+    if (!isMainSoundCloudPage(event.sender) || !['save', 'copy'].includes(action) ||
+        typeof dataUrl !== 'string' || dataUrl.length > 6_000_000 ||
+        !dataUrl.startsWith('data:image/png;base64,')) throw new Error('Invalid image');
+    const image = nativeImage.createFromDataURL(dataUrl);
+    if (image.isEmpty() || image.getSize().width !== 1200 || image.getSize().height !== 630) {
+      throw new Error('Invalid card size');
+    }
+    if (action === 'copy') {
+      await clipboard.write([new ClipboardItem({
+        'image/png': new Blob([image.toPNG()], { type: 'image/png' })
+      })]);
+      return true;
+    }
+    const result = await dialog.showSaveDialog(mainWindow, {
+      title: 'Сохранить карточку cusade Insights',
+      defaultPath: `cusade-insights-${new Date().toISOString().slice(0, 10)}.png`,
+      filters: [{ name: 'PNG', extensions: ['png'] }]
+    });
+    if (result.canceled || !result.filePath) return false;
+    fs.writeFileSync(result.filePath, image.toPNG());
+    return true;
   });
 
   ipcMain.handle('cusade:set-hide-artist-tools', (event, enabled) => {
