@@ -812,6 +812,88 @@ function initializeSettings() {
       .cusade-insights-banner button, .cusade-insights-editbar button):active:not(:disabled) {
       transform: scale(.96);
     }
+    html.cusade-animations :is(.soundList__item, .searchList__item, .trackList__item,
+      .usersList__item, .soundBadgeList__item, .commentBadgeList__item,
+      .userStreamItem, .playableTile) {
+      animation: cusade-content-enter 280ms cubic-bezier(.2,.75,.25,1) backwards;
+    }
+    html.cusade-animations :is(.soundList__item, .searchList__item, .trackList__item,
+      .usersList__item, .soundBadgeList__item, .commentBadgeList__item,
+      .userStreamItem, .searchItem, .trackItem, .userBadge, .soundBadge,
+      .commentBadge, .profileTabs a, .userNetworkTabs a, .header__navMenuItem) {
+      transition: background-color 200ms ease, border-color 200ms ease,
+        box-shadow 220ms ease, color 180ms ease, opacity 180ms ease;
+    }
+    html.cusade-animations :is(.soundList__item, .searchList__item, .trackList__item,
+      .usersList__item, .soundBadgeList__item, .commentBadgeList__item,
+      .userStreamItem, .searchItem, .trackItem, .userBadge, .soundBadge,
+      .commentBadge):hover {
+      background-color: color-mix(in srgb, var(--font-primary-color, #fff) 5%, transparent);
+      box-shadow: 0 5px 18px #00000012;
+    }
+    html.cusade-animations :is(.sound__coverArt, .trackItem__image, .soundBadge__artwork,
+      .userBadge__avatar, .profileHeaderInfo__avatar, .listenArtworkWrapper__artwork,
+      .commentPopover__avatar, .commentForm__avatar) .image {
+      transition: transform 260ms cubic-bezier(.2,.75,.25,1),
+        filter 220ms ease, opacity 220ms ease;
+    }
+    html.cusade-animations :is(.sound__coverArt, .trackItem__image, .soundBadge__artwork,
+      .userBadge__avatar, .profileHeaderInfo__avatar, .listenArtworkWrapper__artwork,
+      .commentPopover__avatar, .commentForm__avatar):hover .image {
+      transform: scale(1.045);
+    }
+    html.cusade-animations :is(.profileHeaderInfo, .userNetworkInfo, .listenInfo,
+      .listenEngagement, .sidebarModule, .commentsModule, .likesModule) {
+      animation: cusade-content-enter 300ms cubic-bezier(.2,.75,.25,1) backwards;
+    }
+    html.cusade-animations :is(.profileHeaderBackground__visual, .listenArtworkWrapper__artwork) {
+      transition: filter 280ms ease, opacity 280ms ease;
+    }
+    html.cusade-animations :is(.profileTabs a, .userNetworkTabs a, .header__navMenuItem):hover {
+      box-shadow: inset 0 -2px currentColor;
+    }
+    html.cusade-animations :is(.sc-button-icon, .sc-button-like, .sc-button-follow,
+      .sc-button-repost, .sc-button-share, .sc-button-more, .sc-button-copylink,
+      .sc-button-play, .playControls__control, .volume__button,
+      .header__moreButton, .headerSearch__submit, .userNetwork__likeActions button) {
+      transition: transform 170ms cubic-bezier(.2,.75,.25,1), filter 170ms ease,
+        color 170ms ease, background-color 170ms ease, box-shadow 170ms ease;
+    }
+    html.cusade-animations :is(.sc-button-icon, .sc-button-like, .sc-button-follow,
+      .sc-button-repost, .sc-button-share, .sc-button-more, .sc-button-copylink,
+      .sc-button-play, .playControls__control, .volume__button,
+      .header__moreButton, .headerSearch__submit, .userNetwork__likeActions button):hover:not(:disabled) {
+      transform: scale(1.08);
+    }
+    html.cusade-animations :is(.sc-button-icon, .sc-button-like, .sc-button-follow,
+      .sc-button-repost, .sc-button-share, .sc-button-more, .sc-button-copylink,
+      .sc-button-play, .playControls__control, .volume__button,
+      .header__moreButton, .headerSearch__submit, .userNetwork__likeActions button):active:not(:disabled) {
+      transform: scale(.93);
+    }
+    html.cusade-animations :is(.sc-button-like, .sc-button-follow, .sc-button-repost):is(
+      .sc-button-selected, .sc-button-active, [aria-pressed="true"]) {
+      animation: cusade-action-pop 260ms cubic-bezier(.2,.75,.25,1);
+    }
+    html.cusade-animations :is(.volume__sliderProgress, .playbackTimeline__progressBar) {
+      transition: width 180ms linear, background-color 180ms ease;
+    }
+    html.cusade-animations .volume__sliderHandle {
+      transition: box-shadow 180ms ease, filter 180ms ease;
+    }
+    html.cusade-animations .volume__sliderWrapper:hover .volume__sliderHandle {
+      box-shadow: 0 0 0 5px color-mix(in srgb, var(--font-primary-color, #fff) 16%, transparent);
+    }
+    html.cusade-animations :is(.commentPopover, .userDropbar, .playControlsPanel):not([hidden]) {
+      animation: cusade-menu-enter 180ms cubic-bezier(.2,.75,.25,1) both;
+    }
+    @keyframes cusade-content-enter {
+      from { opacity: 0; transform: translateY(7px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes cusade-action-pop {
+      50% { transform: scale(1.16); }
+    }
     @keyframes cusade-menu-enter {
       from { opacity: 0; transform: translateY(-5px) scale(.98); }
       to { opacity: 1; transform: translateY(0) scale(1); }
@@ -821,10 +903,38 @@ function initializeSettings() {
         .playableTile, .sidebarModule, .cusade-insights-banner, .cusade-visualization,
         .playableTile__image, .playableTile__imageOverlay, .image.sc-artwork,
         .image.sc-artwork .image__full, .cusade-visualization__art,
-        .soundList__item, .searchItem, .commentItem, .header__navMenuItem,
+        .soundList__item, .searchList__item, .trackList__item, .usersList__item,
+        .soundBadgeList__item, .commentBadgeList__item, .userStreamItem,
+        .searchItem, .trackItem, .userBadge, .soundBadge, .commentBadge,
+        .commentItem, .header__navMenuItem, .profileTabs a, .userNetworkTabs a,
+        .profileHeaderInfo, .userNetworkInfo, .listenInfo, .listenEngagement,
+        .commentsModule, .likesModule, .profileHeaderBackground__visual,
+        .listenArtworkWrapper__artwork, .sound__coverArt .image,
+        .trackItem__image .image, .soundBadge__artwork .image,
+        .userBadge__avatar .image, .profileHeaderInfo__avatar .image,
+        .commentPopover__avatar .image, .commentForm__avatar .image,
+        .sc-button-icon, .sc-button-like, .sc-button-follow, .sc-button-repost,
+        .sc-button-share, .sc-button-more, .sc-button-copylink, .sc-button-play,
+        .playControls__control, .volume__button,
+        .header__moreButton, .headerSearch__submit, .userNetwork__likeActions button,
+        .volume__sliderProgress, .volume__sliderHandle, .playbackTimeline__progressBar,
+        .commentPopover, .userDropbar, .playControlsPanel,
         .dropdownMenu, [role="menu"]) {
         animation: none !important;
         transition: none !important;
+      }
+      html.cusade-animations :is(.playableTile, .cusade-insights-banner,
+        .cusade-visualization__play, .cusade-likes-shuffle__button,
+        .cusade-insights-banner button, .cusade-insights-editbar button,
+        .playableTile__image, .image.image__rounded, .cusade-visualization__art,
+        .sound__coverArt .image, .trackItem__image .image,
+        .soundBadge__artwork .image, .userBadge__avatar .image,
+        .profileHeaderInfo__avatar .image, .listenArtworkWrapper__artwork .image,
+        .commentPopover__avatar .image, .commentForm__avatar .image,
+        .sc-button-icon, .sc-button-like, .sc-button-follow, .sc-button-repost,
+        .sc-button-share, .sc-button-more, .sc-button-copylink, .sc-button-play,
+        .playControls__control, .volume__button, .header__moreButton,
+        .headerSearch__submit, .userNetwork__likeActions button):is(:hover, :active) {
         transform: none !important;
       }
     }

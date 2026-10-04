@@ -1,6 +1,6 @@
 {
   "name": "soundcloud-desktop",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "private": true,
   "description": "SoundCloud desktop client with playback and interface customization",
   "author": {
