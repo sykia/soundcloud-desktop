@@ -4,6 +4,8 @@ const DEFAULT_ACCENT_COLOR = '#ff5500';
 const DEFAULT_DISCORD_CLIENT_ID = '1555593977367887893';
 const DEFAULT_RADII = { avatarRadius: 50, trackRadius: 3, albumRadius: 3 };
 let panelHost;
+let updateHost;
+let currentUpdateState;
 let hideArtistTools = false;
 let hideNearbyEvents = false;
 let blockAudioAds = false;
@@ -16,9 +18,13 @@ let lastDiscordSync = 0;
 let accentColor = DEFAULT_ACCENT_COLOR;
 let savedAccentColor = DEFAULT_ACCENT_COLOR;
 let playbackVisualization = false;
+let animations = false;
 let settingsLoaded = false;
 let visualizationHost;
 let visualizedTrackUrl = '';
+let visualizationPendingTrack;
+let visualizationSwitchTimer;
+let lastAnimatedBadgeUrl = '';
 let likesShuffleHost;
 let likesShuffleInProgress = false;
 let insightsBanner;
@@ -521,6 +527,14 @@ function applyArtworkRadii() {
   updateArtworkRadiusControls();
 }
 
+function applyAnimations() {
+  document.documentElement?.classList.toggle('cusade-animations', animations);
+  panelHost?.classList.toggle('cusade-animations', animations);
+  insightsHost?.classList.toggle('cusade-animations', animations);
+  updateHost?.classList.toggle('cusade-animations', animations);
+  if (!animations) finishPlaybackSwitch();
+}
+
 function syncArtworkPage() {
   document.documentElement?.classList.toggle('cusade-set-page', /(^|\/)sets\//.test(location.pathname));
 }
@@ -617,6 +631,37 @@ function initializeSettings() {
       color: #e4f4fa; font-size: 12px; }
     .cusade-visualization__art { flex: none; width: min(30%, 280px); aspect-ratio: 1;
       align-self: center; border-radius: 12px; object-fit: cover; box-shadow: 0 12px 30px #0005; }
+    html.cusade-animations .cusade-visualization :is(.cusade-visualization__meta,
+      .cusade-visualization__art, .cusade-visualization__wave, .cusade-visualization__times) {
+      transition: opacity 200ms ease, transform 200ms ease;
+    }
+    html.cusade-animations .cusade-visualization--switching
+      :is(.cusade-visualization__meta, .cusade-visualization__art,
+        .cusade-visualization__wave, .cusade-visualization__times),
+    html.cusade-animations .cusade-visualization__art--changing {
+      opacity: 0;
+      transform: translateY(5px);
+    }
+    html.cusade-animations .cusade-visualization__bars--played {
+      transition: clip-path 360ms ease;
+    }
+    html.cusade-animations .cusade-visualization__bars span {
+      transition: height 320ms ease;
+    }
+    html.cusade-animations .playbackTimeline__progressBar {
+      transition: width 220ms linear, transform 220ms linear;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html.cusade-animations .cusade-visualization
+        :is(.cusade-visualization__meta, .cusade-visualization__art,
+          .cusade-visualization__wave, .cusade-visualization__times,
+          .cusade-visualization__bars--played, .cusade-visualization__bars span) {
+        transition: none;
+        opacity: 1;
+        transform: none;
+      }
+      html.cusade-animations .playbackTimeline__progressBar { transition: none; }
+    }
     @media (max-width: 900px) {
       .cusade-visualization { min-height: 260px; }
       .cusade-visualization__art { width: 32%; }
@@ -701,6 +746,88 @@ function initializeSettings() {
     .l-fluid-fixed.cusade-insights-wide-sidebar > .l-sidebar-right { left: auto !important;
       right: 0 !important; width: var(--cusade-insights-sidebar-width) !important; }
     .l-fluid-fixed.cusade-insights-wide-sidebar .streamSidebar { width: 100% !important; }
+    html.cusade-animations :is(button, .sc-button, [role="button"], a, input, textarea) {
+      transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease,
+        box-shadow 180ms ease, opacity 180ms ease, filter 180ms ease;
+    }
+    html.cusade-animations :is(button, .sc-button, [role="button"]):not(:disabled):hover {
+      filter: brightness(1.12);
+    }
+    html.cusade-animations :is(button, .sc-button, [role="button"]):not(:disabled):active {
+      filter: brightness(.9);
+    }
+    html.cusade-animations :is(input, textarea, .sc-button, button):focus-visible {
+      outline-offset: 3px;
+      transition: outline-offset 180ms ease, box-shadow 180ms ease;
+    }
+    html.cusade-animations :is(.playableTile, .sidebarModule, .cusade-insights-banner, .cusade-visualization) {
+      transition: transform 240ms ease, box-shadow 240ms ease, background-color 400ms ease;
+    }
+    html.cusade-animations :is(.playableTile, .cusade-insights-banner, .cusade-visualization):hover {
+      transform: translateY(-3px);
+      box-shadow: 0 13px 28px #0002;
+    }
+    html.cusade-animations.cusade-insights-editing .cusade-insights-banner,
+    html.cusade-animations .cusade-insights-drag-ghost {
+      transition: none;
+      transform: none !important;
+    }
+    html.cusade-animations :is(.playableTile__image, .playableTile__imageOverlay,
+      .image.sc-artwork, .image.sc-artwork .image__full, .cusade-visualization__art) {
+      transition: transform 300ms cubic-bezier(.2,.75,.25,1), opacity 220ms ease,
+        filter 220ms ease, border-radius 220ms ease;
+    }
+    html.cusade-animations .playableTile__artworkLink:hover .playableTile__image,
+    html.cusade-animations .listenArtworkWrapper__artwork:hover .image.sc-artwork {
+      transform: scale(1.035);
+    }
+    html.cusade-animations .image.image__rounded:hover {
+      transform: scale(1.045);
+    }
+    html.cusade-animations .cusade-visualization:hover .cusade-visualization__art {
+      transform: scale(1.025);
+    }
+    html.cusade-animations :is(.soundList__item, .searchItem, .commentItem,
+      .header__navMenuItem, .sidebarModule) {
+      transition: color 180ms ease, opacity 180ms ease, background-color 180ms ease,
+        border-color 180ms ease, box-shadow 220ms ease;
+    }
+    html.cusade-animations :is(.soundList__item, .searchItem, .commentItem):hover {
+      background-color: color-mix(in srgb, var(--font-primary-color, #fff) 4%, transparent);
+    }
+    html.cusade-animations .sidebarModule:hover { box-shadow: 0 7px 18px #0001; }
+    html.cusade-animations :is(.dropdownMenu, [role="menu"], .cusade-insights-banner__menu):not([hidden]) {
+      animation: cusade-menu-enter 160ms cubic-bezier(.2,.75,.25,1) both;
+      transform-origin: top center;
+    }
+    html.cusade-animations :is(.cusade-visualization__play, .cusade-likes-shuffle__button,
+      .cusade-insights-banner button, .cusade-insights-editbar button) {
+      transition: transform 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+    }
+    html.cusade-animations :is(.cusade-visualization__play, .cusade-likes-shuffle__button,
+      .cusade-insights-banner button, .cusade-insights-editbar button):hover:not(:disabled) {
+      transform: translateY(-2px);
+    }
+    html.cusade-animations :is(.cusade-visualization__play, .cusade-likes-shuffle__button,
+      .cusade-insights-banner button, .cusade-insights-editbar button):active:not(:disabled) {
+      transform: scale(.96);
+    }
+    @keyframes cusade-menu-enter {
+      from { opacity: 0; transform: translateY(-5px) scale(.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html.cusade-animations :is(button, .sc-button, [role="button"], a, input, textarea,
+        .playableTile, .sidebarModule, .cusade-insights-banner, .cusade-visualization,
+        .playableTile__image, .playableTile__imageOverlay, .image.sc-artwork,
+        .image.sc-artwork .image__full, .cusade-visualization__art,
+        .soundList__item, .searchItem, .commentItem, .header__navMenuItem,
+        .dropdownMenu, [role="menu"]) {
+        animation: none !important;
+        transition: none !important;
+        transform: none !important;
+      }
+    }
   `;
   document.head.appendChild(style);
   new MutationObserver(scheduleLocalization).observe(document.body, {
@@ -722,6 +849,7 @@ function initializeSettings() {
     autoStart = saved.autoStart === true;
     startMinimized = saved.startMinimized === true;
     playbackVisualization = saved.playbackVisualization === true;
+    animations = saved.animations === true;
     showYourLikesButton = saved.showYourLikesButton !== false;
     insightsHiddenUntil = Number.isFinite(saved.insightsHiddenUntil) ? saved.insightsHiddenUntil : 0;
     if (saved.insightsLayout && ['sidebar', 'main', 'feed'].includes(saved.insightsLayout.location)) {
@@ -741,12 +869,14 @@ function initializeSettings() {
     applyNearbyEventsVisibility();
     applyAccentColor();
     applyArtworkRadii();
+    applyAnimations();
     updatePanelToggle();
     updateNearbyEventsToggle();
     updateAudioAdsToggle();
     updateDiscordControls();
     updateAutoStartControls();
     updateVisualizationToggle();
+    updateAnimationsToggle();
     updateYourLikesToggle();
     updatePanelColor();
     syncPlaybackVisualization();
@@ -820,6 +950,13 @@ function updateVisualizationToggle() {
   const toggle = panelHost?.shadowRoot.querySelector('#playback-visualization');
   if (!toggle) return;
   toggle.checked = playbackVisualization;
+  toggle.disabled = !settingsLoaded;
+}
+
+function updateAnimationsToggle() {
+  const toggle = panelHost?.shadowRoot.querySelector('#animations');
+  if (!toggle) return;
+  toggle.checked = animations;
   toggle.disabled = !settingsLoaded;
 }
 
@@ -1076,6 +1213,52 @@ async function loadPlaybackWave(card, trackUrl) {
   }
 }
 
+function setVisualizationArtwork(card, artwork, immediate = false) {
+  const cover = card.querySelector('.cusade-visualization__art');
+  if (cover.dataset.cusadeArtwork === artwork) return;
+  cover.dataset.cusadeArtwork = artwork;
+  clearTimeout(card.cusadeArtworkTimer);
+  const apply = () => {
+    if (cover.dataset.cusadeArtwork !== artwork || !cover.isConnected) return;
+    if (artwork) { cover.src = artwork; cover.hidden = false; }
+    else { cover.removeAttribute('src'); cover.hidden = true; }
+    requestAnimationFrame(() => cover.classList.remove('cusade-visualization__art--changing'));
+  };
+  if (!immediate && animations && cover.hasAttribute('src') &&
+      !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    cover.classList.add('cusade-visualization__art--changing');
+    card.cusadeArtworkTimer = setTimeout(apply, 180);
+  } else apply();
+}
+
+function commitPlaybackTrack(card, track) {
+  if (visualizationHost !== card || !card.isConnected) return;
+  const title = card.querySelector('.cusade-visualization__title');
+  const artist = card.querySelector('.cusade-visualization__artist');
+  title.textContent = track.title;
+  title.href = track.url;
+  artist.textContent = track.artist;
+  artist.href = track.artistUrl;
+  card.dataset.cusadeTrackUrl = track.url;
+  card.style.setProperty('--cusade-progress', '0%');
+  setVisualizationArtwork(card, track.artwork, true);
+  drawPlaybackWave(card, track.url);
+  loadPlaybackWave(card, track.url).catch(error => {
+    console.error('Could not load SoundCloud waveform:', error);
+  });
+}
+
+function finishPlaybackSwitch() {
+  if (!visualizationPendingTrack) return;
+  clearTimeout(visualizationSwitchTimer);
+  const { card, track } = visualizationPendingTrack;
+  visualizationPendingTrack = null;
+  if (visualizationHost !== card || visualizedTrackUrl !== track.url) return;
+  commitPlaybackTrack(card, track);
+  requestAnimationFrame(() => card.classList.remove('cusade-visualization--switching'));
+  syncPlaybackVisualization();
+}
+
 function syncPlaybackVisualization() {
   const home = document.querySelector('[data-test-id="home"]');
   const main = home?.closest('.l-main');
@@ -1083,6 +1266,8 @@ function syncPlaybackVisualization() {
   const titleLink = badge?.querySelector('.playbackSoundBadge__titleLink');
   const artistLink = badge?.querySelector('.playbackSoundBadge__lightLink');
   if (!playbackVisualization || !main || !titleLink || !artistLink) {
+    clearTimeout(visualizationSwitchTimer);
+    visualizationPendingTrack = null;
     visualizationHost?.remove();
     visualizationHost = null;
     visualizedTrackUrl = '';
@@ -1096,25 +1281,28 @@ function syncPlaybackVisualization() {
   }
   if (visualizedTrackUrl !== titleLink.href) {
     visualizedTrackUrl = titleLink.href;
-    const title = visualizationHost.querySelector('.cusade-visualization__title');
-    const artist = visualizationHost.querySelector('.cusade-visualization__artist');
-    title.textContent = titleLink.title || titleLink.querySelector('[aria-hidden="true"]')?.textContent || '';
-    title.href = titleLink.href;
-    artist.textContent = artistLink.textContent.trim();
-    artist.href = artistLink.href;
-    drawPlaybackWave(visualizationHost, visualizedTrackUrl);
-    loadPlaybackWave(visualizationHost, visualizedTrackUrl).catch(error => {
-      console.error('Could not load SoundCloud waveform:', error);
-    });
+    const track = {
+      url: titleLink.href,
+      title: titleLink.title || titleLink.querySelector('[aria-hidden="true"]')?.textContent || '',
+      artist: artistLink.textContent.trim(),
+      artistUrl: artistLink.href,
+      artwork: playbackArtworkFromBadge(badge)
+    };
+    clearTimeout(visualizationSwitchTimer);
+    if (animations && visualizationHost.dataset.cusadeTrackUrl &&
+        !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      visualizationPendingTrack = { card: visualizationHost, track };
+      visualizationHost.classList.add('cusade-visualization--switching');
+      visualizationSwitchTimer = setTimeout(finishPlaybackSwitch, 180);
+      return;
+    }
+    visualizationPendingTrack = null;
+    visualizationHost.classList.remove('cusade-visualization--switching');
+    commitPlaybackTrack(visualizationHost, track);
   }
 
   const artwork = playbackArtworkFromBadge(badge);
-  const cover = visualizationHost.querySelector('.cusade-visualization__art');
-  if (cover.dataset.cusadeArtwork !== artwork) {
-    cover.dataset.cusadeArtwork = artwork;
-    if (artwork) { cover.src = artwork; cover.hidden = false; }
-    else { cover.removeAttribute('src'); cover.hidden = true; }
-  }
+  setVisualizationArtwork(visualizationHost, artwork);
 
   const play = visualizationHost.querySelector('.cusade-visualization__play');
   const paused = badge.classList.contains('paused');
@@ -1886,6 +2074,7 @@ async function openInsights() {
   if (insightsHost) insightsHost.shadowRoot?.querySelector('.close')?.click();
   insightsHost = document.createElement('div');
   insightsHost.id = 'cusade-insights-host';
+  insightsHost.classList.toggle('cusade-animations', animations);
   insightsHost.style.cssText = 'position:fixed;inset:0;z-index:2147483646';
   const shadow = insightsHost.attachShadow({ mode: 'open' });
   shadow.innerHTML = `<style>
@@ -1903,6 +2092,15 @@ async function openInsights() {
     .lower{display:grid;grid-template-columns:1fr 1fr;gap:26px}.history-row{min-height:60px}.history-row .insight-art{width:39px;height:39px}.history-row time{flex:none;color:var(--subtle);font-size:11px}.history-more{display:block;width:100%;padding:12px;border-top:1px solid var(--line);background:transparent;color:var(--accent)}.history-more[hidden]{display:none}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px;padding-top:22px;border-top:1px solid var(--line)}.actions button{padding:11px 15px;border-radius:9px;background:var(--surface);color:var(--text)}.actions .primary{background:var(--accent);color:#fff}.status{margin:10px 0 0;color:var(--subtle)}
     @media(max-width:750px){.panel{inset:0;border-radius:0}.hero{padding:24px}.content{padding:22px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.columns,.lower{grid-template-columns:1fr;gap:0}.topbar{align-items:flex-start;flex-direction:column}.activity-graph,.activity-labels{gap:3px}.hero-art{right:-80px}}
     @media(max-width:410px){.controls{width:100%}.controls button{flex:1;padding:8px 4px}.metric{padding:14px}.history-row time{max-width:65px;text-align:right}}
+    :host(.cusade-animations) .backdrop{animation:cusade-fade-in 180ms ease both}
+    :host(.cusade-animations) .panel{animation:cusade-panel-in 220ms cubic-bezier(.2,.75,.25,1) both}
+    :host(.cusade-animations) :is(button,.metric,.activity-card,.list-card,.rank-row,.history-row,.insight-art){transition:transform 180ms ease,background-color 180ms ease,box-shadow 180ms ease,filter 180ms ease}
+    :host(.cusade-animations) :is(button,.metric,.insight-art):hover{transform:translateY(-2px)}
+    :host(.cusade-animations) button:active{transform:scale(.96)}
+    :host(.cusade-animations) :is(.rank-row,.history-row):hover{background:color-mix(in srgb,var(--text) 4%,transparent)}
+    @keyframes cusade-fade-in{from{opacity:0}to{opacity:1}}
+    @keyframes cusade-panel-in{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:none}}
+    @media(prefers-reduced-motion:reduce){:host(.cusade-animations) :is(.backdrop,.panel,button,.metric,.activity-card,.list-card,.rank-row,.history-row,.insight-art){animation:none;transition:none;transform:none}}
   </style><div class="backdrop"></div><main class="panel" role="dialog" aria-modal="true" aria-label="cusade Insights">
     <header class="hero"><img class="hero-art" alt=""><div class="hero-top"><span class="brand"><span class="brand-mark">♫</span>cusade Insights</span><button class="close" aria-label="${ui('Закрыть','Close')}">×</button></div><div class="hero-content"><h1>${ui('Ваша музыка в деталях','Your music, in detail')}</h1><p>${ui('Личный музыкальный дневник. Данные хранятся только на этом компьютере и пополняются во время прослушивания в приложении.', 'Your personal music diary. Data stays on this computer and grows while you listen in the app.')}</p></div></header>
     <div class="content"><div class="topbar"><span class="eyebrow">${ui('Обзор прослушиваний','Listening overview')}</span><nav class="controls" aria-label="${ui('Период','Period')}"><button data-period="week">${ui('7 дней','7 days')}</button><button data-period="month">${ui('30 дней','30 days')}</button><button data-period="all">${ui('Всё время','All time')}</button></nav></div>
@@ -2030,6 +2228,21 @@ function syncVisiblePlayback() {
   if (document.visibilityState !== 'visible') return;
   if (!insightsHost) syncPlaybackVisualization();
   syncPlaybackTheme();
+  const badge = document.querySelector('.playbackSoundBadge');
+  const url = badge?.querySelector('.playbackSoundBadge__titleLink')?.href || '';
+  if (url && url !== lastAnimatedBadgeUrl) {
+    const firstTrack = !lastAnimatedBadgeUrl;
+    lastAnimatedBadgeUrl = url;
+    if (!firstTrack && animations && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      for (const element of badge.querySelectorAll(
+        '.playbackSoundBadge__titleLink, .playbackSoundBadge__lightLink, .image.sc-artwork')) {
+        element.animate([
+          { opacity: 0, transform: 'translateY(6px)' },
+          { opacity: 1, transform: 'translateY(0)' }
+        ], { duration: 320, easing: 'cubic-bezier(.2,.75,.25,1)' });
+      }
+    }
+  }
 }
 
 function syncVisiblePage() {
@@ -2070,6 +2283,114 @@ function closePanel() {
   panelHost = null;
 }
 
+function renderUpdatePanel() {
+  if (!updateHost || !currentUpdateState) return;
+  const state = currentUpdateState;
+  if (!state.version || state.status === 'none') {
+    updateHost.remove();
+    updateHost = null;
+    return;
+  }
+  const shadow = updateHost.shadowRoot;
+  shadow.querySelector('.version').textContent = ui(`Доступна версия ${state.version}`, `Version ${state.version} is available`);
+  const details = shadow.querySelector('.details');
+  const action = shadow.querySelector('.action');
+  const progress = shadow.querySelector('progress');
+  const isPackage = ['deb', 'rpm', 'pacman'].includes(state.packageType);
+  if (state.status === 'downloading') {
+    details.textContent = ui(`Загрузка обновления: ${state.progress}%`, `Downloading update: ${state.progress}%`);
+    action.textContent = ui('Загрузка…', 'Downloading…');
+  } else if (state.status === 'installing') {
+    details.textContent = isPackage
+      ? ui('Подтвердите установку в системном окне.', 'Confirm installation in the system dialog.')
+      : ui('Запускается установка и перезапуск.', 'Starting installation and restart.');
+    action.textContent = ui('Установка…', 'Installing…');
+  } else if (state.ready) {
+    details.textContent = state.error || (isPackage
+      ? ui('При установке система запросит права администратора.', 'Your system will request administrator access to install.')
+      : state.packageType === 'win'
+        ? ui('Установщик может запросить права администратора.', 'The installer may request administrator access.')
+        : ui('AppImage будет обновлён, затем приложение перезапустится.', 'The AppImage will update and the app will restart.'));
+    action.textContent = ui('Установить и перезапустить', 'Install and restart');
+  } else {
+    details.textContent = state.error || ui('Нажмите «Обновить», чтобы загрузить новую версию.',
+      'Select Update to download the new version.');
+    action.textContent = ui('Обновить', 'Update');
+  }
+  action.disabled = state.status === 'downloading' || state.status === 'installing';
+  progress.hidden = state.status !== 'downloading';
+  progress.value = state.progress || 0;
+}
+
+function showUpdatePanel(state) {
+  if (state) currentUpdateState = state;
+  if (!currentUpdateState?.version) return;
+  if (!document.body) {
+    document.addEventListener('DOMContentLoaded', () => showUpdatePanel(), { once: true });
+    return;
+  }
+  if (!updateHost) {
+    updateHost = document.createElement('div');
+    updateHost.id = 'cusade-update-host';
+    updateHost.classList.toggle('cusade-animations', animations);
+    updateHost.style.cssText = 'position:fixed;right:18px;bottom:70px;z-index:2147483647';
+    const shadow = updateHost.attachShadow({ mode: 'open' });
+    shadow.innerHTML = `
+      <style>
+        * { box-sizing: border-box; }
+        .panel { width: min(350px, calc(100vw - 36px)); padding: 18px; border: 1px solid
+          color-mix(in srgb, var(--font-primary-color, #fff) 18%, transparent); border-radius: 14px;
+          background: var(--background-surface-color, #171717); color: var(--font-primary-color, #fff);
+          box-shadow: 0 16px 44px #0007; font: 13px system-ui, sans-serif; }
+        .top { display:flex;align-items:start;justify-content:space-between;gap:12px; }
+        h2 { margin:0;font-size:17px; }
+        .close { border:0;background:transparent;color:var(--font-secondary-color,#aaa);
+          cursor:pointer;font-size:23px;line-height:1; }
+        .details { margin:12px 0;color:var(--font-secondary-color,#aaa);line-height:1.45; }
+        progress { width:100%;height:6px;margin-bottom:12px;accent-color:var(--cusade-accent,#ff5500); }
+        progress[hidden] { display:none; }
+        .actions { display:flex;align-items:center;gap:12px; }
+        .action { padding:9px 15px;border:0;border-radius:8px;background:var(--cusade-accent,#ff5500);
+          color:#fff;font:700 13px system-ui;cursor:pointer; }
+        .action:disabled { opacity:.6;cursor:wait; }
+        .release { color:var(--font-secondary-color,#aaa);text-decoration:underline;cursor:pointer;
+          border:0;background:transparent;font:inherit; }
+        :host(.cusade-animations) .panel { animation:enter 220ms cubic-bezier(.2,.75,.25,1) both; }
+        :host(.cusade-animations) button { transition:filter 180ms ease,transform 180ms ease; }
+        :host(.cusade-animations) button:hover:not(:disabled) { filter:brightness(1.13);transform:translateY(-2px); }
+        @keyframes enter { from { opacity:0;transform:translateY(10px) scale(.98); }
+          to { opacity:1;transform:none; } }
+        @media (prefers-reduced-motion:reduce) { :host(.cusade-animations) :is(.panel,button) {
+          animation:none;transition:none;transform:none; } }
+      </style>
+      <section class="panel" role="dialog" aria-label="${ui('Обновление SoundCloud Desktop', 'SoundCloud Desktop update')}">
+        <div class="top"><h2 class="version"></h2><button class="close" type="button" aria-label="${ui('Закрыть', 'Close')}">×</button></div>
+        <p class="details" aria-live="polite"></p><progress max="100" hidden></progress>
+        <div class="actions"><button class="action" type="button"></button>
+          <button class="release" type="button">${ui('Страница релиза', 'Release page')}</button></div>
+      </section>`;
+    shadow.querySelector('.close').addEventListener('click', () => {
+      updateHost.remove();
+      updateHost = null;
+    });
+    shadow.querySelector('.action').addEventListener('click', async event => {
+      if (!event.isTrusted) return;
+      const action = shadow.querySelector('.action');
+      action.disabled = true;
+      try { currentUpdateState = await ipcRenderer.invoke('cusade:run-update'); }
+      catch (error) {
+        shadow.querySelector('.details').textContent = ui('Не удалось начать обновление.', 'Could not start the update.');
+        console.error('Could not run update:', error);
+      } finally { renderUpdatePanel(); }
+    });
+    shadow.querySelector('.release').addEventListener('click', () => {
+      ipcRenderer.invoke('cusade:open-update-release').catch(error => console.error('Could not open release:', error));
+    });
+    document.body.appendChild(updateHost);
+  }
+  renderUpdatePanel();
+}
+
 function togglePanel() {
   if (panelHost) {
     closePanel();
@@ -2078,6 +2399,7 @@ function togglePanel() {
 
   panelHost = document.createElement('div');
   panelHost.id = 'cusade-panel-host';
+  panelHost.classList.toggle('cusade-animations', animations);
   Object.assign(panelHost.style, {
     position: 'fixed',
     top: '56px',
@@ -2124,6 +2446,22 @@ function togglePanel() {
       .status:empty { display: none; }
       .insights-restore button { margin-top: 9px; padding: 8px 12px; border: 0; border-radius: 7px;
         background: var(--cusade-accent, #ff5500); color: #fff; font: 600 12px system-ui; cursor: pointer; }
+      :host(.cusade-animations) .panel { animation: cusade-panel-in 200ms cubic-bezier(.2,.75,.25,1) both; }
+      :host(.cusade-animations) :is(button, input, .setting, .section, .panel) {
+        transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease,
+          box-shadow 180ms ease, transform 180ms ease;
+      }
+      :host(.cusade-animations) button:hover { transform: translateY(-2px); }
+      :host(.cusade-animations) button:active { transform: scale(.96); }
+      @keyframes cusade-panel-in {
+        from { opacity: 0; transform: translateY(8px) scale(.98); }
+        to { opacity: 1; transform: none; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        :host(.cusade-animations) :is(.panel, button, input, .setting, .section) {
+          animation: none; transition: none; transform: none;
+        }
+      }
     </style>
     <div class="panel" role="dialog" aria-label="cusade">
       <div class="top">
@@ -2157,6 +2495,11 @@ function togglePanel() {
           <span><span class="setting-name">${ui('Показывать «Мои лайки»', 'Show Your likes')}</span>
           <span class="hint">${ui('Кнопка перемешивания лайков вверху правого столбца.', 'Shuffle button at the top of the right sidebar.')}</span></span>
           <input id="show-your-likes-button" type="checkbox" disabled>
+        </label>
+        <label class="setting" style="margin-top: 18px">
+          <span><span class="setting-name">${ui('Анимации', 'Animations')}</span>
+          <span class="hint">${ui('Оживляет обложки, карточки, кнопки и меню.', 'Animates artwork, cards, buttons and menus.')}</span></span>
+          <input id="animations" type="checkbox" disabled>
         </label>
         <div class="section">
           <label class="setting">
@@ -2291,6 +2634,23 @@ function togglePanel() {
       updateYourLikesToggle();
     }
   });
+  const animationsToggle = shadow.querySelector('#animations');
+  animationsToggle.addEventListener('change', async () => {
+    const previous = animations;
+    animations = animationsToggle.checked;
+    applyAnimations();
+    animationsToggle.disabled = true;
+    try {
+      await ipcRenderer.invoke('cusade:set-animations', animations);
+    } catch (error) {
+      animations = previous;
+      applyAnimations();
+      shadow.querySelector('.status').textContent = ui('Не удалось сохранить настройку.', 'Could not save the setting.');
+      console.error('Could not save cusade animations:', error);
+    } finally {
+      updateAnimationsToggle();
+    }
+  });
   const discordToggle = shadow.querySelector('#discord-rpc');
   discordToggle.addEventListener('change', async () => {
     const previous = discordRpc;
@@ -2407,6 +2767,7 @@ function togglePanel() {
   updateNearbyEventsToggle();
   updateAudioAdsToggle();
   updateVisualizationToggle();
+  updateAnimationsToggle();
   updateYourLikesToggle();
   updateInsightsRestoreControl();
   updateDiscordControls();
@@ -2416,6 +2777,11 @@ function togglePanel() {
 }
 
 ipcRenderer.on('cusade:toggle-panel', togglePanel);
+ipcRenderer.on('cusade:update-state', (_event, state) => {
+  currentUpdateState = state;
+  renderUpdatePanel();
+});
+ipcRenderer.on('cusade:show-update', (_event, state) => showUpdatePanel(state));
 
 document.addEventListener('pointerdown', event => {
   if (panelHost && !panelHost.contains(event.target)) closePanel();

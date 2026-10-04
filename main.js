@@ -23,7 +23,11 @@ let isQuitting = false;
 let updater;
 let updateReady = false;
 let availableUpdateVersion = '';
-let updateNotification;
+let updateStatus = 'none';
+let updateProgress = 0;
+let updateError = '';
+let updateDownloadRunning = false;
+const updateNotifications = new Set();
 let updateCheckRunning = false;
 let manualUpdateCheck = false;
 let updateTimer;
@@ -46,6 +50,7 @@ let settings = {
   startMinimized: false,
   accentColor: DEFAULT_ACCENT_COLOR,
   playbackVisualization: false,
+  animations: false,
   showYourLikesButton: true,
   insightsHiddenUntil: 0,
   insightsLayout: { location: 'sidebar', index: 0, width: 0, height: 0 },
@@ -135,6 +140,7 @@ function loadSettings() {
     settings.autoStart = saved.autoStart === true;
     settings.startMinimized = saved.startMinimized === true;
     settings.playbackVisualization = saved.playbackVisualization === true;
+    settings.animations = saved.animations === true;
     settings.showYourLikesButton = saved.showYourLikesButton !== false;
     settings.insightsHiddenUntil = Number.isFinite(saved.insightsHiddenUntil) && saved.insightsHiddenUntil > 0
       ? saved.insightsHiddenUntil : 0;
@@ -352,18 +358,47 @@ function releaseUrl() {
 
 function showUpdateNotice(body, click) {
   if (!Notification.isSupported()) return;
-  updateNotification = new Notification({ title: 'SoundCloud Desktop', body });
-  if (click) updateNotification.on('click', click);
-  updateNotification.show();
+  const notification = new Notification({ title: 'SoundCloud Desktop', body });
+  updateNotifications.add(notification);
+  if (updateNotifications.size > 4) updateNotifications.delete(updateNotifications.values().next().value);
+  if (click) notification.on('click', click);
+  notification.on('close', () => updateNotifications.delete(notification));
+  notification.show();
+}
+
+function updateState() {
+  let packageType = 'linux';
+  if (process.platform === 'win32') packageType = 'win';
+  else if (process.env.APPIMAGE) packageType = 'AppImage';
+  else {
+    try { packageType = fs.readFileSync(path.join(process.resourcesPath, 'package-type'), 'utf8').trim(); }
+    catch { /* An unpackaged build has no package identity. */ }
+  }
+  return { status: updateStatus, version: availableUpdateVersion, progress: updateProgress,
+    error: updateError, ready: updateReady, packageType };
+}
+
+function publishUpdateState() {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('cusade:update-state', updateState());
+  }
+  refreshTrayMenu();
+}
+
+function showUpdatePanel() {
+  if (!availableUpdateVersion) return;
+  showMainWindow();
+  const contents = mainWindow.webContents;
+  const send = () => contents.send('cusade:show-update', updateState());
+  if (contents.isLoading()) contents.once('did-finish-load', send);
+  else send();
 }
 
 function refreshTrayMenu() {
   if (!tray) return;
-  const updateAction = updateReady
-    ? { label: 'Установить обновление и перезапустить', click: () => updater.quitAndInstall(false, true) }
-    : availableUpdateVersion && !updater?.autoDownload
-      ? { label: `Открыть обновление ${availableUpdateVersion}`, click: () => shell.openExternal(releaseUrl()) }
-      : null;
+  const updateAction = availableUpdateVersion
+    ? { label: `Обновление ${availableUpdateVersion}${updateReady ? ' готово' : ''}`, click: showUpdatePanel }
+    : null;
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: 'Открыть SoundCloud', click: showMainWindow },
     { type: 'separator' },
@@ -376,7 +411,7 @@ function refreshTrayMenu() {
 }
 
 async function checkForUpdates(manual = false) {
-  if (!updater || updateCheckRunning) return;
+  if (!updater || updateCheckRunning || updateDownloadRunning || updateReady) return;
   manualUpdateCheck = manual;
   updateCheckRunning = true;
   refreshTrayMenu();
@@ -392,32 +427,94 @@ async function checkForUpdates(manual = false) {
   }
 }
 
+async function runUpdateAction() {
+  if (!updater || !availableUpdateVersion || updateDownloadRunning || updateStatus === 'installing') {
+    return updateState();
+  }
+  if (updateReady) {
+    updateStatus = 'installing';
+    updateError = '';
+    publishUpdateState();
+    setImmediate(() => {
+      try { updater.quitAndInstall(false, true); }
+      catch (error) {
+        console.error('Could not install update:', error);
+        updateStatus = 'ready';
+        updateError = 'Не удалось установить обновление. Попробуйте снова или откройте страницу релиза.';
+        publishUpdateState();
+      }
+    });
+    return updateState();
+  }
+  updateDownloadRunning = true;
+  updateStatus = 'downloading';
+  updateProgress = 0;
+  updateError = '';
+  publishUpdateState();
+  try {
+    await updater.downloadUpdate();
+  } catch (error) {
+    console.error('Could not download update:', error);
+    updateStatus = 'error';
+    updateError = 'Не удалось загрузить обновление. Попробуйте снова или откройте страницу релиза.';
+    publishUpdateState();
+  } finally {
+    updateDownloadRunning = false;
+  }
+  return updateState();
+}
+
 function setupUpdates() {
   if (!app.isPackaged || !['win32', 'linux'].includes(process.platform)) return;
   ({ autoUpdater: updater } = require('electron-updater'));
-  updater.autoDownload = process.platform === 'win32' || !!process.env.APPIMAGE;
-  updater.autoInstallOnAppQuit = updater.autoDownload;
+  updater.autoDownload = false;
+  updater.autoInstallOnAppQuit = false;
   updater.on('update-available', info => {
     const isNewVersion = availableUpdateVersion !== info.version;
     availableUpdateVersion = info.version;
-    if (!updater.autoDownload && isNewVersion) {
-      showUpdateNotice(`Доступна версия ${info.version}. Откройте релиз для установки через менеджер пакетов.`,
-        () => shell.openExternal(releaseUrl()));
+    if (isNewVersion) {
+      updateReady = false;
+      updateProgress = 0;
+      updateError = '';
+      updateStatus = 'available';
+      showUpdateNotice(`Доступна версия ${info.version}. Нажмите, чтобы открыть обновление.`, showUpdatePanel);
     }
-    refreshTrayMenu();
+    publishUpdateState();
   });
   updater.on('update-not-available', () => {
     availableUpdateVersion = '';
+    updateReady = false;
+    updateStatus = 'none';
+    updateError = '';
     if (manualUpdateCheck) showUpdateNotice('Установлена последняя версия.');
-    refreshTrayMenu();
+    publishUpdateState();
+  });
+  updater.on('download-progress', info => {
+    const progress = Number.isFinite(info.percent)
+      ? Math.max(0, Math.min(100, Math.round(info.percent))) : updateProgress;
+    if (progress !== updateProgress) {
+      updateProgress = progress;
+      publishUpdateState();
+    }
   });
   updater.on('update-downloaded', () => {
     updateReady = true;
-    showUpdateNotice(`Версия ${availableUpdateVersion} загружена. Нажмите, чтобы перезапустить приложение.`,
-      () => updater.quitAndInstall(false, true));
-    refreshTrayMenu();
+    updateStatus = 'ready';
+    updateProgress = 100;
+    updateError = '';
+    showUpdateNotice(`Версия ${availableUpdateVersion} загружена. Нажмите, чтобы установить её.`, showUpdatePanel);
+    publishUpdateState();
   });
-  updater.on('error', error => console.error('Update error:', error));
+  updater.on('error', error => {
+    console.error('Update error:', error);
+    if (availableUpdateVersion) {
+      updateStatus = updateReady ? 'ready' : 'error';
+      updateError = updateReady
+        ? 'Не удалось установить обновление. Попробуйте снова или откройте страницу релиза.'
+        : 'Не удалось загрузить обновление. Попробуйте снова или откройте страницу релиза.';
+      publishUpdateState();
+    }
+  });
   initialUpdateTimer = setTimeout(() => checkForUpdates(), 15000);
   updateTimer = setInterval(() => checkForUpdates(), 6 * 60 * 60 * 1000);
   refreshTrayMenu();
@@ -621,6 +718,16 @@ if (hasInstanceLock) app.whenReady().then(() => {
     return settings;
   });
 
+  ipcMain.handle('cusade:run-update', event => {
+    if (!isMainSoundCloudPage(event.sender)) throw new Error('Unavailable');
+    return runUpdateAction();
+  });
+
+  ipcMain.handle('cusade:open-update-release', event => {
+    if (!isMainSoundCloudPage(event.sender) || !availableUpdateVersion) throw new Error('Unavailable');
+    return shell.openExternal(releaseUrl());
+  });
+
   ipcMain.handle('cusade:get-insights', event => {
     if (!isMainSoundCloudPage(event.sender)) throw new Error('Unavailable');
     return insights.sessions;
@@ -774,6 +881,14 @@ if (hasInstanceLock) app.whenReady().then(() => {
       throw new Error('Invalid setting');
     }
     saveSettings({ ...settings, playbackVisualization: enabled });
+    return settings;
+  });
+
+  ipcMain.handle('cusade:set-animations', (event, enabled) => {
+    if (!isMainSoundCloudPage(event.sender) || typeof enabled !== 'boolean') {
+      throw new Error('Invalid setting');
+    }
+    saveSettings({ ...settings, animations: enabled });
     return settings;
   });
 
