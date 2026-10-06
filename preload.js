@@ -19,12 +19,21 @@ let accentColor = DEFAULT_ACCENT_COLOR;
 let savedAccentColor = DEFAULT_ACCENT_COLOR;
 let playbackVisualization = false;
 let animations = false;
+let respectSystemMotion = false;
+// Observed on every use, not cached at load: the preference can change while the app runs.
+const systemReducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 let settingsLoaded = false;
 let visualizationHost;
 let visualizedTrackUrl = '';
 let visualizationPendingTrack;
 let visualizationSwitchTimer;
 let lastAnimatedBadgeUrl = '';
+let playerProgressTarget = null;
+let playerProgressObserver = null;
+let enterWatcher = null;
+let enterIntersection = null;
+let localizationWatcher = null;
+const pendingEnterElements = new Set();
 let likesShuffleHost;
 let likesShuffleInProgress = false;
 let insightsBanner;
@@ -403,6 +412,24 @@ function syncLanguageMenu() {
   list.appendChild(item);
 }
 
+// soundcloud.com mutates constantly, so the observer only asks for text and
+// attribute mutations while the site is actually translated. The Russian entry
+// in SoundCloud's own language menu still needs child insertions, so the
+// observer stays connected with a cheaper option set.
+function updateLocalizationWatcher() {
+  const options = appLanguage === 'ru'
+    ? {
+      childList: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ['title', 'aria-label', 'placeholder'],
+      subtree: true
+    }
+    : { childList: true, subtree: true };
+  if (!localizationWatcher) localizationWatcher = new MutationObserver(scheduleLocalization);
+  if (document.body) localizationWatcher.observe(document.body, options);
+}
+
 function scheduleLocalization(mutations) {
   if (Array.isArray(mutations)) {
     if (appLanguage === 'ru') {
@@ -452,6 +479,7 @@ function refreshLocalizedUi() {
 async function setAppLanguage(language) {
   await ipcRenderer.invoke('cusade:set-app-language', language);
   appLanguage = language;
+  updateLocalizationWatcher();
   if (language === 'ru') scheduleLocalization();
   else restoreSiteLanguage();
   refreshLocalizedUi();
@@ -460,10 +488,12 @@ async function setAppLanguage(language) {
 function releaseRussianTranslation() {
   if (appLanguage !== 'ru') return;
   appLanguage = 'site';
+  updateLocalizationWatcher();
   restoreSiteLanguage();
   refreshLocalizedUi();
   ipcRenderer.invoke('cusade:set-app-language', 'site').catch(error => {
     appLanguage = 'ru';
+    updateLocalizationWatcher();
     scheduleLocalization();
     refreshLocalizedUi();
     console.error('Could not save cusade language:', error);
@@ -527,12 +557,172 @@ function applyArtworkRadii() {
   updateArtworkRadiusControls();
 }
 
-function applyAnimations() {
-  document.documentElement?.classList.toggle('cusade-animations', animations);
-  panelHost?.classList.toggle('cusade-animations', animations);
-  insightsHost?.classList.toggle('cusade-animations', animations);
-  updateHost?.classList.toggle('cusade-animations', animations);
-  if (!animations) finishPlaybackSwitch();
+// Single source of truth for every cusade animation. The page CSS reacts to the
+// 'cusade-animations' class on the document and on each cusade host, while the
+// JavaScript paths ask motionActive() directly, so styles, WAAPI effects, the
+// visualization and the panels can never disagree about whether motion is on.
+function motionActive() {
+  return animations && (!respectSystemMotion || !systemReducedMotion.matches);
+}
+
+function applyMotion() {
+  const active = motionActive();
+  document.documentElement?.classList.toggle('cusade-animations', active);
+  panelHost?.classList.toggle('cusade-animations', active);
+  insightsHost?.classList.toggle('cusade-animations', active);
+  updateHost?.classList.toggle('cusade-animations', active);
+  if (!active) {
+    // Never leave a half finished effect on screen when motion is switched off.
+    finishPlaybackSwitch();
+    visualizationHost?.querySelector('.cusade-visualization__art--changing')
+      ?.classList.remove('cusade-visualization__art--changing');
+    for (const animation of document.getAnimations()) {
+      if (animation.id === 'cusade-badge-enter') animation.cancel();
+    }
+  }
+  updateEnterWatcher();
+  updateRouteTransition();
+  updateSystemMotionHint();
+}
+
+const ENTER_TARGETS = '.soundList__item, .searchList__item, .trackList__item,' +
+  ' .usersList__item, .soundBadgeList__item, .commentBadgeList__item,' +
+  ' .userStreamItem, .playableTile';
+
+function watchEnterTarget(element) {
+  if (pendingEnterElements.has(element)) return;
+  pendingEnterElements.add(element);
+  enterIntersection ??= new IntersectionObserver(entries => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      entry.target.classList.add('cusade-enter-target');
+      enterIntersection.unobserve(entry.target);
+      pendingEnterElements.delete(entry.target);
+    }
+  }, { rootMargin: '160px 0px' });
+  enterIntersection.observe(element);
+}
+
+function queueEnterTargets(node) {
+  if (node.nodeType !== Node.ELEMENT_NODE) return;
+  if (node.matches(ENTER_TARGETS)) watchEnterTarget(node);
+  for (const nested of node.querySelectorAll(ENTER_TARGETS)) watchEnterTarget(nested);
+}
+
+// Feed items fade in through cusade-content-enter. The class is only put on rows
+// that actually reach the viewport: without this, a single page render starts
+// one animation per inserted row, and Chromium promotes a compositor layer for
+// each of them, which is what made long feeds stutter while scrolling.
+function updateEnterWatcher() {
+  const active = motionActive();
+  document.documentElement?.classList.toggle('cusade-enter', active);
+  if (active) {
+    if (!enterWatcher) {
+      enterWatcher = new MutationObserver(mutations => {
+        if (!motionActive()) return;
+        for (const mutation of mutations) {
+          if (mutation.type !== 'childList') continue;
+          for (const node of mutation.addedNodes) queueEnterTargets(node);
+        }
+      });
+    }
+    if (document.body) enterWatcher.observe(document.body, { childList: true, subtree: true });
+    return;
+  }
+  enterWatcher?.disconnect();
+  for (const element of pendingEnterElements) element.classList.remove('cusade-enter-target');
+  pendingEnterElements.clear();
+}
+
+// Page transitions. SoundCloud routes inside its SPA with history.pushState, so
+// a route change is caught there; a full page load only gets the intro reveal.
+// Both run on two fixed layers that move opacity and scaleX, which is why a
+// transition stays cheap even while the new page renders hundreds of rows.
+let routeHost = null;
+let routeWatchReady = false;
+let routeLastUrl = '';
+let routeVeilTimer = 0;
+let routeSweepTimer = 0;
+const ROUTE_INTRO_WINDOW_MS = 3000;
+
+// The reveal belongs to the first page the app opens, not to the moment someone
+// flips the setting in the panel: a veil that appears because a panel was opened
+// reads as a glitch. The flag is set only around the settings that arrive at
+// startup, so the reveal survives a slow settings round trip, while a deliberate
+// toggle never triggers it.
+let routeIntroPending = false;
+
+function runRouteTransition() {
+  if (!routeHost?.isConnected) return;
+  routeHost.classList.remove('cusade-route--veil', 'cusade-route--sweep');
+  // Restart the sweep from scaleX(0): without a forced reflow between the class
+  // changes the bar has no previous value to animate from and snaps to full width.
+  void routeHost.offsetWidth;
+  routeHost.classList.add('cusade-route--sweep', 'cusade-route--veil');
+  clearTimeout(routeVeilTimer);
+  routeVeilTimer = setTimeout(() => routeHost?.classList.remove('cusade-route--veil'), 220);
+  clearTimeout(routeSweepTimer);
+  routeSweepTimer = setTimeout(() => routeHost?.classList.remove('cusade-route--sweep'), 900);
+}
+
+function onRouteChanged() {
+  if (!motionActive() || !routeHost?.isConnected) return;
+  const url = location.href;
+  // SoundCloud pushes the same URL for scroll restoration; a veil for that
+  // would flicker on every scroll.
+  if (url === routeLastUrl) return;
+  routeLastUrl = url;
+  runRouteTransition();
+}
+
+function installRouteWatch() {
+  if (routeWatchReady) return;
+  routeWatchReady = true;
+  for (const method of ['pushState', 'replaceState']) {
+    const original = history[method];
+    if (typeof original !== 'function' || original.cusade === true) continue;
+    const patched = function (...args) {
+      const result = original.apply(this, args);
+      queueMicrotask(onRouteChanged);
+      return result;
+    };
+    patched.cusade = true;
+    history[method] = patched;
+  }
+  addEventListener('popstate', onRouteChanged);
+}
+
+function updateRouteTransition() {
+  if (!motionActive()) {
+    clearTimeout(routeVeilTimer);
+    clearTimeout(routeSweepTimer);
+    routeHost?.remove();
+    routeHost = null;
+    return;
+  }
+  if (!document.body) {
+    document.addEventListener('DOMContentLoaded', updateRouteTransition, { once: true });
+    return;
+  }
+  installRouteWatch();
+  if (routeHost?.isConnected) return;
+  routeHost = document.createElement('div');
+  routeHost.className = 'cusade-route';
+  routeHost.setAttribute('aria-hidden', 'true');
+  // The bar goes in first so the accent line stays above the veil.
+  routeHost.innerHTML = '<span class="cusade-route__bar"></span>' +
+    '<span class="cusade-route__veil"></span>';
+  document.body.appendChild(routeHost);
+  routeLastUrl = location.href;
+  // The reveal plays when motion first turns on during startup, or very early in
+  // a document (the second clause covers the case where the body was not ready
+  // yet and the work was deferred to DOMContentLoaded).
+  if (routeIntroPending || performance.now() < ROUTE_INTRO_WINDOW_MS) {
+    routeHost.classList.add('cusade-route--intro');
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      routeHost?.classList.remove('cusade-route--intro');
+    }));
+  }
 }
 
 function syncArtworkPage() {
@@ -593,12 +783,15 @@ function initializeSettings() {
       border-radius: 16px; background: #10384c; color: #fff;
       font-family: system-ui, sans-serif; isolation: isolate;
     }
-    .cusade-visualization, .cusade-insights-banner { transition: background-color 900ms ease; }
+    /* The theme cross-fade of these two cards lives in the card rule further
+       down: it has to share one transition declaration with the hover effects,
+       otherwise the later rule wins as a whole and the fade is lost. */
     .cusade-track-backdrop {
       position: absolute; inset: 0; z-index: -2; pointer-events: none;
       background-position: center; background-size: cover; background-repeat: no-repeat;
-      opacity: 0; transition: opacity 900ms ease;
+      opacity: 0;
     }
+    html.cusade-animations .cusade-track-backdrop { transition: opacity 900ms cubic-bezier(.3,.62,.36,1); }
     .cusade-track-backdrop--visible { opacity: .8; }
     .cusade-visualization::after, .cusade-insights-banner::after {
       content: ''; position: absolute; inset: 0; z-index: -1;
@@ -624,7 +817,10 @@ function initializeSettings() {
       margin-top: auto; border: 0; padding: 0; background: transparent; cursor: pointer; }
     .cusade-visualization__bars { position: absolute; inset: 0; display: flex;
       align-items: center; gap: 2px; overflow: hidden; }
-    .cusade-visualization__bars span { flex: 1; min-width: 1px; background: #b9e6f4; }
+    /* Bars fill the strip and are scaled from its centre, which is visually the
+       same as a centred height percentage but never needs a re-layout. */
+    .cusade-visualization__bars span { flex: 1; min-width: 1px; height: 100%;
+      transform: scaleY(.3); background: #b9e6f4; }
     .cusade-visualization__bars--base { opacity: .4; }
     .cusade-visualization__bars--played { clip-path: inset(0 calc(100% - var(--cusade-progress, 0%)) 0 0); }
     .cusade-visualization__times { display: flex; justify-content: space-between; margin-top: 4px;
@@ -645,22 +841,17 @@ function initializeSettings() {
     html.cusade-animations .cusade-visualization__bars--played {
       transition: clip-path 360ms ease;
     }
-    html.cusade-animations .cusade-visualization__bars span {
-      transition: height 320ms ease;
-    }
-    html.cusade-animations .playbackTimeline__progressBar {
-      transition: width 220ms linear, transform 220ms linear;
-    }
-    @media (prefers-reduced-motion: reduce) {
-      html.cusade-animations .cusade-visualization
-        :is(.cusade-visualization__meta, .cusade-visualization__art,
-          .cusade-visualization__wave, .cusade-visualization__times,
-          .cusade-visualization__bars--played, .cusade-visualization__bars span) {
-        transition: none;
-        opacity: 1;
-        transform: none;
-      }
-      html.cusade-animations .playbackTimeline__progressBar { transition: none; }
+    /* The bars themselves carry no transition on purpose: a track switch redraws
+       all of them at once, so a height transition would only add 320 layout passes. */
+    /* Neutral state for the track switch effects. The switching classes are only
+       added while motionActive() is true, so these rules normally never match;
+       they exist so that turning the setting off mid-transition cannot leave a
+       hidden cover or a moved caption behind. */
+    html:not(.cusade-animations) .cusade-visualization
+      :is(.cusade-visualization__meta, .cusade-visualization__art,
+        .cusade-visualization__wave, .cusade-visualization__times) {
+      opacity: 1;
+      transform: none;
     }
     @media (max-width: 900px) {
       .cusade-visualization { min-height: 260px; }
@@ -746,26 +937,60 @@ function initializeSettings() {
     .l-fluid-fixed.cusade-insights-wide-sidebar > .l-sidebar-right { left: auto !important;
       right: 0 !important; width: var(--cusade-insights-sidebar-width) !important; }
     .l-fluid-fixed.cusade-insights-wide-sidebar .streamSidebar { width: 100% !important; }
+    /* One shared curve for every effect in the app, so all reactions start and
+       settle together. Two choices matter more than the effects themselves:
+       the duration, because 180ms finished before the eye had registered it and
+       read as a flicker, and the easing, because a curve that leaves at full
+       speed snaps at the start. This one leaves gently (.3 control point) and
+       arrives flat, so a hover reads as a reaction rather than a blink.
+       --cusade-grow is the same curve with more time on it, for the few buttons
+       that change size rather than position: the eye follows the edges of a shape
+       it is growing, so a size change needs a longer ramp than a movement. */
+    html {
+      --cusade-hover: 360ms cubic-bezier(.3,.62,.36,1);
+      --cusade-grow: 420ms cubic-bezier(.3,.62,.36,1);
+    }
+    /* Bare links and inputs keep the cheap set: filter and shadow almost never
+       change on them, and an animated property costs a repaint even when the
+       value does not move. Buttons get the full treatment, because on a button
+       the highlight is the whole point. */
     html.cusade-animations :is(button, .sc-button, [role="button"], a, input, textarea) {
-      transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease,
-        box-shadow 180ms ease, opacity 180ms ease, filter 180ms ease;
+      transition: color var(--cusade-hover), background-color var(--cusade-hover),
+        border-color var(--cusade-hover), opacity var(--cusade-hover);
+    }
+    html.cusade-animations :is(button, .sc-button, [role="button"]):not(:disabled) {
+      transition: color var(--cusade-hover), background-color var(--cusade-hover),
+        border-color var(--cusade-hover), opacity var(--cusade-hover),
+        box-shadow var(--cusade-hover), filter var(--cusade-hover);
     }
     html.cusade-animations :is(button, .sc-button, [role="button"]):not(:disabled):hover {
-      filter: brightness(1.12);
+      filter: brightness(1.09) saturate(1.06);
     }
     html.cusade-animations :is(button, .sc-button, [role="button"]):not(:disabled):active {
-      filter: brightness(.9);
+      filter: brightness(.9) saturate(.96);
     }
     html.cusade-animations :is(input, textarea, .sc-button, button):focus-visible {
       outline-offset: 3px;
-      transition: outline-offset 180ms ease, box-shadow 180ms ease;
+      transition: outline-offset var(--cusade-hover), box-shadow var(--cusade-hover);
     }
+    /* The lift is a transform, so it stays on the compositor. The shadow is
+       applied without a transition on purpose: measured on a 20 row feed, an
+       animated shadow cost 2856ms of paint against 122ms for the same hover with
+       the shadow snapped in, and the cost did not drop with the blur radius (a
+       blurless inset box-shadow was just as expensive). Repainting the shadow
+       invalidates the strip around the element, so a row drags its neighbours in
+       on every frame. The lift still carries the motion. */
     html.cusade-animations :is(.playableTile, .sidebarModule, .cusade-insights-banner, .cusade-visualization) {
-      transition: transform 240ms ease, box-shadow 240ms ease, background-color 400ms ease;
+      transition: transform var(--cusade-hover),
+        background-color 820ms cubic-bezier(.3,.62,.36,1);
     }
     html.cusade-animations :is(.playableTile, .cusade-insights-banner, .cusade-visualization):hover {
-      transform: translateY(-3px);
-      box-shadow: 0 13px 28px #0002;
+      transform: translateY(-4px);
+      box-shadow: 0 16px 26px #00000038;
+    }
+    html.cusade-animations .sidebarModule:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px #00000026;
     }
     html.cusade-animations.cusade-insights-editing .cusade-insights-banner,
     html.cusade-animations .cusade-insights-drag-ghost {
@@ -774,68 +999,106 @@ function initializeSettings() {
     }
     html.cusade-animations :is(.playableTile__image, .playableTile__imageOverlay,
       .image.sc-artwork, .image.sc-artwork .image__full, .cusade-visualization__art) {
-      transition: transform 300ms cubic-bezier(.2,.75,.25,1), opacity 220ms ease,
-        filter 220ms ease, border-radius 220ms ease;
+      transition: transform 380ms cubic-bezier(.3,.62,.36,1), opacity var(--cusade-hover);
     }
     html.cusade-animations .playableTile__artworkLink:hover .playableTile__image,
     html.cusade-animations .listenArtworkWrapper__artwork:hover .image.sc-artwork {
-      transform: scale(1.035);
+      transform: scale(1.04);
     }
     html.cusade-animations .image.image__rounded:hover {
-      transform: scale(1.045);
+      transform: scale(1.055);
     }
     html.cusade-animations .cusade-visualization:hover .cusade-visualization__art {
       transform: scale(1.025);
     }
     html.cusade-animations :is(.soundList__item, .searchItem, .commentItem,
-      .header__navMenuItem, .sidebarModule) {
-      transition: color 180ms ease, opacity 180ms ease, background-color 180ms ease,
-        border-color 180ms ease, box-shadow 220ms ease;
+      .header__navMenuItem) {
+      transition: color var(--cusade-hover), opacity var(--cusade-hover);
     }
     html.cusade-animations :is(.soundList__item, .searchItem, .commentItem):hover {
-      background-color: color-mix(in srgb, var(--font-primary-color, #fff) 4%, transparent);
+      background-color: color-mix(in srgb, var(--font-primary-color, #fff) 5%, transparent);
     }
-    html.cusade-animations .sidebarModule:hover { box-shadow: 0 7px 18px #0001; }
     html.cusade-animations :is(.dropdownMenu, [role="menu"], .cusade-insights-banner__menu):not([hidden]) {
-      animation: cusade-menu-enter 160ms cubic-bezier(.2,.75,.25,1) both;
+      animation: cusade-menu-enter 280ms cubic-bezier(.3,.62,.36,1) both;
       transform-origin: top center;
     }
+    /* Our own buttons get the full treatment: lift, accent glow and a brightness
+       nudge, all on the shared curve, so the press settles instead of snapping.
+       A button is small enough that the glow costs nothing measurable, which is
+       not true of a full width row or a card. */
     html.cusade-animations :is(.cusade-visualization__play, .cusade-likes-shuffle__button,
       .cusade-insights-banner button, .cusade-insights-editbar button) {
-      transition: transform 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+      transition: transform var(--cusade-hover), background-color var(--cusade-hover),
+        filter var(--cusade-hover);
     }
     html.cusade-animations :is(.cusade-visualization__play, .cusade-likes-shuffle__button,
       .cusade-insights-banner button, .cusade-insights-editbar button):hover:not(:disabled) {
       transform: translateY(-2px);
+      filter: brightness(1.08);
+      box-shadow: 0 10px 24px color-mix(in srgb, var(--cusade-accent, #ff5500) 26%, transparent);
     }
     html.cusade-animations :is(.cusade-visualization__play, .cusade-likes-shuffle__button,
       .cusade-insights-banner button, .cusade-insights-editbar button):active:not(:disabled) {
-      transform: scale(.96);
+      transform: translateY(-1px) scale(.97);
+      filter: brightness(.94);
     }
-    html.cusade-animations :is(.soundList__item, .searchList__item, .trackList__item,
-      .usersList__item, .soundBadgeList__item, .commentBadgeList__item,
-      .userStreamItem, .playableTile) {
-      animation: cusade-content-enter 280ms cubic-bezier(.2,.75,.25,1) backwards;
+    /* Action pills grow on hover instead of only lifting. A scale on a pill reads as
+       a reaction of its own, and these are the buttons a person aims at, so they
+       all get what the insights pill proved out: a longer ramp than the shared
+       hover curve, a soft ring in the button's own colour, a small lift on top of
+       the scale, and a press that settles instead of snapping. Scale is written
+       first in the transform because transform functions apply right to left, so
+       the button grows around its own centre and then lifts. Bare icon buttons
+       are deliberately left out: they already have their own scale, and growing a
+       32px icon by the same ratio reads as wobbly rather than deliberate. */
+    html.cusade-animations :is(.sc-button-follow, .sc-button:not(.sc-button-icon),
+      .cusade-visualization__play, .cusade-insights-editbar button,
+      .cusade-insights-banner__open) {
+      transition: transform var(--cusade-grow), background-color var(--cusade-hover),
+        box-shadow var(--cusade-hover), filter var(--cusade-hover);
+    }
+    html.cusade-animations :is(.sc-button-follow, .sc-button:not(.sc-button-icon),
+      .cusade-visualization__play, .cusade-insights-editbar button,
+      .cusade-insights-banner__open):hover:not(:disabled) {
+      transform: scale(1.07) translateY(-1px);
+      filter: brightness(1.04);
+      box-shadow: 0 10px 24px #0000003d, 0 0 0 5px color-mix(in srgb, currentColor 14%, transparent);
+    }
+    html.cusade-animations :is(.sc-button-follow, .sc-button:not(.sc-button-icon),
+      .cusade-visualization__play, .cusade-insights-editbar button,
+      .cusade-insights-banner__open):active:not(:disabled) {
+      transform: scale(1.02) translateY(0);
+      filter: brightness(.98);
+    }
+    /* Applied to items the enter observer has seen reach the viewport, so a feed
+       that renders hundreds of rows promotes only the visible ones. */
+    html.cusade-animations.cusade-enter .cusade-enter-target {
+      animation: cusade-content-enter 400ms cubic-bezier(.3,.62,.36,1) backwards;
     }
     html.cusade-animations :is(.soundList__item, .searchList__item, .trackList__item,
       .usersList__item, .soundBadgeList__item, .commentBadgeList__item,
       .userStreamItem, .searchItem, .trackItem, .userBadge, .soundBadge,
       .commentBadge, .profileTabs a, .userNetworkTabs a, .header__navMenuItem) {
-      transition: background-color 200ms ease, border-color 200ms ease,
-        box-shadow 220ms ease, color 180ms ease, opacity 180ms ease;
+      /* Rows fade the highlight in instead of switching it, which is what the
+         180ms snap could not do. The shadow is not in this list for the same
+         reason as on the cards: on a full width row it repaints the strip and
+         costs an order of magnitude more than the fade itself. The tab links are
+         in this list on purpose, so the underline they show on hover grows out of
+         nothing. */
+      transition: color var(--cusade-hover), opacity var(--cusade-hover),
+        background-color var(--cusade-hover);
     }
     html.cusade-animations :is(.soundList__item, .searchList__item, .trackList__item,
       .usersList__item, .soundBadgeList__item, .commentBadgeList__item,
       .userStreamItem, .searchItem, .trackItem, .userBadge, .soundBadge,
       .commentBadge):hover {
-      background-color: color-mix(in srgb, var(--font-primary-color, #fff) 5%, transparent);
-      box-shadow: 0 5px 18px #00000012;
+      background-color: color-mix(in srgb, var(--font-primary-color, #fff) 6%, transparent);
+      box-shadow: 0 4px 12px #00000021;
     }
     html.cusade-animations :is(.sound__coverArt, .trackItem__image, .soundBadge__artwork,
       .userBadge__avatar, .profileHeaderInfo__avatar, .listenArtworkWrapper__artwork,
       .commentPopover__avatar, .commentForm__avatar) .image {
-      transition: transform 260ms cubic-bezier(.2,.75,.25,1),
-        filter 220ms ease, opacity 220ms ease;
+      transition: transform var(--cusade-hover);
     }
     html.cusade-animations :is(.sound__coverArt, .trackItem__image, .soundBadge__artwork,
       .userBadge__avatar, .profileHeaderInfo__avatar, .listenArtworkWrapper__artwork,
@@ -844,10 +1107,10 @@ function initializeSettings() {
     }
     html.cusade-animations :is(.profileHeaderInfo, .userNetworkInfo, .listenInfo,
       .listenEngagement, .sidebarModule, .commentsModule, .likesModule) {
-      animation: cusade-content-enter 300ms cubic-bezier(.2,.75,.25,1) backwards;
+      animation: cusade-content-enter 420ms cubic-bezier(.3,.62,.36,1) backwards;
     }
     html.cusade-animations :is(.profileHeaderBackground__visual, .listenArtworkWrapper__artwork) {
-      transition: filter 280ms ease, opacity 280ms ease;
+      transition: transform var(--cusade-hover), opacity var(--cusade-hover);
     }
     html.cusade-animations :is(.profileTabs a, .userNetworkTabs a, .header__navMenuItem):hover {
       box-shadow: inset 0 -2px currentColor;
@@ -856,8 +1119,9 @@ function initializeSettings() {
       .sc-button-repost, .sc-button-share, .sc-button-more, .sc-button-copylink,
       .sc-button-play, .playControls__control, .volume__button,
       .header__moreButton, .headerSearch__submit, .userNetwork__likeActions button) {
-      transition: transform 170ms cubic-bezier(.2,.75,.25,1), filter 170ms ease,
-        color 170ms ease, background-color 170ms ease, box-shadow 170ms ease;
+      transition: transform 280ms cubic-bezier(.3,.62,.36,1), filter var(--cusade-hover),
+        color var(--cusade-hover), background-color var(--cusade-hover),
+        box-shadow var(--cusade-hover);
     }
     html.cusade-animations :is(.sc-button-icon, .sc-button-like, .sc-button-follow,
       .sc-button-repost, .sc-button-share, .sc-button-more, .sc-button-copylink,
@@ -873,80 +1137,69 @@ function initializeSettings() {
     }
     html.cusade-animations :is(.sc-button-like, .sc-button-follow, .sc-button-repost):is(
       .sc-button-selected, .sc-button-active, [aria-pressed="true"]) {
-      animation: cusade-action-pop 260ms cubic-bezier(.2,.75,.25,1);
+      animation: cusade-action-pop 380ms cubic-bezier(.3,.62,.36,1);
     }
-    html.cusade-animations :is(.volume__sliderProgress, .playbackTimeline__progressBar) {
-      transition: width 180ms linear, background-color 180ms ease;
+    html.cusade-animations .volume__sliderProgress {
+      transition: width 180ms linear, background-color var(--cusade-hover);
+    }
+    /* SoundCloud drives the player fill with an inline width, and animating that
+       width re-ran layout for the bottom bar on every frame. The preload mirrors
+       the same value as a scaleX, which is composited. cusade-player-progress is
+       only set once that mirror works, so a broken mirror keeps SoundCloud's own
+       width instead of showing an empty or full bar. */
+    html.cusade-animations.cusade-player-progress .playbackTimeline__progressBar {
+      width: 100% !important;
+      transform: scaleX(var(--cusade-player-progress, 0));
+      transform-origin: left center;
+      transition: transform 180ms linear, background-color 180ms ease;
     }
     html.cusade-animations .volume__sliderHandle {
-      transition: box-shadow 180ms ease, filter 180ms ease;
+      transition: box-shadow var(--cusade-hover), filter var(--cusade-hover);
     }
     html.cusade-animations .volume__sliderWrapper:hover .volume__sliderHandle {
       box-shadow: 0 0 0 5px color-mix(in srgb, var(--font-primary-color, #fff) 16%, transparent);
     }
     html.cusade-animations :is(.commentPopover, .userDropbar, .playControlsPanel):not([hidden]) {
-      animation: cusade-menu-enter 180ms cubic-bezier(.2,.75,.25,1) both;
+      animation: cusade-menu-enter 300ms cubic-bezier(.3,.62,.36,1) both;
     }
+    /* Page transitions. Two fixed layers that only ever move opacity and scaleX,
+       so a route change stays on the compositor instead of repainting the column
+       that is being swapped underneath. The bar is a 2px accent line across the
+       top, the veil a soft dim that rises for a moment and clears again. */
+    .cusade-route { position: fixed; inset: 0; z-index: 2147483647; pointer-events: none; }
+    .cusade-route__veil { position: absolute; inset: 0; opacity: 0;
+      background: radial-gradient(130% 100% at 50% 35%, #0b0d13b0, #05060ae8); }
+    .cusade-route__bar { position: absolute; top: 0; left: 0; width: 100%; height: 2px;
+      opacity: 0; transform: scaleX(0); transform-origin: left center;
+      background: linear-gradient(90deg, transparent 2%, var(--cusade-accent, #ff5500) 18%,
+        #ffffffd9 50%, var(--cusade-accent, #ff5500) 82%, transparent 98%); }
+    html.cusade-animations .cusade-route__veil { transition: opacity 520ms cubic-bezier(.3,.62,.36,1); }
+    html.cusade-animations .cusade-route__bar { transition: transform 760ms cubic-bezier(.3,.62,.36,1),
+      opacity 340ms ease; }
+    html.cusade-animations .cusade-route--intro .cusade-route__veil { opacity: 1; }
+    html.cusade-animations .cusade-route--veil .cusade-route__veil { opacity: .42; }
+    html.cusade-animations .cusade-route--sweep .cusade-route__bar { opacity: 1; transform: scaleX(1); }
     @keyframes cusade-content-enter {
-      from { opacity: 0; transform: translateY(7px); }
+      from { opacity: 0; transform: translateY(9px); }
       to { opacity: 1; transform: translateY(0); }
     }
     @keyframes cusade-action-pop {
-      50% { transform: scale(1.16); }
+      45% { transform: scale(1.14); }
     }
     @keyframes cusade-menu-enter {
-      from { opacity: 0; transform: translateY(-5px) scale(.98); }
+      from { opacity: 0; transform: translateY(-7px) scale(.985); }
       to { opacity: 1; transform: translateY(0) scale(1); }
     }
-    @media (prefers-reduced-motion: reduce) {
-      html.cusade-animations :is(button, .sc-button, [role="button"], a, input, textarea,
-        .playableTile, .sidebarModule, .cusade-insights-banner, .cusade-visualization,
-        .playableTile__image, .playableTile__imageOverlay, .image.sc-artwork,
-        .image.sc-artwork .image__full, .cusade-visualization__art,
-        .soundList__item, .searchList__item, .trackList__item, .usersList__item,
-        .soundBadgeList__item, .commentBadgeList__item, .userStreamItem,
-        .searchItem, .trackItem, .userBadge, .soundBadge, .commentBadge,
-        .commentItem, .header__navMenuItem, .profileTabs a, .userNetworkTabs a,
-        .profileHeaderInfo, .userNetworkInfo, .listenInfo, .listenEngagement,
-        .commentsModule, .likesModule, .profileHeaderBackground__visual,
-        .listenArtworkWrapper__artwork, .sound__coverArt .image,
-        .trackItem__image .image, .soundBadge__artwork .image,
-        .userBadge__avatar .image, .profileHeaderInfo__avatar .image,
-        .commentPopover__avatar .image, .commentForm__avatar .image,
-        .sc-button-icon, .sc-button-like, .sc-button-follow, .sc-button-repost,
-        .sc-button-share, .sc-button-more, .sc-button-copylink, .sc-button-play,
-        .playControls__control, .volume__button,
-        .header__moreButton, .headerSearch__submit, .userNetwork__likeActions button,
-        .volume__sliderProgress, .volume__sliderHandle, .playbackTimeline__progressBar,
-        .commentPopover, .userDropbar, .playControlsPanel,
-        .dropdownMenu, [role="menu"]) {
-        animation: none !important;
-        transition: none !important;
-      }
-      html.cusade-animations :is(.playableTile, .cusade-insights-banner,
-        .cusade-visualization__play, .cusade-likes-shuffle__button,
-        .cusade-insights-banner button, .cusade-insights-editbar button,
-        .playableTile__image, .image.image__rounded, .cusade-visualization__art,
-        .sound__coverArt .image, .trackItem__image .image,
-        .soundBadge__artwork .image, .userBadge__avatar .image,
-        .profileHeaderInfo__avatar .image, .listenArtworkWrapper__artwork .image,
-        .commentPopover__avatar .image, .commentForm__avatar .image,
-        .sc-button-icon, .sc-button-like, .sc-button-follow, .sc-button-repost,
-        .sc-button-share, .sc-button-more, .sc-button-copylink, .sc-button-play,
-        .playControls__control, .volume__button, .header__moreButton,
-        .headerSearch__submit, .userNetwork__likeActions button):is(:hover, :active) {
-        transform: none !important;
-      }
-    }
+    /* No prefers-reduced-motion override here on purpose: every effect above is
+       scoped to html.cusade-animations, and that class now means "cusade motion
+       is active" (see motionActive()). The list enter effect additionally needs
+       html.cusade-enter, which is only set while motion is active. With the
+       setting off, or with the system preference respected, no animation rule
+       matches at all, so there is no second selector list to keep in sync and no
+       !important that could silently defeat an explicit choice. */
   `;
   document.head.appendChild(style);
-  new MutationObserver(scheduleLocalization).observe(document.body, {
-    childList: true,
-    characterData: true,
-    attributes: true,
-    attributeFilter: ['title', 'aria-label', 'placeholder'],
-    subtree: true
-  });
+  updateLocalizationWatcher();
   scheduleLocalization();
 
   ipcRenderer.invoke('cusade:get-settings').then(saved => {
@@ -960,6 +1213,7 @@ function initializeSettings() {
     startMinimized = saved.startMinimized === true;
     playbackVisualization = saved.playbackVisualization === true;
     animations = saved.animations === true;
+    respectSystemMotion = saved.respectSystemMotion === true;
     showYourLikesButton = saved.showYourLikesButton !== false;
     insightsHiddenUntil = Number.isFinite(saved.insightsHiddenUntil) ? saved.insightsHiddenUntil : 0;
     if (saved.insightsLayout && ['sidebar', 'main', 'feed'].includes(saved.insightsLayout.location)) {
@@ -979,7 +1233,9 @@ function initializeSettings() {
     applyNearbyEventsVisibility();
     applyAccentColor();
     applyArtworkRadii();
-    applyAnimations();
+    routeIntroPending = true;
+    applyMotion();
+    routeIntroPending = false;
     updatePanelToggle();
     updateNearbyEventsToggle();
     updateAudioAdsToggle();
@@ -987,6 +1243,7 @@ function initializeSettings() {
     updateAutoStartControls();
     updateVisualizationToggle();
     updateAnimationsToggle();
+    updateRespectSystemMotionToggle();
     updateYourLikesToggle();
     updatePanelColor();
     syncPlaybackVisualization();
@@ -1006,6 +1263,10 @@ if (document.readyState === 'loading') {
 } else {
   initializeSettings();
 }
+
+// The system preference can change at any moment, so motion is recalculated
+// instead of relying on a snapshot taken when the page loaded.
+systemReducedMotion.addEventListener('change', applyMotion);
 
 function updatePanelToggle() {
   const toggle = panelHost?.shadowRoot.querySelector('#hide-artist-tools');
@@ -1068,6 +1329,28 @@ function updateAnimationsToggle() {
   if (!toggle) return;
   toggle.checked = animations;
   toggle.disabled = !settingsLoaded;
+  updateSystemMotionHint();
+}
+
+function updateRespectSystemMotionToggle() {
+  const toggle = panelHost?.shadowRoot.querySelector('#respect-system-motion');
+  if (!toggle) return;
+  toggle.checked = respectSystemMotion;
+  toggle.disabled = !settingsLoaded;
+}
+
+// Keeps the switch honest: when the system asks for reduced motion the panel says
+// so instead of leaving a checked switch that silently does nothing.
+function updateSystemMotionHint() {
+  const hint = panelHost?.shadowRoot.querySelector('.motion-hint');
+  if (!hint) return;
+  const visible = animations && systemReducedMotion.matches;
+  hint.hidden = !visible;
+  hint.textContent = !visible ? '' : respectSystemMotion
+    ? ui('Система сообщает об уменьшении движения, поэтому эффекты cusade приглушены.',
+      'Your system asks for reduced motion, so cusade effects stay dimmed.')
+    : ui('Система сообщает об уменьшении движения, но cusade использует ваш выбор.',
+      'Your system asks for reduced motion, but cusade follows your choice.');
 }
 
 function updateYourLikesToggle() {
@@ -1205,7 +1488,7 @@ function applyPlaybackTheme(host, artwork, color) {
   const previous = [...host.children].filter(child => child.classList.contains('cusade-track-backdrop'));
   for (const layer of previous) {
     layer.classList.remove('cusade-track-backdrop--visible');
-    setTimeout(() => layer.remove(), 950);
+    setTimeout(() => layer.remove(), 1050);
   }
   if (!artwork) return;
   const layer = document.createElement('div');
@@ -1257,24 +1540,36 @@ function syncPlaybackTheme() {
   });
 }
 
+const WAVE_BAR_COUNT = 160;
+
+// The bars stay in the card for as long as it lives: a track switch only
+// rewrites their transforms instead of replacing 320 elements, and the height
+// that is animated is a compositor-only scale.
 function drawPlaybackWave(card, seed, waveform) {
   let state = 0;
   for (const character of seed) state = (Math.imul(state, 31) + character.charCodeAt(0)) | 0;
-  const bars = Array.from({ length: 160 }, (_, index) => {
+  const scales = new Array(WAVE_BAR_COUNT);
+  for (let index = 0; index < WAVE_BAR_COUNT; index++) {
     state = (Math.imul(state, 1664525) + 1013904223) | 0;
     const sample = waveform?.samples.slice(
-      Math.floor(index * waveform.samples.length / 160),
-      Math.max(1, Math.floor((index + 1) * waveform.samples.length / 160))
+      Math.floor(index * waveform.samples.length / WAVE_BAR_COUNT),
+      Math.max(1, Math.floor((index + 1) * waveform.samples.length / WAVE_BAR_COUNT))
     );
     const height = sample?.length
       ? Math.max(10, Math.max(...sample) / waveform.height * 96)
       : 18 + ((state >>> 16) % 60) + 12 * Math.sin(index / 9) ** 2;
-    const bar = document.createElement('span');
-    bar.style.height = `${Math.min(96, height)}%`;
-    return bar;
-  });
+    scales[index] = Math.min(96, height) / 100;
+  }
   for (const layer of card.querySelectorAll('.cusade-visualization__bars')) {
-    layer.replaceChildren(...bars.map(bar => bar.cloneNode()));
+    if (layer.children.length !== WAVE_BAR_COUNT) {
+      layer.replaceChildren(...Array.from({ length: WAVE_BAR_COUNT }, () => document.createElement('span')));
+    }
+    for (let index = 0; index < WAVE_BAR_COUNT; index++) {
+      const transform = `scaleY(${scales[index].toFixed(4)})`;
+      if (layer.children[index].style.transform !== transform) {
+        layer.children[index].style.transform = transform;
+      }
+    }
   }
 }
 
@@ -1334,8 +1629,7 @@ function setVisualizationArtwork(card, artwork, immediate = false) {
     else { cover.removeAttribute('src'); cover.hidden = true; }
     requestAnimationFrame(() => cover.classList.remove('cusade-visualization__art--changing'));
   };
-  if (!immediate && animations && cover.hasAttribute('src') &&
-      !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  if (!immediate && motionActive() && cover.hasAttribute('src')) {
     cover.classList.add('cusade-visualization__art--changing');
     card.cusadeArtworkTimer = setTimeout(apply, 180);
   } else apply();
@@ -1399,8 +1693,7 @@ function syncPlaybackVisualization() {
       artwork: playbackArtworkFromBadge(badge)
     };
     clearTimeout(visualizationSwitchTimer);
-    if (animations && visualizationHost.dataset.cusadeTrackUrl &&
-        !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (motionActive() && visualizationHost.dataset.cusadeTrackUrl) {
       visualizationPendingTrack = { card: visualizationHost, track };
       visualizationHost.classList.add('cusade-visualization--switching');
       visualizationSwitchTimer = setTimeout(finishPlaybackSwitch, 180);
@@ -1433,6 +1726,49 @@ function syncPlaybackVisualization() {
   const duration = document.querySelector('.playbackTimeline__duration [aria-hidden="true"]')?.textContent || '0:00';
   if (times[0].textContent !== passed) times[0].textContent = passed;
   if (times[1].textContent !== duration) times[1].textContent = duration;
+}
+
+// SoundCloud paints the player fill with an inline width. Growing that width
+// re-ran layout for the whole bottom bar on every frame, so the preload mirrors
+// the same value as a scaleX, which only the compositor has to handle. The
+// mirror owns the bar from the first valid sample onwards and hands it back if
+// the timeline ever stops reporting a range.
+function applyPlayerProgress(wrapper) {
+  const maximum = Number(wrapper.getAttribute('aria-valuemax'));
+  const current = Number(wrapper.getAttribute('aria-valuenow'));
+  const root = document.documentElement;
+  if (!(maximum > 0) || !Number.isFinite(current)) {
+    root?.classList.remove('cusade-player-progress');
+    return;
+  }
+  const value = Math.max(0, Math.min(1, current / maximum)).toFixed(4);
+  if (wrapper.style.getPropertyValue('--cusade-player-progress') !== value) {
+    wrapper.style.setProperty('--cusade-player-progress', value);
+  }
+  root?.classList.add('cusade-player-progress');
+}
+
+function syncPlayerProgress() {
+  const wrapper = document.querySelector('.playbackTimeline__progressWrapper');
+  if (!wrapper) {
+    if (playerProgressTarget) {
+      playerProgressObserver?.disconnect();
+      playerProgressObserver = null;
+      playerProgressTarget = null;
+      document.documentElement?.classList.remove('cusade-player-progress');
+    }
+    return;
+  }
+  if (playerProgressTarget !== wrapper) {
+    playerProgressObserver?.disconnect();
+    playerProgressObserver = new MutationObserver(() => applyPlayerProgress(wrapper));
+    playerProgressObserver.observe(wrapper, {
+      attributes: true,
+      attributeFilter: ['aria-valuenow', 'aria-valuemax']
+    });
+    playerProgressTarget = wrapper;
+  }
+  applyPlayerProgress(wrapper);
 }
 
 function playbackSeconds(value) {
@@ -2045,7 +2381,8 @@ function insightRow(item, index, kind, maxPlays = 0) {
   const detail = document.createElement('small');
   detail.textContent = kind === 'track' ? item.artist : `${item.plays} ${ui('прослушиваний', 'plays')}`;
   const bar = document.createElement('span'); bar.className = 'rank-bar';
-  const fill = document.createElement('span'); fill.style.width = `${Math.max(4, item.plays / Math.max(1, maxPlays) * 100)}%`;
+  const fill = document.createElement('span');
+  fill.style.transform = `scaleX(${(Math.max(4, item.plays / Math.max(1, maxPlays)) / 100).toFixed(4)})`;
   bar.append(fill); info.append(name, detail, bar);
   const count = document.createElement('span'); count.className = 'rank-count'; count.textContent = `${item.plays} ×`;
   row.append(rank, art, info, count);
@@ -2184,33 +2521,39 @@ async function openInsights() {
   if (insightsHost) insightsHost.shadowRoot?.querySelector('.close')?.click();
   insightsHost = document.createElement('div');
   insightsHost.id = 'cusade-insights-host';
-  insightsHost.classList.toggle('cusade-animations', animations);
+  insightsHost.classList.toggle('cusade-animations', motionActive());
   insightsHost.style.cssText = 'position:fixed;inset:0;z-index:2147483646';
   const shadow = insightsHost.attachShadow({ mode: 'open' });
   shadow.innerHTML = `<style>
     *{box-sizing:border-box} .backdrop{position:fixed;inset:0;background:#07080ce0}
     .panel{--text:var(--font-primary-color,#f7f7f8);--subtle:var(--font-secondary-color,#a6a8b1);--surface:color-mix(in srgb,var(--text) 5%,var(--background-surface-color,#191a20));--line:color-mix(in srgb,var(--text) 11%,transparent);--accent:var(--cusade-accent,#ff5500);position:fixed;inset:3vh 24px;max-width:1100px;margin:auto;overflow:auto;border:1px solid var(--line);border-radius:22px;background:var(--background-surface-color,#191a20);color:var(--text);box-shadow:0 16px 40px #0008;font:14px system-ui,sans-serif;scrollbar-color:var(--line) transparent}
     button{border:0;cursor:pointer;font:600 13px system-ui,sans-serif} button:disabled{opacity:.55;cursor:wait} button:hover{filter:brightness(1.13)} a{color:inherit;text-decoration:none} a:hover{text-decoration:underline}
-    .hero{position:relative;overflow:hidden;min-height:216px;padding:29px 34px;background-color:var(--hero-color,#4d3541);background-image:linear-gradient(115deg,#17192388,#191b24 85%);color:#fff;transition:background-color 1s ease}
+    .hero{position:relative;overflow:hidden;min-height:216px;padding:29px 34px;background-color:var(--hero-color,#4d3541);background-image:linear-gradient(115deg,#17192388,#191b24 85%);color:#fff}
+    :host(.cusade-animations) .hero{transition:background-color 880ms cubic-bezier(.3,.62,.36,1)}
     .hero:after{content:"";position:absolute;right:-90px;top:-205px;width:500px;height:500px;border:1px solid #ffffff18;border-radius:50%;pointer-events:none}
     .hero-art{position:absolute;right:16%;top:-95px;width:360px;height:360px;object-fit:cover;opacity:.12;transform:rotate(-15deg)}
     .hero-top,.hero-content{position:relative;z-index:1}.hero-top{display:flex;justify-content:space-between;align-items:center}.brand{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:750;letter-spacing:.02em}.brand-mark{width:22px;height:22px;border-radius:7px;background:#fff3;display:grid;place-items:center;color:#fff}.hero h1{margin:26px 0 5px;font-size:34px;line-height:1.12;letter-spacing:-.045em}.hero p{max-width:620px;margin:0;color:#ffffffb8;line-height:1.5}.close{width:32px;height:32px;border-radius:50%;background:#ffffff20;color:#fff;font-size:21px;line-height:1}
     .content{padding:28px 34px 32px}.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:22px}.eyebrow{font-size:11px;font-weight:750;letter-spacing:.11em;text-transform:uppercase;color:var(--subtle)}.controls{display:flex;gap:4px;padding:4px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}.controls button{padding:8px 13px;border-radius:8px;background:transparent;color:var(--subtle)}.controls button.selected{background:var(--accent);color:#fff;box-shadow:0 3px 12px #0002}
     .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.metric{min-height:109px;padding:17px 18px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}.metric-top{display:flex;align-items:center;gap:8px;color:var(--subtle);font-size:12px}.metric-icon{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent);font-size:14px}.metric strong{display:block;margin-top:13px;font-size:28px;line-height:1;letter-spacing:-.035em;font-variant-numeric:tabular-nums}
-    .section{margin-top:28px}.section-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:15px}.section h2{margin:0;font-size:18px;letter-spacing:-.02em}.section-note,.muted,small{color:var(--subtle)}.section-note{font-size:12px}.activity-card{padding:19px 22px 16px;border:1px solid var(--line);border-radius:16px;background:var(--surface)}.activity-graph{display:grid;grid-template-columns:repeat(var(--bars),minmax(0,1fr));align-items:end;gap:8px;height:142px;border-bottom:1px solid var(--line)}.bar-slot{display:flex;align-items:flex-end;justify-content:center;height:100%;min-width:0}.bar{width:100%;max-width:45px;min-height:3px;border-radius:6px 6px 0 0;background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 70%,#fff),var(--accent));opacity:.85;transition:height .4s}.bar-slot:hover .bar{opacity:1}.activity-labels{display:grid;grid-template-columns:repeat(var(--bars),minmax(0,1fr));gap:8px;margin-top:9px;text-align:center;color:var(--subtle);font-size:10px}.activity-labels span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.activity-empty{padding:30px 0;text-align:center;color:var(--subtle)}
-    .columns{display:grid;grid-template-columns:1fr 1fr;gap:26px}.list-card{padding:5px 17px;border:1px solid var(--line);border-radius:16px;background:var(--surface)}ol{padding:0;margin:0;list-style:none}.rank-row,.history-row{display:flex;align-items:center;gap:12px;min-height:67px;padding:9px 0;border-bottom:1px solid var(--line)}li:last-child{border-bottom:0}.rank{width:21px;flex:none;color:var(--subtle);font-size:11px;font-variant-numeric:tabular-nums}.insight-art{position:relative;display:block;flex:none;width:46px;height:46px;overflow:hidden;border-radius:9px;background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 28%,#34323a),#292b34)}.insight-art:before{content:"♫";position:absolute;inset:0;display:grid;place-items:center;color:#ffffff90;font-size:19px}.insight-art.round{border-radius:50%}.insight-art img{position:relative;width:100%;height:100%;object-fit:cover}.rank-info,.history-info{min-width:0;flex:1}.rank-name,.history-name{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:650}.rank-info small,.history-info small{display:block;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}.rank-bar{display:block;width:100%;height:3px;overflow:hidden;margin-top:8px;border-radius:2px;background:var(--line)}.rank-bar span{display:block;height:100%;border-radius:2px;background:var(--accent)}.rank-count{flex:none;color:var(--subtle);font-size:11px;font-variant-numeric:tabular-nums}.empty{padding:28px 4px;text-align:center;color:var(--subtle);line-height:1.5}
+    .section{margin-top:28px}.section-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:15px}.section h2{margin:0;font-size:18px;letter-spacing:-.02em}.section-note,.muted,small{color:var(--subtle)}.section-note{font-size:12px}.activity-card{padding:19px 22px 16px;border:1px solid var(--line);border-radius:16px;background:var(--surface)}.activity-graph{display:grid;grid-template-columns:repeat(var(--bars),minmax(0,1fr));align-items:end;gap:8px;height:142px;border-bottom:1px solid var(--line)}.bar-slot{display:flex;align-items:flex-end;justify-content:center;height:100%;min-width:0}.bar{width:100%;max-width:45px;height:100%;transform:scaleY(.05);transform-origin:bottom;border-radius:6px 6px 0 0;background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 70%,#fff),var(--accent));opacity:.85}
+    :host(.cusade-animations) .bar{transition:transform .62s cubic-bezier(.3,.62,.36,1)}.bar-slot:hover .bar{opacity:1}.activity-labels{display:grid;grid-template-columns:repeat(var(--bars),minmax(0,1fr));gap:8px;margin-top:9px;text-align:center;color:var(--subtle);font-size:10px}.activity-labels span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.activity-empty{padding:30px 0;text-align:center;color:var(--subtle)}
+    .columns{display:grid;grid-template-columns:1fr 1fr;gap:26px}.list-card{padding:5px 17px;border:1px solid var(--line);border-radius:16px;background:var(--surface)}ol{padding:0;margin:0;list-style:none}.rank-row,.history-row{display:flex;align-items:center;gap:12px;min-height:67px;padding:9px 0;border-bottom:1px solid var(--line)}li:last-child{border-bottom:0}.rank{width:21px;flex:none;color:var(--subtle);font-size:11px;font-variant-numeric:tabular-nums}.insight-art{position:relative;display:block;flex:none;width:46px;height:46px;overflow:hidden;border-radius:9px;background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 28%,#34323a),#292b34)}.insight-art:before{content:"♫";position:absolute;inset:0;display:grid;place-items:center;color:#ffffff90;font-size:19px}.insight-art.round{border-radius:50%}.insight-art img{position:relative;width:100%;height:100%;object-fit:cover}.rank-info,.history-info{min-width:0;flex:1}.rank-name,.history-name{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:650}.rank-info small,.history-info small{display:block;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}.rank-bar{display:block;width:100%;height:3px;overflow:hidden;margin-top:8px;border-radius:2px;background:var(--line)}.rank-bar span{display:block;width:100%;height:100%;transform-origin:left center;border-radius:2px;background:var(--accent)}.rank-count{flex:none;color:var(--subtle);font-size:11px;font-variant-numeric:tabular-nums}.empty{padding:28px 4px;text-align:center;color:var(--subtle);line-height:1.5}
     .lower{display:grid;grid-template-columns:1fr 1fr;gap:26px}.history-row{min-height:60px}.history-row .insight-art{width:39px;height:39px}.history-row time{flex:none;color:var(--subtle);font-size:11px}.history-more{display:block;width:100%;padding:12px;border-top:1px solid var(--line);background:transparent;color:var(--accent)}.history-more[hidden]{display:none}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px;padding-top:22px;border-top:1px solid var(--line)}.actions button{padding:11px 15px;border-radius:9px;background:var(--surface);color:var(--text)}.actions .primary{background:var(--accent);color:#fff}.status{margin:10px 0 0;color:var(--subtle)}
     @media(max-width:750px){.panel{inset:0;border-radius:0}.hero{padding:24px}.content{padding:22px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.columns,.lower{grid-template-columns:1fr;gap:0}.topbar{align-items:flex-start;flex-direction:column}.activity-graph,.activity-labels{gap:3px}.hero-art{right:-80px}}
     @media(max-width:410px){.controls{width:100%}.controls button{flex:1;padding:8px 4px}.metric{padding:14px}.history-row time{max-width:65px;text-align:right}}
-    :host(.cusade-animations) .backdrop{animation:cusade-fade-in 180ms ease both}
-    :host(.cusade-animations) .panel{animation:cusade-panel-in 220ms cubic-bezier(.2,.75,.25,1) both}
-    :host(.cusade-animations) :is(button,.metric,.activity-card,.list-card,.rank-row,.history-row,.insight-art){transition:transform 180ms ease,background-color 180ms ease,box-shadow 180ms ease,filter 180ms ease}
-    :host(.cusade-animations) :is(button,.metric,.insight-art):hover{transform:translateY(-2px)}
+    :host(.cusade-animations) .backdrop{animation:cusade-fade-in 320ms cubic-bezier(.3,.62,.36,1) both}
+    :host(.cusade-animations) .panel{animation:cusade-panel-in 380ms cubic-bezier(.3,.62,.36,1) both}
+    :host(.cusade-animations){--cusade-hover:360ms cubic-bezier(.3,.62,.36,1)}
+    /* Same rule as on the page: the lift animates, the shadow snaps in. A metric
+       card is small, but the row list inside the window is not, and one animated
+       shadow there costs the same order of paint as a whole feed. */
+    :host(.cusade-animations) :is(button,.metric,.activity-card,.list-card,.rank-row,.history-row,.insight-art){transition:transform var(--cusade-hover),background-color var(--cusade-hover),filter var(--cusade-hover)}
+    :host(.cusade-animations) :is(.metric,.activity-card,.list-card,.rank-row,.history-row,.insight-art):hover{transform:translateY(-2px);box-shadow:0 10px 22px #00000059}
+    :host(.cusade-animations) button:hover{box-shadow:0 8px 20px color-mix(in srgb,var(--accent) 22%,transparent)}
     :host(.cusade-animations) button:active{transform:scale(.96)}
     :host(.cusade-animations) :is(.rank-row,.history-row):hover{background:color-mix(in srgb,var(--text) 4%,transparent)}
     @keyframes cusade-fade-in{from{opacity:0}to{opacity:1}}
-    @keyframes cusade-panel-in{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:none}}
-    @media(prefers-reduced-motion:reduce){:host(.cusade-animations) :is(.backdrop,.panel,button,.metric,.activity-card,.list-card,.rank-row,.history-row,.insight-art){animation:none;transition:none;transform:none}}
+    @keyframes cusade-panel-in{from{opacity:0;transform:translateY(16px) scale(.982)}to{opacity:1;transform:none}}
   </style><div class="backdrop"></div><main class="panel" role="dialog" aria-modal="true" aria-label="cusade Insights">
     <header class="hero"><img class="hero-art" alt=""><div class="hero-top"><span class="brand"><span class="brand-mark">♫</span>cusade Insights</span><button class="close" aria-label="${ui('Закрыть','Close')}">×</button></div><div class="hero-content"><h1>${ui('Ваша музыка в деталях','Your music, in detail')}</h1><p>${ui('Личный музыкальный дневник. Данные хранятся только на этом компьютере и пополняются во время прослушивания в приложении.', 'Your personal music diary. Data stays on this computer and grows while you listen in the app.')}</p></div></header>
     <div class="content"><div class="topbar"><span class="eyebrow">${ui('Обзор прослушиваний','Listening overview')}</span><nav class="controls" aria-label="${ui('Период','Period')}"><button data-period="week">${ui('7 дней','7 days')}</button><button data-period="month">${ui('30 дней','30 days')}</button><button data-period="all">${ui('Всё время','All time')}</button></nav></div>
@@ -2298,7 +2641,7 @@ async function openInsights() {
     for (const item of activity) {
       const slot = document.createElement('div'); slot.className = 'bar-slot';
       const bar = document.createElement('div'); bar.className = 'bar';
-      bar.style.height = `${Math.max(3, item.seconds / maxSeconds * 100)}%`;
+      bar.style.transform = `scaleY(${Math.max(.03, item.seconds / maxSeconds).toFixed(4)})`;
       const minutes = Math.round(item.seconds / 60);
       slot.title = `${item.label}: ${minutes} ${ui('мин', 'min')}`;
       slot.setAttribute('aria-label', slot.title);
@@ -2338,18 +2681,19 @@ function syncVisiblePlayback() {
   if (document.visibilityState !== 'visible') return;
   if (!insightsHost) syncPlaybackVisualization();
   syncPlaybackTheme();
+  syncPlayerProgress();
   const badge = document.querySelector('.playbackSoundBadge');
   const url = badge?.querySelector('.playbackSoundBadge__titleLink')?.href || '';
   if (url && url !== lastAnimatedBadgeUrl) {
     const firstTrack = !lastAnimatedBadgeUrl;
     lastAnimatedBadgeUrl = url;
-    if (!firstTrack && animations && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (!firstTrack && motionActive()) {
       for (const element of badge.querySelectorAll(
         '.playbackSoundBadge__titleLink, .playbackSoundBadge__lightLink, .image.sc-artwork')) {
         element.animate([
           { opacity: 0, transform: 'translateY(6px)' },
           { opacity: 1, transform: 'translateY(0)' }
-        ], { duration: 320, easing: 'cubic-bezier(.2,.75,.25,1)' });
+        ], { duration: 420, easing: 'cubic-bezier(.3,.62,.36,1)', id: 'cusade-badge-enter' });
       }
     }
   }
@@ -2442,7 +2786,7 @@ function showUpdatePanel(state) {
   if (!updateHost) {
     updateHost = document.createElement('div');
     updateHost.id = 'cusade-update-host';
-    updateHost.classList.toggle('cusade-animations', animations);
+    updateHost.classList.toggle('cusade-animations', motionActive());
     updateHost.style.cssText = 'position:fixed;right:18px;bottom:70px;z-index:2147483647';
     const shadow = updateHost.attachShadow({ mode: 'open' });
     shadow.innerHTML = `
@@ -2465,13 +2809,11 @@ function showUpdatePanel(state) {
         .action:disabled { opacity:.6;cursor:wait; }
         .release { color:var(--font-secondary-color,#aaa);text-decoration:underline;cursor:pointer;
           border:0;background:transparent;font:inherit; }
-        :host(.cusade-animations) .panel { animation:enter 220ms cubic-bezier(.2,.75,.25,1) both; }
-        :host(.cusade-animations) button { transition:filter 180ms ease,transform 180ms ease; }
-        :host(.cusade-animations) button:hover:not(:disabled) { filter:brightness(1.13);transform:translateY(-2px); }
-        @keyframes enter { from { opacity:0;transform:translateY(10px) scale(.98); }
+        :host(.cusade-animations) .panel { animation:enter 360ms cubic-bezier(.3,.62,.36,1) both; }
+        :host(.cusade-animations) button { transition:filter 360ms cubic-bezier(.3,.62,.36,1),transform 360ms cubic-bezier(.3,.62,.36,1); }
+        :host(.cusade-animations) button:hover:not(:disabled) { filter:brightness(1.09);transform:translateY(-2px); }
+        @keyframes enter { from { opacity:0;transform:translateY(14px) scale(.982); }
           to { opacity:1;transform:none; } }
-        @media (prefers-reduced-motion:reduce) { :host(.cusade-animations) :is(.panel,button) {
-          animation:none;transition:none;transform:none; } }
       </style>
       <section class="panel" role="dialog" aria-label="${ui('Обновление SoundCloud Desktop', 'SoundCloud Desktop update')}">
         <div class="top"><h2 class="version"></h2><button class="close" type="button" aria-label="${ui('Закрыть', 'Close')}">×</button></div>
@@ -2509,7 +2851,7 @@ function togglePanel() {
 
   panelHost = document.createElement('div');
   panelHost.id = 'cusade-panel-host';
-  panelHost.classList.toggle('cusade-animations', animations);
+  panelHost.classList.toggle('cusade-animations', motionActive());
   Object.assign(panelHost.style, {
     position: 'fixed',
     top: '56px',
@@ -2542,6 +2884,7 @@ function togglePanel() {
       .setting { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; cursor: pointer; }
       .setting-name { display: block; font-weight: 600; }
       .hint { display: block; margin-top: 5px; color: var(--font-secondary-color, #aaa); font-size: 12px; line-height: 1.5; }
+      .hint[hidden] { display: none; }
       input[type="checkbox"] { flex: none; width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--cusade-accent, #ff5500); cursor: pointer; }
       input:disabled { cursor: wait; }
       .color-setting { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; }
@@ -2556,21 +2899,25 @@ function togglePanel() {
       .status:empty { display: none; }
       .insights-restore button { margin-top: 9px; padding: 8px 12px; border: 0; border-radius: 7px;
         background: var(--cusade-accent, #ff5500); color: #fff; font: 600 12px system-ui; cursor: pointer; }
-      :host(.cusade-animations) .panel { animation: cusade-panel-in 200ms cubic-bezier(.2,.75,.25,1) both; }
-      :host(.cusade-animations) :is(button, input, .setting, .section, .panel) {
-        transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease,
-          box-shadow 180ms ease, transform 180ms ease;
+      :host(.cusade-animations) { --cusade-hover: 360ms cubic-bezier(.3,.62,.36,1); }
+      :host(.cusade-animations) .panel { animation: cusade-panel-in 360ms cubic-bezier(.3,.62,.36,1) both; }
+      /* The lift and the colour changes animate, the panel wide shadows do not:
+         same measured trade as on the page, where an animated shadow repainted
+         the strip around the element on every frame. */
+      :host(.cusade-animations) :is(button, input, .setting, .section) {
+        transition: color var(--cusade-hover), background-color var(--cusade-hover),
+          border-color var(--cusade-hover), filter var(--cusade-hover),
+          transform var(--cusade-hover);
       }
-      :host(.cusade-animations) button:hover { transform: translateY(-2px); }
+      :host(.cusade-animations) :is(.setting, .section):hover { box-shadow: 0 8px 20px #00000029; }
+      :host(.cusade-animations) button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 18px #00000033;
+      }
       :host(.cusade-animations) button:active { transform: scale(.96); }
       @keyframes cusade-panel-in {
-        from { opacity: 0; transform: translateY(8px) scale(.98); }
+        from { opacity: 0; transform: translateY(12px) scale(.982); }
         to { opacity: 1; transform: none; }
-      }
-      @media (prefers-reduced-motion: reduce) {
-        :host(.cusade-animations) :is(.panel, button, input, .setting, .section) {
-          animation: none; transition: none; transform: none;
-        }
       }
     </style>
     <div class="panel" role="dialog" aria-label="cusade">
@@ -2608,8 +2955,14 @@ function togglePanel() {
         </label>
         <label class="setting" style="margin-top: 18px">
           <span><span class="setting-name">${ui('Анимации', 'Animations')}</span>
-          <span class="hint">${ui('Оживляет обложки, карточки, кнопки и меню.', 'Animates artwork, cards, buttons and menus.')}</span></span>
+          <span class="hint">${ui('Оживляет обложки, карточки, кнопки и меню.', 'Animates artwork, cards, buttons and menus.')}</span>
+          <span class="hint motion-hint" hidden></span></span>
           <input id="animations" type="checkbox" disabled>
+        </label>
+        <label class="setting" style="margin-top: 12px">
+          <span><span class="setting-name">${ui('Учитывать системное уменьшение движения', 'Follow the system reduced motion setting')}</span>
+          <span class="hint">${ui('Выключено: cusade показывает анимации, даже если система их отключает. Включите, чтобы уважать настройку системы — на Windows анимации интерфейса часто выключены.', 'Off: cusade animates even when the system turns animations off. Turn it on to respect the system setting — Windows often has interface animations disabled.')}</span></span>
+          <input id="respect-system-motion" type="checkbox" disabled>
         </label>
         <div class="section">
           <label class="setting">
@@ -2748,17 +3101,34 @@ function togglePanel() {
   animationsToggle.addEventListener('change', async () => {
     const previous = animations;
     animations = animationsToggle.checked;
-    applyAnimations();
+    applyMotion();
     animationsToggle.disabled = true;
     try {
       await ipcRenderer.invoke('cusade:set-animations', animations);
     } catch (error) {
       animations = previous;
-      applyAnimations();
+      applyMotion();
       shadow.querySelector('.status').textContent = ui('Не удалось сохранить настройку.', 'Could not save the setting.');
       console.error('Could not save cusade animations:', error);
     } finally {
       updateAnimationsToggle();
+    }
+  });
+  const respectSystemMotionToggle = shadow.querySelector('#respect-system-motion');
+  respectSystemMotionToggle.addEventListener('change', async () => {
+    const previous = respectSystemMotion;
+    respectSystemMotion = respectSystemMotionToggle.checked;
+    applyMotion();
+    respectSystemMotionToggle.disabled = true;
+    try {
+      await ipcRenderer.invoke('cusade:set-respect-system-motion', respectSystemMotion);
+    } catch (error) {
+      respectSystemMotion = previous;
+      applyMotion();
+      shadow.querySelector('.status').textContent = ui('Не удалось сохранить настройку.', 'Could not save the setting.');
+      console.error('Could not save the cusade reduced motion setting:', error);
+    } finally {
+      updateRespectSystemMotionToggle();
     }
   });
   const discordToggle = shadow.querySelector('#discord-rpc');
@@ -2878,6 +3248,7 @@ function togglePanel() {
   updateAudioAdsToggle();
   updateVisualizationToggle();
   updateAnimationsToggle();
+  updateRespectSystemMotionToggle();
   updateYourLikesToggle();
   updateInsightsRestoreControl();
   updateDiscordControls();

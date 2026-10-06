@@ -14,6 +14,16 @@ const PAGE_LOAD_TIMEOUT_MS = 30000;
 const DNS_CACHE_TIMEOUT_MS = 3000;
 const PROTOCOL = 'soundcloud-desktop';
 const AUTOSTART_FILE = 'io.github.sykia.soundcloud-desktop.desktop';
+const GPU_FALLBACK_FILE = 'gpu-fallback.json';
+const GPU_CRASH_LIMIT = 2;
+// Electron reports every GPU process exit through 'child-process-gone', and most of
+// those reasons are not a fault: 'clean-exit' (exit code 0), 'killed' (external
+// SIGTERM, shutdown, task manager) and 'memory-eviction' (Chromium reclaims the
+// process on purpose to stay ahead of OOM). Only reasons that mean the GPU process
+// could not do its job count towards the fallback. Unknown reasons are ignored, so
+// an unexpected value from a future Chromium keeps acceleration enabled instead of
+// degrading a healthy machine.
+const GPU_FAILURE_REASONS = new Set(['abnormal-exit', 'crashed', 'oom', 'launch-failed', 'integrity-failure']);
 const DEFAULT_DISCORD_CLIENT_ID = '1555593977367887893';
 const DEFAULT_ACCENT_COLOR = '#ff5500';
 const DEFAULT_RADII = { avatarRadius: 50, trackRadius: 3, albumRadius: 3 };
@@ -34,6 +44,8 @@ let updateTimer;
 let initialUpdateTimer;
 let dnsServerIndex = 0;
 let pendingLaunchUrl = null;
+let gpuCrashCount = 0;
+let gpuFallbackRestarted = false;
 let lastPresenceKey = '';
 let lastPresenceSent = 0;
 let insights = { sessions: [] };
@@ -51,6 +63,7 @@ let settings = {
   accentColor: DEFAULT_ACCENT_COLOR,
   playbackVisualization: false,
   animations: false,
+  respectSystemMotion: false,
   showYourLikesButton: true,
   insightsHiddenUntil: 0,
   insightsLayout: { location: 'sidebar', index: 0, width: 0, height: 0 },
@@ -141,6 +154,7 @@ function loadSettings() {
     settings.startMinimized = saved.startMinimized === true;
     settings.playbackVisualization = saved.playbackVisualization === true;
     settings.animations = saved.animations === true;
+    settings.respectSystemMotion = saved.respectSystemMotion === true;
     settings.showYourLikesButton = saved.showYourLikesButton !== false;
     settings.insightsHiddenUntil = Number.isFinite(saved.insightsHiddenUntil) && saved.insightsHiddenUntil > 0
       ? saved.insightsHiddenUntil : 0;
@@ -194,7 +208,43 @@ function setAutoStart(enabled, minimized) {
   fs.writeFileSync(file, content, { mode: 0o600 });
 }
 
-app.disableHardwareAcceleration();
+function gpuFallbackPath() {
+  return path.join(app.getPath('userData'), GPU_FALLBACK_FILE);
+}
+
+// Reads the one-shot marker that asks for software rendering and clears it, so the
+// next launch tries the GPU again instead of staying degraded forever.
+function consumeGpuFallback() {
+  try {
+    const state = JSON.parse(fs.readFileSync(gpuFallbackPath(), 'utf8'));
+    if (state?.disableHardwareAcceleration !== true) return false;
+    fs.rmSync(gpuFallbackPath(), { force: true });
+    return true;
+  } catch (error) {
+    if (error.code !== 'ENOENT') console.error('Could not read the GPU fallback state:', error);
+    return false;
+  }
+}
+
+function rememberGpuFallback() {
+  try {
+    fs.mkdirSync(app.getPath('userData'), { recursive: true });
+    fs.writeFileSync(gpuFallbackPath(), JSON.stringify({ disableHardwareAcceleration: true }));
+  } catch (error) {
+    console.error('Could not save the GPU fallback state:', error);
+  }
+}
+
+// cusade animates transforms, opacities, filters and blurred cover backgrounds.
+// That work belongs on the GPU: app.disableHardwareAcceleration() forces the
+// software rasterizer everywhere, which is exactly why animations stuttered and
+// the page felt frozen on Windows. Hardware acceleration stays enabled instead,
+// and the only fallback covers machines whose GPU process keeps dying. No driver,
+// blocklist or backend switches are involved, so nothing forces a specific GPU.
+if (consumeGpuFallback()) {
+  console.error('Hardware acceleration is disabled for this launch because the GPU process kept failing.');
+  app.disableHardwareAcceleration();
+}
 
 function configureDnsServer(index) {
   app.configureHostResolver({
@@ -675,6 +725,20 @@ app.on('open-url', (event, url) => {
   event.preventDefault();
   openSoundCloudUrl(launchUrl(url));
 });
+app.on('child-process-gone', (_event, details) => {
+  if (details.type !== 'GPU' || isQuitting || gpuFallbackRestarted) return;
+  if (!GPU_FAILURE_REASONS.has(details.reason)) return;
+  gpuCrashCount += 1;
+  console.error(`GPU process is gone (${details.reason}), failure ${gpuCrashCount} of ${GPU_CRASH_LIMIT}`);
+  if (gpuCrashCount < GPU_CRASH_LIMIT) return;
+  // Only a repeated failure counts as a broken driver, and the restart is
+  // guarded so the app can never end up in a relaunch loop.
+  gpuFallbackRestarted = true;
+  rememberGpuFallback();
+  console.error('Restarting once with hardware acceleration disabled.');
+  app.relaunch();
+  app.quit();
+});
 app.on('before-quit', () => {
   isQuitting = true;
   clearTimeout(initialUpdateTimer);
@@ -889,6 +953,14 @@ if (hasInstanceLock) app.whenReady().then(() => {
       throw new Error('Invalid setting');
     }
     saveSettings({ ...settings, animations: enabled });
+    return settings;
+  });
+
+  ipcMain.handle('cusade:set-respect-system-motion', (event, enabled) => {
+    if (!isMainSoundCloudPage(event.sender) || typeof enabled !== 'boolean') {
+      throw new Error('Invalid setting');
+    }
+    saveSettings({ ...settings, respectSystemMotion: enabled });
     return settings;
   });
 
