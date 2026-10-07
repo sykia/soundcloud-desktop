@@ -1,6 +1,6 @@
 {
   "name": "soundcloud-desktop",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "private": true,
   "description": "SoundCloud desktop client with playback and interface customization",
   "author": {
@@ -13,7 +13,7 @@
   "scripts": {
     "start": "node build.js && electron .",
     "check": "node scripts/check-consistency.js",
-    "test": "node --test scripts/localization.test.js",
+    "test": "node --test scripts/*.test.js",
     "build": "node build.js",
     "build:watch": "node build.js --watch",
     "predist:linux": "node build.js",

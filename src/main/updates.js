@@ -12,6 +12,7 @@ const path = require('node:path');
 const { Notification, app } = require('electron');
 const { CHANNEL } = require('../../shared/ipc.js');
 const { sendToRenderer, showMainWindow, getMainWindow } = require('./window.js');
+const { installLinuxPackage } = require('./linux-package-install.js');
 
 let updater;
 let updateReady = false;
@@ -99,12 +100,23 @@ async function runUpdateAction() {
     updateStatus = 'installing';
     updateError = '';
     publishUpdateState();
-    setImmediate(() => {
-      try { updater.quitAndInstall(process.platform === 'win32', true); }
+    setImmediate(async () => {
+      try {
+        const packageType = updateState().packageType;
+        if (['deb', 'rpm', 'pacman'].includes(packageType)) {
+          await installLinuxPackage(packageType, updater.downloadedUpdateHelper?.file);
+          app.relaunch();
+          app.quit();
+        } else {
+          updater.quitAndInstall(process.platform === 'win32', true);
+        }
+      }
       catch (error) {
         console.error('Could not install update:', error);
         updateStatus = 'ready';
-        updateError = 'Не удалось установить обновление. Попробуйте снова или откройте страницу релиза.';
+        updateError = /not authorized|authentication|permission denied|dismissed|cancelled|canceled|авторизац|прав/i.test(error.message)
+          ? 'Не удалось получить права администратора. Повторите попытку или установите пакет со страницы релиза вручную.'
+          : 'Не удалось установить обновление. Откройте страницу релиза и установите пакет вручную.';
         publishUpdateState();
       }
     });
