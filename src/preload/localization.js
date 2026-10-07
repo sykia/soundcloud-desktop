@@ -224,12 +224,17 @@ function refreshLocalizedUi() {
 }
 
 async function setAppLanguage(language) {
-  await ipcRenderer.invoke(CHANNEL.set('appLanguage'), language);
+  const result = await ipcRenderer.invoke(CHANNEL.set('appLanguage'), language);
   state.appLanguage = language;
+  if (result.reload) {
+    location.reload();
+    return true;
+  }
   updateLocalizationWatcher();
   if (language === 'ru') scheduleLocalization();
   else restoreSiteLanguage();
   refreshLocalizedUi();
+  return false;
 }
 
 function releaseRussianTranslation() {
@@ -267,8 +272,8 @@ document.addEventListener('click', async event => {
   if (state.languageSavePending) return;
   state.languageSavePending = true;
   try {
-    await setAppLanguage('ru');
-    document.querySelector('.localeSelector__cancel')?.click();
+    const reloading = await setAppLanguage('ru');
+    if (!reloading) document.querySelector('.localeSelector__cancel')?.click();
   } catch (error) {
     console.error('Could not save cusade language:', error);
   } finally {

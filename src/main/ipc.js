@@ -17,6 +17,7 @@ const { isMainSoundCloudPage, getMainWindow, sendToRenderer, refreshIcon } = req
 const discord = require('./discord.js');
 const updates = require('./updates.js');
 const tray = require('./tray.js');
+const locale = require('./locale.js');
 const insightsStore = require('./insights-store.js');
 const { setAutoStart } = require('./autostart.js');
 
@@ -166,12 +167,13 @@ function register() {
     return getSettings();
   });
 
-  ipcMain.handle(CHANNEL.set('appLanguage'), (event, language) => {
+  ipcMain.handle(CHANNEL.set('appLanguage'), async (event, language) => {
     if (!isMainSoundCloudPage(event.sender) || !['site', 'ru'].includes(language)) {
       throw new Error('Invalid language');
     }
+    const reload = language === 'ru' && await locale.ensureEnglishSource(true);
     saveSettings({ ...getSettings(), appLanguage: language });
-    return getSettings();
+    return { reload };
   });
 
   ipcMain.handle(CHANNEL.set('appIconStyle'), (event, style) => {

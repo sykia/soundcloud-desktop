@@ -16,6 +16,7 @@ const autostart = require('./autostart.js');
 const dns = require('./dns.js');
 const window = require('./window.js');
 const updates = require('./updates.js');
+const locale = require('./locale.js');
 const tray = require('./tray.js');
 const ipc = require('./ipc.js');
 
@@ -57,11 +58,13 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
   process.once(signal, () => app.quit());
 }
 
-if (hasInstanceLock) app.whenReady().then(() => {
+if (hasInstanceLock) app.whenReady().then(async () => {
   app.setAppUserModelId('io.github.sykia.soundcloud-desktop');
   dns.configureDnsServer(0);
 
   settings.loadSettings();
+  try { await locale.ensureEnglishSource(); }
+  catch (error) { console.error('Could not prepare English source for Russian translation:', error); }
   insightsStore.loadInsights();
   const current = settings.getSettings();
   if (current.autoStart) {
