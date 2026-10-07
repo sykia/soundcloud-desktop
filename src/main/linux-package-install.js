@@ -13,12 +13,12 @@ function availableCommand(names) {
   throw new Error(`Не найден пакетный менеджер (${names.join(', ')}).`);
 }
 
-function packageCommand(packageType, file) {
+function packageCommand(packageType, file, resolveCommand = availableCommand) {
   if (packageType === 'pacman' && file.endsWith('.pkg.tar.zst')) {
-    return [availableCommand(['pacman']), ['-U', '--noconfirm', file]];
+    return [resolveCommand(['pacman']), ['-U', '--noconfirm', file]];
   }
   if (packageType === 'deb' && file.endsWith('.deb')) {
-    return [availableCommand(['apt-get']), ['install', '-y', file]];
+    return [resolveCommand(['apt-get']), ['install', '-y', file]];
   }
   if (packageType === 'rpm' && file.endsWith('.rpm')) {
     if (fs.existsSync('/usr/bin/dnf')) return ['/usr/bin/dnf', ['install', '-y', '--nogpgcheck', file]];
@@ -28,12 +28,12 @@ function packageCommand(packageType, file) {
   throw new Error('Тип скачанного пакета не совпадает с установленным приложением.');
 }
 
-function installLinuxPackage(packageType, file, run = spawn) {
+function installLinuxPackage(packageType, file, run = spawn, resolveCommand = availableCommand) {
   if (!file || !fs.statSync(file, { throwIfNoEntry: false })?.isFile()) {
     return Promise.reject(new Error('Скачанный пакет не найден. Загрузите обновление заново.'));
   }
-  const [command, args] = packageCommand(packageType, file);
-  const executable = process.getuid?.() === 0 ? command : availableCommand(['pkexec']);
+  const [command, args] = packageCommand(packageType, file, resolveCommand);
+  const executable = process.getuid?.() === 0 ? command : resolveCommand(['pkexec']);
   const commandArgs = executable === command ? args : [command, ...args];
   return new Promise((resolve, reject) => {
     let output = '';

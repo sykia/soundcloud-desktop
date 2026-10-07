@@ -10,7 +10,7 @@ const { installLinuxPackage, packageCommand } = require('../src/main/linux-packa
 
 test('pacman receives the downloaded file as one argument', () => {
   const file = '/tmp/update package.pkg.tar.zst';
-  const [command, args] = packageCommand('pacman', file);
+  const [command, args] = packageCommand('pacman', file, () => '/usr/bin/pacman');
   assert.equal(command, '/usr/bin/pacman');
   assert.deepEqual(args, ['-U', '--noconfirm', file]);
 });
@@ -29,7 +29,7 @@ test('package installation runs without a shell and waits for the exit code', as
   };
   fs.writeFileSync(packageFile, 'test');
   try {
-    await installLinuxPackage('pacman', packageFile, run);
+    await installLinuxPackage('pacman', packageFile, run, names => `/usr/bin/${names[0]}`);
     assert.equal(launched.options.shell, false);
     assert.equal(launched.args.at(-1), packageFile);
   } finally {
