@@ -628,7 +628,7 @@ function translatedValue(value, element) {
   }
   const owned = PAGE_TRANSLATIONS[state.pageScope];
   if (owned && Object.hasOwn(owned, value)) return owned[value];
-  if (Object.hasOwn(RU_EXACT, value)) return RU_EXACT.get(value);
+  if (RU_EXACT.has(value)) return RU_EXACT.get(value);
   const folded = value.toLowerCase();
   if (RU_FOLDED.has(folded)) return RU_FOLDED.get(folded);
 

@@ -1,6 +1,6 @@
 {
   "name": "soundcloud-desktop",
-  "version": "0.5.0-beta",
+  "version": "0.5.0",
   "private": true,
   "description": "SoundCloud desktop client with playback and interface customization",
   "author": {
@@ -13,6 +13,7 @@
   "scripts": {
     "start": "node build.js && electron .",
     "check": "node scripts/check-consistency.js",
+    "test": "node --test scripts/localization.test.js",
     "build": "node build.js",
     "build:watch": "node build.js --watch",
     "predist:linux": "node build.js",
@@ -44,7 +45,8 @@
       "dist-js/**",
       "package.json",
       "build/icons/*",
-      "build/icon.ico"
+      "build/icon.ico",
+      "build/icon-styles/*"
     ],
     "linux": {
       "target": [
@@ -100,6 +102,7 @@
     "nsis": {
       "artifactName": "SoundCloud-Desktop-Setup-${version}-x64.${ext}",
       "oneClick": false,
+      "differentialPackage": true,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,

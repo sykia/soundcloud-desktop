@@ -25,6 +25,7 @@ const isInsightsLayout = value =>
   Number.isInteger(value.height) && (value.height === 0 || (value.height >= 120 && value.height <= 800));
 const isDiscordClientId = value => typeof value === 'string' && /^\d{17,20}$/.test(value);
 const isAppLanguage = value => value === 'site' || value === 'ru';
+const isAppIconStyle = value => value === 'orange' || value === 'dark';
 
 const ARTWORK_RADIUS_KEYS = Object.freeze(['avatarRadius', 'trackRadius', 'albumRadius']);
 
@@ -50,7 +51,6 @@ const SETTINGS = {
   animations: { default: false, validate: isBoolean, coerce: value => value === true },
   respectSystemMotion: { default: false, validate: isBoolean, coerce: value => value === true },
   showYourLikesButton: { default: true, validate: isBoolean, coerce: value => value !== false },
-  showTransferButton: { default: true, validate: isBoolean, coerce: value => value !== false },
   insightsHiddenUntil: { default: 0, coerce: value => (Number.isFinite(value) && value > 0 ? value : 0) },
   insightsLayout: {
     default: DEFAULT_INSIGHTS_LAYOUT,
@@ -58,6 +58,8 @@ const SETTINGS = {
     coerce: value => (isInsightsLayout(value) ? value : DEFAULT_INSIGHTS_LAYOUT)
   },
   appLanguage: { default: 'site', validate: isAppLanguage, coerce: value => (value === 'ru' ? 'ru' : 'site') },
+  appIconStyle: { default: 'orange', validate: isAppIconStyle,
+    coerce: value => (isAppIconStyle(value) ? value : 'orange') },
   avatarRadius: {
     default: DEFAULT_RADII.avatarRadius,
     validate: isArtworkRadius,
@@ -112,5 +114,6 @@ module.exports = {
   isArtworkRadius,
   isInsightsLayout,
   isDiscordClientId,
-  isAppLanguage
+  isAppLanguage,
+  isAppIconStyle
 };

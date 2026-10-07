@@ -207,26 +207,6 @@ function inject() {
     .cusade-likes-shuffle__status { margin: 7px 0 0; color: var(--font-error-color, #ff9165);
       font: 12px system-ui, sans-serif; }
     .cusade-likes-shuffle__status:empty { display: none; }
-    .cusade-transfer { position: relative; display: flex; align-items: center; gap: 4px;
-      width: 100%; margin: 0 0 10px; padding: 4px 0;
-      border-bottom: 1px solid color-mix(in srgb,var(--font-primary-color,#fff) 15%,transparent);
-      font: 12px system-ui,sans-serif; }
-    .cusade-transfer__open { flex: 1; padding: 7px 2px; border: 0; background: transparent;
-      color: var(--font-primary-color,#fff); font: 600 12px system-ui,sans-serif;
-      text-align: left; cursor: pointer; }
-    .cusade-transfer__open:hover { color: var(--font-special-color,#ff5500); }
-    .cusade-transfer__more { width: 28px; height: 28px; border: 0; border-radius: 6px;
-      background: transparent; color: var(--font-secondary-color,#aaa);
-      font: 22px system-ui,sans-serif; line-height: 20px; cursor: pointer; }
-    .cusade-transfer__more:hover { background: #ffffff1c; color: var(--font-primary-color,#fff); }
-    .cusade-transfer__menu { position: absolute; right: 0; top: 35px; z-index: 10;
-      padding: 5px; border-radius: 8px; border: 1px solid #ffffff30;
-      background: var(--background-surface-color,#222); box-shadow: 0 10px 25px #0007; }
-    .cusade-transfer__menu[hidden] { display: none; }
-    .cusade-transfer__menu button { padding: 7px 10px; border: 0; border-radius: 5px;
-      background: transparent; color: var(--font-primary-color,#fff);
-      font: 12px system-ui,sans-serif; white-space: nowrap; cursor: pointer; }
-    .cusade-transfer__menu button:hover { background: #ffffff1c; }
     .cusade-likes-transition { position: fixed; inset: 0; z-index: 2147483646;
       width: 100vw; height: 100vh; cursor: progress; }
     .cusade-likes-transition img { display: block; width: 100%; height: 100%; }
@@ -657,15 +637,19 @@ function inject() {
       .dropdownMenu, [role="menu"], .commentPopover, .userDropbar, .playControlsPanel) {
       animation: cusade-menu-enter 300ms cubic-bezier(.3,.62,.36,1) both;
     }
-    /* No prefers-reduced-motion override here on purpose: every effect above is
-       scoped to html.cusade-animations, and that class now means "cusade motion
-       is active" (see motionActive()). The list enter effect additionally needs
-       html.cusade-enter, which is only set while motion is active. With the
-       setting off, or with the system preference respected, no animation rule
-       matches at all, so there is no second selector list to keep in sync and no
-       !important that could silently defeat an explicit choice. */
   `;
   document.head.appendChild(style);
+  // SoundCloud's reduced-motion stylesheet can use !important to zero out
+  // durations. Keep cusade's own motion rules above that reset when the user
+  // explicitly enables motion. Their html.cusade-animations gate still decides
+  // whether they match, including the "respect system motion" setting.
+  for (const rule of style.sheet.cssRules) {
+    if (!rule.selectorText?.includes('html.cusade-animations')) continue;
+    for (const property of ['animation', 'transition']) {
+      const value = rule.style.getPropertyValue(property);
+      if (value) rule.style.setProperty(property, value, 'important');
+    }
+  }
 }
 
 module.exports = { GUARDED_UI, NEW_UI_GUARD, inject };

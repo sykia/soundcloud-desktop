@@ -6,10 +6,10 @@
 // index: updates.attachRefresh(tray.refreshMenu) makes publishUpdateState and
 // checkForUpdates rebuild the menu without updates.js importing this module.
 
-const path = require('node:path');
 const { app, Menu, Tray } = require('electron');
 const updates = require('./updates.js');
 const { showMainWindow } = require('./window.js');
+const { iconPath } = require('./icon-style.js');
 
 let tray = null;
 
@@ -35,10 +35,8 @@ function refreshMenu() {
 }
 
 function createTray() {
-  const icon = process.platform === 'win32'
-    ? '../../build/icon.ico' : '../../build/icons/32x32.png';
   try {
-    tray = new Tray(path.join(__dirname, icon));
+    tray = new Tray(iconPath('tray'));
     tray.setToolTip('SoundCloud Desktop');
     refreshMenu();
     tray.on('click', showMainWindow);
@@ -48,4 +46,8 @@ function createTray() {
   }
 }
 
-module.exports = { createTray, refreshMenu, hasTray };
+function refreshIcon() {
+  if (tray) tray.setImage(iconPath('tray'));
+}
+
+module.exports = { createTray, refreshMenu, hasTray, refreshIcon };

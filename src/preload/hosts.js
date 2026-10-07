@@ -9,8 +9,6 @@ const hosts = {
   updateHost: null,
   visualizationHost: null,
   likesShuffleHost: null,
-  transferHost: null,
-  transferDialogHost: null,
   insightsBanner: null,
   insightsHost: null
 };

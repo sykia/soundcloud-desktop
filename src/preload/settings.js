@@ -27,10 +27,10 @@ function loadSettings() {
     state.animations = settings.animations;
     state.respectSystemMotion = settings.respectSystemMotion;
     state.showYourLikesButton = settings.showYourLikesButton;
-    state.showTransferButton = settings.showTransferButton;
     state.insightsHiddenUntil = settings.insightsHiddenUntil;
     state.insightsLayout = { ...settings.insightsLayout };
     state.appLanguage = settings.appLanguage;
+    state.appIconStyle = settings.appIconStyle;
     state.artworkRadii = {
       avatarRadius: settings.avatarRadius,
       trackRadius: settings.trackRadius,

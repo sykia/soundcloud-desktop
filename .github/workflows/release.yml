@@ -54,6 +54,7 @@ jobs:
         run: node -e "if ('v' + require('./package.json').version !== process.env.RELEASE_TAG) process.exit(1)"
       - run: npm ci
       - run: npm run check
+      - run: npm test
       - name: Install Linux packaging tools
         if: matrix.platform == 'linux'
         run: sudo apt-get update && sudo apt-get install -y libarchive-tools zstd rpm

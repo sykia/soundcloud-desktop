@@ -100,7 +100,7 @@ async function runUpdateAction() {
     updateError = '';
     publishUpdateState();
     setImmediate(() => {
-      try { updater.quitAndInstall(false, true); }
+      try { updater.quitAndInstall(process.platform === 'win32', true); }
       catch (error) {
         console.error('Could not install update:', error);
         updateStatus = 'ready';

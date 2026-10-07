@@ -13,7 +13,6 @@ const { hosts } = require('./hosts.js');
 const { ui, translationKey, translatedValue } = require('./localization-dict.js');
 const { CUSADE_OWNED, isInterfaceElement } = require('./localization-veto.js');
 const { closePanel, togglePanel } = require('./panel.js');
-const { syncTransferButton } = require('./transfer.js');
 
 let localizationWatcher = null;
 let localizationFullScan = false;
@@ -208,7 +207,6 @@ function scheduleLocalization(mutations) {
 }
 
 function refreshLocalizedUi() {
-  syncTransferButton();
   const likesButton = hosts.likesShuffleHost?.querySelector('.cusade-likes-shuffle__button');
   if (likesButton) {
     likesButton.querySelector('span').textContent = ui('Мои лайки', 'Your likes');

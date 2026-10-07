@@ -43,7 +43,8 @@ function renderUpdatePanel() {
     details.textContent = state.error || (isPackage
       ? ui('При установке система запросит права администратора.', 'Your system will request administrator access to install.')
       : state.packageType === 'win'
-        ? ui('Установщик может запросить права администратора.', 'The installer may request administrator access.')
+        ? ui('Обновление установится в текущую папку без мастера установки. При необходимости Windows запросит права администратора.',
+          'The update will install in the current folder without setup screens. Windows may request administrator access.')
         : ui('AppImage будет обновлён, затем приложение перезапустится.', 'The AppImage will update and the app will restart.'));
     action.textContent = ui('Установить и перезапустить', 'Install and restart');
   } else {

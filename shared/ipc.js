@@ -8,7 +8,6 @@ const kebab = key => key.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)
 // for the same names.
 const CHANNEL = {
   getSettings: 'cusade:get-settings',
-  resolveImportUrl: 'cusade:resolve-import-url',
   playbackState: 'cusade:playback-state',
   capturePage: 'cusade:capture-page',
   togglePanel: 'cusade:toggle-panel',

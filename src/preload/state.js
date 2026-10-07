@@ -26,10 +26,10 @@ const state = {
   respectSystemMotion: false,
   settingsLoaded: false,
   showYourLikesButton: true,
-  showTransferButton: true,
   artworkRadii: { ...DEFAULT_RADII },
   savedArtworkRadii: { ...DEFAULT_RADII },
   appLanguage: 'site',
+  appIconStyle: 'orange',
   languageSavePending: false,
   insightsHiddenUntil: 0,
   // Observed on every use, not cached at load: the panel can change it while the app runs.

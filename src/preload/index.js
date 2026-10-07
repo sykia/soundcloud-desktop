@@ -33,7 +33,7 @@ const {
   updateAnimationsToggle,
   updateRespectSystemMotionToggle,
   updateYourLikesToggle,
-  updateTransferToggle,
+  updateAppIconStyle,
   updateSystemMotionHint,
   closePanel,
   togglePanel
@@ -45,7 +45,6 @@ const {
   finishPlaybackSwitch
 } = require('./visualization.js');
 const { syncHomeLikesButton } = require('./likes.js');
-const { syncTransferButton, closeTransfer, resumeTransfer } = require('./transfer.js');
 const {
   syncInsightsBanner,
   syncInsightsPlayback,
@@ -90,13 +89,11 @@ onSettingsLoaded.add(() => {
   updateAnimationsToggle();
   updateRespectSystemMotionToggle();
   updateYourLikesToggle();
-  updateTransferToggle();
+  updateAppIconStyle();
   updatePanelColor();
   updateArtworkRadiusControls();
   syncPlaybackVisualization();
   syncHomeLikesButton();
-  syncTransferButton();
-  resumeTransfer();
   syncInsightsBanner();
   syncPlaybackTheme();
   if (hosts.insightsBanner?.isConnected) placeInsights();
@@ -126,7 +123,6 @@ setInterval(() => {
   syncVisiblePlayback();
 }, 1000);
 setInterval(syncVisiblePage, 2500);
-setInterval(syncTransferButton, 2500);
 setInterval(() => {
   syncDiscordPresence();
 }, 5000);
@@ -152,7 +148,7 @@ document.addEventListener('pointerdown', event => {
 }, true);
 
 document.addEventListener('keydown', event => {
-  if (event.key === 'Escape') { closePanel(); closeTransfer(); }
+  if (event.key === 'Escape') closePanel();
 }, true);
 
 document.addEventListener('contextmenu', event => {

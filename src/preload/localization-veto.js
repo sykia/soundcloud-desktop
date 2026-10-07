@@ -14,14 +14,14 @@
 // cannot be used here: the document element carries the control classes
 // (cusade-animations, cusade-ui, cusade-page-*, cusade-hide-*, ...), and an
 // ancestor match against that substring would veto every node on the page.
-const CUSADE_OWNED = '#cusade-panel-host, #cusade-update-host, #cusade-insights-host, #cusade-transfer-dialog-host,' +
+const CUSADE_OWNED = '#cusade-panel-host, #cusade-update-host, #cusade-insights-host,' +
   ' .cusade-route, .cusade-route__bar, .cusade-route__veil, .cusade-route--intro,' +
-  ' .cusade-visualization, .cusade-likes-shuffle, .cusade-likes-transition, .cusade-transfer,' +
+  ' .cusade-visualization, .cusade-likes-shuffle, .cusade-likes-transition,' +
   ' .cusade-track-backdrop, .cusade-insights-banner, .cusade-insights-editbar,' +
   ' .cusade-insights-dropzone, .cusade-insights-drag-ghost, .cusade-insights-slot,' +
   ' .cusade-update, .cusade-panel';
 const SKIP_TEXT_CONTEXT = 'script, style, noscript, template, svg, math, iframe, object, ' +
-  'embed, canvas, video, audio, textarea, input, select, [contenteditable]:not([contenteditable="false"]), ' +
+  'embed, canvas, video, audio, textarea, input, [contenteditable]:not([contenteditable="false"]), ' +
   `[aria-hidden="true"], ${CUSADE_OWNED}`;
 
 // The element itself is a title, a name or a value written by a person.

@@ -10,15 +10,15 @@ const fs = require('node:fs');
 const { ipcMain, shell, dialog, clipboard, ClipboardItem, nativeImage, Menu } = require('electron');
 const { CHANNEL } = require('../../shared/ipc.js');
 const { DEFAULT_RADII, DEFAULT_DISCORD_CLIENT_ID } = require('../../shared/constants.js');
-const { isHexColor, isArtworkRadius, isInsightsLayout, isDiscordClientId } =
+const { isHexColor, isArtworkRadius, isInsightsLayout, isDiscordClientId, isAppIconStyle } =
   require('../../shared/settings-schema.js');
 const { getSettings, saveSettings } = require('./settings.js');
-const { isMainSoundCloudPage, getMainWindow, sendToRenderer } = require('./window.js');
+const { isMainSoundCloudPage, getMainWindow, sendToRenderer, refreshIcon } = require('./window.js');
 const discord = require('./discord.js');
 const updates = require('./updates.js');
+const tray = require('./tray.js');
 const insightsStore = require('./insights-store.js');
 const { setAutoStart } = require('./autostart.js');
-const { resolveImportUrl } = require('./resolve-import.js');
 
 const BOOLEAN_KEYS = [
   'hideArtistTools',
@@ -27,19 +27,13 @@ const BOOLEAN_KEYS = [
   'playbackVisualization',
   'animations',
   'respectSystemMotion',
-  'showYourLikesButton',
-  'showTransferButton'
+  'showYourLikesButton'
 ];
 
 function register() {
   ipcMain.handle(CHANNEL.getSettings, event => {
     if (!isMainSoundCloudPage(event.sender)) throw new Error('Unavailable');
     return getSettings();
-  });
-
-  ipcMain.handle(CHANNEL.resolveImportUrl, (event, url) => {
-    if (!isMainSoundCloudPage(event.sender)) throw new Error('Unavailable');
-    return resolveImportUrl(url);
   });
 
   ipcMain.handle(CHANNEL.runUpdate, event => {
@@ -177,6 +171,24 @@ function register() {
       throw new Error('Invalid language');
     }
     saveSettings({ ...getSettings(), appLanguage: language });
+    return getSettings();
+  });
+
+  ipcMain.handle(CHANNEL.set('appIconStyle'), (event, style) => {
+    if (!isMainSoundCloudPage(event.sender) || !isAppIconStyle(style)) {
+      throw new Error('Invalid icon style');
+    }
+    const previous = getSettings();
+    saveSettings({ ...previous, appIconStyle: style });
+    try {
+      refreshIcon();
+      tray.refreshIcon();
+    } catch (error) {
+      saveSettings(previous);
+      refreshIcon();
+      tray.refreshIcon();
+      throw error;
+    }
     return getSettings();
   });
 

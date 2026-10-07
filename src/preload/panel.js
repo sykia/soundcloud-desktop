@@ -22,7 +22,6 @@ const {
 } = require('./appearance.js');
 const { syncPlaybackVisualization } = require('./visualization.js');
 const { syncHomeLikesButton } = require('./likes.js');
-const { syncTransferButton } = require('./transfer.js');
 const { syncDiscordPresence, resetPresence } = require('./presence.js');
 const { syncInsightsBanner, updateInsightsRestoreControl } = require('./insights.js');
 
@@ -118,11 +117,11 @@ function updateYourLikesToggle() {
   toggle.disabled = !state.settingsLoaded;
 }
 
-function updateTransferToggle() {
-  const toggle = hosts.panelHost?.shadowRoot.querySelector('#show-transfer-button');
-  if (!toggle) return;
-  toggle.checked = state.showTransferButton;
-  toggle.disabled = !state.settingsLoaded;
+function updateAppIconStyle() {
+  const select = hosts.panelHost?.shadowRoot.querySelector('#app-icon-style');
+  if (!select) return;
+  select.value = state.appIconStyle;
+  select.disabled = !state.settingsLoaded;
 }
 
 function closePanel() {
@@ -178,6 +177,7 @@ function togglePanel() {
       .color-control { display: flex; align-items: center; gap: 8px; }
       input[type="color"] { width: 42px; height: 34px; padding: 2px; border: 1px solid color-mix(in srgb, var(--font-primary-color, #fff) 25%, transparent); border-radius: 7px; background: var(--button-secondary-background-color, #242424); cursor: pointer; }
       .text-input { width: 100%; margin-top: 8px; padding: 8px 10px; border: 1px solid color-mix(in srgb, var(--font-primary-color, #fff) 25%, transparent); border-radius: 7px; background: var(--button-secondary-background-color, #242424); color: var(--font-primary-color, #fff); font: inherit; }
+      select.text-input { cursor: pointer; }
       .color-value { min-width: 68px; color: var(--font-secondary-color, #aaa); font: 12px ui-monospace, monospace; }
       .radius-setting { display: grid; grid-template-columns: 74px 1fr 35px; align-items: center; gap: 10px; margin-top: 10px; }
       .radius-setting input { width: 100%; accent-color: var(--cusade-accent, #ff5500); cursor: pointer; }
@@ -241,11 +241,6 @@ function togglePanel() {
           <input id="show-your-likes-button" type="checkbox" disabled>
         </label>
         <label class="setting" style="margin-top: 18px">
-          <span><span class="setting-name">${ui('Показывать перенос музыки', 'Show music transfer')}</span>
-          <span class="hint">${ui('Кнопка над выбором языка в правом столбце.', 'Button above the language selector in the right sidebar.')}</span></span>
-          <input id="show-transfer-button" type="checkbox" disabled>
-        </label>
-        <label class="setting" style="margin-top: 18px">
           <span><span class="setting-name">${ui('Анимации', 'Animations')}</span>
           <span class="hint">${ui('Оживляет обложки, карточки, кнопки и меню.', 'Animates artwork, cards, buttons and menus.')}</span>
           <span class="hint motion-hint" hidden></span></span>
@@ -284,6 +279,14 @@ function togglePanel() {
           <span class="color-control"><input id="accent-color" type="color" value="#ff5500" disabled>
           <span id="accent-value" class="color-value">#FF5500</span></span>
         </label>
+        <label class="color-setting" for="app-icon-style">
+          <span><span class="setting-name">${ui('Стиль значка приложения', 'Application icon style')}</span>
+          <span class="hint">${ui('Меняет значок окна и системного трея.', 'Changes the window and system tray icon.')}</span></span>
+        </label>
+        <select class="text-input" id="app-icon-style" disabled>
+          <option value="orange">${ui('Чёрный на оранжевом', 'Black on orange')}</option>
+          <option value="dark">${ui('Белый на чёрном', 'White on black')}</option>
+        </select>
         <div class="section">
           <h3 class="section-title">${ui('Скругление обложек', 'Artwork rounding')}</h3>
           <span class="hint">${ui('0% — прямые углы, 50% — круг.', '0% means square corners; 50% means a circle.')}</span>
@@ -388,20 +391,6 @@ function togglePanel() {
     } finally {
       updateYourLikesToggle();
     }
-  });
-  const transferToggle = shadow.querySelector('#show-transfer-button');
-  transferToggle.addEventListener('change', async () => {
-    const previous = state.showTransferButton;
-    state.showTransferButton = transferToggle.checked;
-    syncTransferButton();
-    transferToggle.disabled = true;
-    try { await ipcRenderer.invoke(CHANNEL.set('showTransferButton'), state.showTransferButton); }
-    catch (error) {
-      state.showTransferButton = previous;
-      syncTransferButton();
-      shadow.querySelector('.status').textContent = ui('Не удалось сохранить настройку.', 'Could not save the setting.');
-      console.error('Could not save transfer button visibility:', error);
-    } finally { updateTransferToggle(); }
   });
   const animationsToggle = shadow.querySelector('#animations');
   animationsToggle.addEventListener('change', async () => {
@@ -526,6 +515,19 @@ function togglePanel() {
       updatePanelColor();
     }
   });
+  const iconStyle = shadow.querySelector('#app-icon-style');
+  iconStyle.addEventListener('change', async () => {
+    const previous = state.appIconStyle;
+    iconStyle.disabled = true;
+    try {
+      await ipcRenderer.invoke(CHANNEL.set('appIconStyle'), iconStyle.value);
+      state.appIconStyle = iconStyle.value;
+    } catch (error) {
+      state.appIconStyle = previous;
+      shadow.querySelector('.status').textContent = ui('Не удалось сохранить стиль значка.', 'Could not save the icon style.');
+      console.error('Could not save application icon style:', error);
+    } finally { updateAppIconStyle(); }
+  });
   for (const key of Object.keys(DEFAULT_RADII)) {
     const slider = shadow.querySelector(`#${key}`);
     slider.addEventListener('input', () => {
@@ -556,11 +558,11 @@ function togglePanel() {
   updateAnimationsToggle();
   updateRespectSystemMotionToggle();
   updateYourLikesToggle();
-  updateTransferToggle();
   updateInsightsRestoreControl();
   updateDiscordControls();
   updateAutoStartControls();
   updatePanelColor();
+  updateAppIconStyle();
   updateArtworkRadiusControls();
 }
 
@@ -574,7 +576,7 @@ module.exports = {
   updateAnimationsToggle,
   updateRespectSystemMotionToggle,
   updateYourLikesToggle,
-  updateTransferToggle,
+  updateAppIconStyle,
   updateSystemMotionHint,
   closePanel,
   togglePanel

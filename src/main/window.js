@@ -14,6 +14,7 @@ const { isSoundCloudUrl, isSignInPopupUrl, launchUrl, launchUrlFromArgs } = requ
 const { getSettings } = require('./settings.js');
 const dns = require('./dns.js');
 const discord = require('./discord.js');
+const { iconPath } = require('./icon-style.js');
 
 const PAGE_LOAD_TIMEOUT_MS = 30000;
 const DNS_CACHE_TIMEOUT_MS = 3000;
@@ -108,7 +109,7 @@ function withTimeout(promise, timeoutMs) {
 function createWindow(hidden = false) {
   mainWindow = new BrowserWindow({
     title: 'SoundCloud',
-    icon: path.join(__dirname, '../../build/icons/512x512.png'),
+    icon: iconPath(),
     width: 1280,
     height: 800,
     minWidth: 800,
@@ -231,6 +232,10 @@ function createWindow(hidden = false) {
   });
 }
 
+function refreshIcon() {
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.setIcon(iconPath());
+}
+
 module.exports = {
   createWindow,
   showMainWindow,
@@ -240,6 +245,7 @@ module.exports = {
   hasPendingLaunchUrl,
   isMainSoundCloudPage,
   getMainWindow,
+  refreshIcon,
   sendToRenderer,
   setHasTray,
   isQuitting: isQuittingFlag,
