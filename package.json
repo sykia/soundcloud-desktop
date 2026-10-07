@@ -1,6 +1,6 @@
 {
   "name": "soundcloud-desktop",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "private": true,
   "description": "SoundCloud desktop client with playback and interface customization",
   "author": {
@@ -47,6 +47,16 @@
       "build/icons/*",
       "build/icon.ico",
       "build/icon-styles/*"
+    ],
+    "extraResources": [
+      {
+        "from": "build/translation-engine",
+        "to": "translation-engine"
+      },
+      {
+        "from": "build/translation-model",
+        "to": "translation-model"
+      }
     ],
     "linux": {
       "target": [

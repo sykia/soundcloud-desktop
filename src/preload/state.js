@@ -29,6 +29,7 @@ const state = {
   artworkRadii: { ...DEFAULT_RADII },
   savedArtworkRadii: { ...DEFAULT_RADII },
   appLanguage: 'site',
+  sourceLanguage: 'en',
   appIconStyle: 'orange',
   languageSavePending: false,
   insightsHiddenUntil: 0,

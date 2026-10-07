@@ -1,0 +1,3 @@
+Bergamot Translator 0.4.9, https://github.com/browsermt/bergamot-translator
+Copyright its contributors. Licensed under MPL-2.0; see LICENSE.
+The bundled JavaScript worker uses a .cjs extension so it can run in Node.js worker_threads.

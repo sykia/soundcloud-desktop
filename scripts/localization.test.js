@@ -5,7 +5,9 @@ const assert = require('node:assert/strict');
 const { state } = require('../src/preload/state.js');
 const { translatedValue, translationKey } = require('../src/preload/localization-dict.js');
 const { coerceSettings, validateSetting } = require('../shared/settings-schema.js');
-const { ensureEnglishSource, needsEnglishCookie } = require('../src/main/locale.js');
+const { getSourceLocale, sourceLocale } = require('../src/main/locale.js');
+const { createTranslator } = require('../src/main/auto-translate.js');
+const path = require('node:path');
 
 test('Russian dictionary resolves exact and folded labels', () => {
   state.pageScope = '';
@@ -23,23 +25,31 @@ test('icon style is validated when an old profile is loaded', () => {
   assert.equal(validateSetting('appIconStyle', 'other'), false);
 });
 
-test('Russian overlay switches a Spanish SoundCloud cookie to English source text', () => {
+test('source language follows the current SoundCloud cookie', () => {
   const siteCookie = value => [{ domain: '.soundcloud.com', path: '/', value }];
-  assert.equal(needsEnglishCookie(siteCookie('es')), true);
-  assert.equal(needsEnglishCookie(siteCookie('en')), false);
-  assert.equal(needsEnglishCookie([]), true);
+  assert.equal(sourceLocale(siteCookie('es')), 'es');
+  assert.equal(sourceLocale(siteCookie('it')), 'it');
+  assert.equal(sourceLocale(siteCookie('en')), 'en');
+  assert.equal(sourceLocale([]), 'en');
 });
 
-test('enabling Russian writes the English source locale once', async () => {
-  const writes = [];
-  let siteLocale = 'es';
-  const cookieStore = {
-    get: async () => [{ domain: '.soundcloud.com', path: '/', value: siteLocale }],
-    set: async cookie => { writes.push(cookie); siteLocale = cookie.value; }
-  };
-  assert.equal(await ensureEnglishSource(true, cookieStore), true);
-  assert.equal(writes[0].value, 'en');
-  assert.equal(writes[0].domain, '.soundcloud.com');
-  assert.equal(await ensureEnglishSource(true, cookieStore), false);
-  assert.equal(writes.length, 1);
+test('reading the source language does not overwrite the site selection', async () => {
+  const cookieStore = { get: async () => [{ domain: '.soundcloud.com', path: '/', value: 'it' }] };
+  assert.equal(await getSourceLocale(cookieStore), 'it');
+});
+
+test('bundled models translate unknown English, Italian and Spanish labels', async () => {
+  const translator = await createTranslator(path.join(__dirname, '..', 'build'));
+  try {
+    for (const [from, text] of [
+      ['en', 'Recommended for you'],
+      ['it', 'Ascolti recenti'],
+      ['es', 'Escuchado recientemente']
+    ]) {
+      const result = await translator.translate({ from, to: 'ru', text, html: false });
+      assert.match(result.target.text, /[А-Яа-яЁё]/);
+    }
+  } finally {
+    translator.delete();
+  }
 });

@@ -25,6 +25,75 @@ const translatedAttributes = new Map();
 // original text, so a <select> still submits what SoundCloud expects.
 const translatedOptionValues = new Map();
 let localizationBody = null;
+const automaticCache = new Map();
+const automaticPending = new Map();
+let automaticTimer = null;
+
+function applyAutomatic(target, translated, language) {
+  if (state.appLanguage !== 'ru' || state.sourceLanguage !== language ||
+      !translated || translated === target.key || !target.element.isConnected ||
+      !isInterfaceElement(target.element, target.attribute ? 'attributes' : 'text')) return;
+  if (target.attribute) {
+    if (target.element.getAttribute(target.attribute) !== target.original) return;
+    if (!translatedAttributes.has(target.element)) translatedAttributes.set(target.element, new Map());
+    translatedAttributes.get(target.element).set(target.attribute,
+      { original: target.original, translated });
+    target.element.setAttribute(target.attribute, translated);
+    return;
+  }
+  if (target.node.nodeValue !== target.original) return;
+  if (target.element.matches('option') && !target.element.hasAttribute('value')) {
+    translatedOptionValues.set(target.element, target.key);
+    target.element.setAttribute('value', target.key);
+  }
+  const value = target.original.includes(target.key)
+    ? target.original.replace(target.key, translated) : translated;
+  translatedText.set(target.node, { original: target.original, translated: value });
+  target.node.nodeValue = value;
+}
+
+function queueAutomatic(target) {
+  const { key } = target;
+  if (!/[a-zA-ZÀ-ÿ]/.test(key) || /[А-Яа-яЁё]/.test(key) ||
+      key.length > 300 || /^https?:\/\//i.test(key)) return;
+  const language = state.sourceLanguage;
+  const id = `${language}\0${key}`;
+  if (automaticCache.has(id)) {
+    applyAutomatic(target, automaticCache.get(id), language);
+    return;
+  }
+  if (!automaticPending.has(id)) automaticPending.set(id, { language, key, targets: [] });
+  automaticPending.get(id).targets.push(target);
+  if (!automaticTimer) automaticTimer = setTimeout(flushAutomatic, 80);
+}
+
+async function flushAutomatic() {
+  automaticTimer = null;
+  if (state.appLanguage !== 'ru') {
+    automaticPending.clear();
+    return;
+  }
+  const language = state.sourceLanguage;
+  for (const [id, entry] of automaticPending) {
+    if (entry.language !== language) automaticPending.delete(id);
+  }
+  const entries = [...automaticPending.values()].filter(entry => entry.language === language).slice(0, 50);
+  for (const entry of entries) automaticPending.delete(`${entry.language}\0${entry.key}`);
+  if (automaticPending.size) automaticTimer = setTimeout(flushAutomatic, 80);
+  if (!entries.length) return;
+  try {
+    const translations = await ipcRenderer.invoke(CHANNEL.translateLabels, language,
+      entries.map(entry => entry.key));
+    entries.forEach((entry, index) => {
+      const translation = String(translations[index] || '').trim();
+      if (!translation) return;
+      if (automaticCache.size < 3000) automaticCache.set(`${language}\0${entry.key}`, translation);
+      for (const target of entry.targets) applyAutomatic(target, translation, language);
+    });
+  } catch (error) {
+    console.error('Could not translate interface labels:', error);
+  }
+}
 
 function translateTextNode(node) {
   const current = node.nodeValue;
@@ -36,7 +105,10 @@ function translateTextNode(node) {
   const key = translationKey(current);
   if (!key || key.length > 400) return;
   const translation = translatedValue(key, element);
-  if (!translation) return;
+  if (!translation) {
+    queueAutomatic({ node, element, original: current, key });
+    return;
+  }
   // An option without a value attribute submits its own text, so the value
   // SoundCloud would have sent is pinned before the label changes.
   if (element.matches('option') && !element.hasAttribute('value')) {
@@ -58,7 +130,11 @@ function translateAttributes(element) {
     const prior = translatedAttributes.get(element)?.get(name);
     if (prior?.translated === current) continue;
     const translation = translatedValue(translationKey(current), element);
-    if (!translation || translation === current) continue;
+    if (!translation) {
+      queueAutomatic({ element, attribute: name, original: current, key: translationKey(current) });
+      continue;
+    }
+    if (translation === current) continue;
     if (!translatedAttributes.has(element)) translatedAttributes.set(element, new Map());
     translatedAttributes.get(element).set(name, { original: current, translated: translation });
     element.setAttribute(name, translation);

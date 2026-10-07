@@ -65,6 +65,18 @@ const {
 } = require('./localization.js');
 const { loadSettings, onSettingsLoaded } = require('./settings.js');
 
+function documentSourceLanguage() {
+  const language = document.documentElement.lang.toLowerCase().split('-')[0];
+  return ['en', 'it', 'es'].includes(language) ? language : null;
+}
+
+function syncSourceLanguage(fallback = 'en') {
+  const language = documentSourceLanguage() || fallback;
+  if (state.sourceLanguage === language) return;
+  state.sourceLanguage = language;
+  scheduleLocalization(true);
+}
+
 // Motion hooks: the feature modules stay acyclic by never importing each other
 // through motion, so the wire-up happens here, before any applyMotion() runs.
 setMotionHooks({ finishPlaybackSwitch, updateEnterWatcher, updateRouteTransition, updateSystemMotionHint });
@@ -103,6 +115,9 @@ onSettingsLoaded.add(() => {
 });
 onSettingsLoaded.add(() => {
   scheduleLocalization();
+  ipcRenderer.invoke(CHANNEL.getSiteLocale).then(language => {
+    syncSourceLanguage(language);
+  }).catch(error => console.error('Could not read SoundCloud language:', error));
   // SoundCloud keeps rendering part of the shell for a few seconds after the
   // settings arrive. The observer only revisits nodes that change, so a static
   // subtree rendered inside that window would stay in the site language for
@@ -142,6 +157,9 @@ ipcRenderer.on(CHANNEL.updateState, (_event, value) => {
   renderUpdatePanel();
 });
 ipcRenderer.on(CHANNEL.showUpdate, (_event, value) => showUpdatePanel(value));
+ipcRenderer.on(CHANNEL.siteLocale, (_event, language) => {
+  syncSourceLanguage(language);
+});
 
 document.addEventListener('pointerdown', event => {
   if (hosts.panelHost && !hosts.panelHost.contains(event.target)) closePanel();
@@ -162,6 +180,9 @@ document.addEventListener('contextmenu', event => {
 // Boot, deferred to DOMContentLoaded when the preload runs before the document
 // is ready — the same timing guard the original initializeSettings() used.
 function boot() {
+  syncSourceLanguage();
+  new MutationObserver(() => syncSourceLanguage()).observe(document.documentElement,
+    { attributes: true, attributeFilter: ['lang'] });
   inject();
   updateLocalizationWatcher();
   syncPageScope();

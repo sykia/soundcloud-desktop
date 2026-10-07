@@ -7,6 +7,7 @@
 
 const { app, Menu, session } = require('electron');
 const { HOME_URL } = require('../../shared/constants.js');
+const { CHANNEL } = require('../../shared/ipc.js');
 const gpu = require('./gpu.js');
 const urls = require('./urls.js');
 const settings = require('./settings.js');
@@ -17,6 +18,7 @@ const dns = require('./dns.js');
 const window = require('./window.js');
 const updates = require('./updates.js');
 const locale = require('./locale.js');
+const autoTranslate = require('./auto-translate.js');
 const tray = require('./tray.js');
 const ipc = require('./ipc.js');
 
@@ -51,6 +53,7 @@ app.on('child-process-gone', (_event, details) => {
 app.on('before-quit', () => {
   window.setQuitting();
   updates.teardown();
+  autoTranslate.teardown();
   insightsStore.flushOnQuit();
   discord.stopRpc();
 });
@@ -63,8 +66,7 @@ if (hasInstanceLock) app.whenReady().then(async () => {
   dns.configureDnsServer(0);
 
   settings.loadSettings();
-  try { await locale.ensureEnglishSource(); }
-  catch (error) { console.error('Could not prepare English source for Russian translation:', error); }
+  locale.watchSourceLocale(value => window.sendToRenderer(CHANNEL.siteLocale, value));
   insightsStore.loadInsights();
   const current = settings.getSettings();
   if (current.autoStart) {

@@ -1,0 +1,4 @@
+English-to-Russian, Italian-to-English and Spanish-to-English Bergamot models:
+https://bergamot.s3.amazonaws.com/models/index.json
+Source project: https://github.com/mozilla/firefox-translations-models
+Licensed under MPL-2.0; see LICENSE. The model files are redistributed unchanged.

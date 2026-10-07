@@ -18,6 +18,7 @@ const discord = require('./discord.js');
 const updates = require('./updates.js');
 const tray = require('./tray.js');
 const locale = require('./locale.js');
+const autoTranslate = require('./auto-translate.js');
 const insightsStore = require('./insights-store.js');
 const { setAutoStart } = require('./autostart.js');
 
@@ -35,6 +36,18 @@ function register() {
   ipcMain.handle(CHANNEL.getSettings, event => {
     if (!isMainSoundCloudPage(event.sender)) throw new Error('Unavailable');
     return getSettings();
+  });
+
+  ipcMain.handle(CHANNEL.getSiteLocale, event => {
+    if (!isMainSoundCloudPage(event.sender)) throw new Error('Unavailable');
+    return locale.getSourceLocale();
+  });
+
+  ipcMain.handle(CHANNEL.translateLabels, (event, source, labels) => {
+    if (!isMainSoundCloudPage(event.sender) || getSettings().appLanguage !== 'ru') {
+      throw new Error('Unavailable');
+    }
+    return autoTranslate.translateLabels(source, labels);
   });
 
   ipcMain.handle(CHANNEL.runUpdate, event => {
@@ -171,9 +184,8 @@ function register() {
     if (!isMainSoundCloudPage(event.sender) || !['site', 'ru'].includes(language)) {
       throw new Error('Invalid language');
     }
-    const reload = language === 'ru' && await locale.ensureEnglishSource(true);
     saveSettings({ ...getSettings(), appLanguage: language });
-    return { reload };
+    return { reload: false };
   });
 
   ipcMain.handle(CHANNEL.set('appIconStyle'), (event, style) => {
