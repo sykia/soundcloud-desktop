@@ -1,3 +1,10 @@
+'use strict';
+
+// Minimal Discord Rich Presence client over the local IPC socket. It is a plain
+// net.Socket conversation with the Discord client: a handshake frame, then
+// SET_ACTIVITY frames with the standard nonce answer for heartbeats. Moved
+// verbatim from the root discord-rpc.js during the modularization refactor.
+
 const net = require('node:net');
 const path = require('node:path');
 
