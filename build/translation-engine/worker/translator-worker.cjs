@@ -60,7 +60,8 @@ if (typeof self === 'undefined') {
         async fetch(url, options) {
             if (url.protocol === 'file:') {
                 const {readFile} = require(/* webpackIgnore: true */ 'node:fs/promises');
-                const buffer = await readFile(url.pathname);
+                const {fileURLToPath} = require('node:url');
+                const buffer = await readFile(fileURLToPath(url));
                 const blob = new Blob([buffer]);
                 return new Response(blob, {
                     status: 200,
@@ -76,7 +77,8 @@ if (typeof self === 'undefined') {
         }
 
         get location() {
-            return new URL(`file://${__filename}`);
+            const {pathToFileURL} = require('node:url');
+            return pathToFileURL(__filename);
         }
     }
 }

@@ -2,7 +2,7 @@
   "name": "soundcloud-desktop",
   "version": "0.5.3",
   "private": true,
-  "description": "SoundCloud desktop client with playback and interface customization",
+  "description": "SoundCloud desktop client with offline Russian interface translation and customization",
   "author": {
     "name": "cusae",
     "email": "cusae@mail.ru"
