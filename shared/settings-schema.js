@@ -50,6 +50,7 @@ const SETTINGS = {
   animations: { default: false, validate: isBoolean, coerce: value => value === true },
   respectSystemMotion: { default: false, validate: isBoolean, coerce: value => value === true },
   showYourLikesButton: { default: true, validate: isBoolean, coerce: value => value !== false },
+  showTransferButton: { default: true, validate: isBoolean, coerce: value => value !== false },
   insightsHiddenUntil: { default: 0, coerce: value => (Number.isFinite(value) && value > 0 ? value : 0) },
   insightsLayout: {
     default: DEFAULT_INSIGHTS_LAYOUT,

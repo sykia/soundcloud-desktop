@@ -18,6 +18,7 @@ const discord = require('./discord.js');
 const updates = require('./updates.js');
 const insightsStore = require('./insights-store.js');
 const { setAutoStart } = require('./autostart.js');
+const { resolveImportUrl } = require('./resolve-import.js');
 
 const BOOLEAN_KEYS = [
   'hideArtistTools',
@@ -26,13 +27,19 @@ const BOOLEAN_KEYS = [
   'playbackVisualization',
   'animations',
   'respectSystemMotion',
-  'showYourLikesButton'
+  'showYourLikesButton',
+  'showTransferButton'
 ];
 
 function register() {
   ipcMain.handle(CHANNEL.getSettings, event => {
     if (!isMainSoundCloudPage(event.sender)) throw new Error('Unavailable');
     return getSettings();
+  });
+
+  ipcMain.handle(CHANNEL.resolveImportUrl, (event, url) => {
+    if (!isMainSoundCloudPage(event.sender)) throw new Error('Unavailable');
+    return resolveImportUrl(url);
   });
 
   ipcMain.handle(CHANNEL.runUpdate, event => {

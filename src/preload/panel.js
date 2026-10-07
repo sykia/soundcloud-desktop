@@ -22,6 +22,7 @@ const {
 } = require('./appearance.js');
 const { syncPlaybackVisualization } = require('./visualization.js');
 const { syncHomeLikesButton } = require('./likes.js');
+const { syncTransferButton } = require('./transfer.js');
 const { syncDiscordPresence, resetPresence } = require('./presence.js');
 const { syncInsightsBanner, updateInsightsRestoreControl } = require('./insights.js');
 
@@ -114,6 +115,13 @@ function updateYourLikesToggle() {
   const toggle = hosts.panelHost?.shadowRoot.querySelector('#show-your-likes-button');
   if (!toggle) return;
   toggle.checked = state.showYourLikesButton;
+  toggle.disabled = !state.settingsLoaded;
+}
+
+function updateTransferToggle() {
+  const toggle = hosts.panelHost?.shadowRoot.querySelector('#show-transfer-button');
+  if (!toggle) return;
+  toggle.checked = state.showTransferButton;
   toggle.disabled = !state.settingsLoaded;
 }
 
@@ -231,6 +239,11 @@ function togglePanel() {
           <span><span class="setting-name">${ui('Показывать «Мои лайки»', 'Show Your likes')}</span>
           <span class="hint">${ui('Кнопка перемешивания лайков вверху правого столбца.', 'Shuffle button at the top of the right sidebar.')}</span></span>
           <input id="show-your-likes-button" type="checkbox" disabled>
+        </label>
+        <label class="setting" style="margin-top: 18px">
+          <span><span class="setting-name">${ui('Показывать перенос музыки', 'Show music transfer')}</span>
+          <span class="hint">${ui('Кнопка над выбором языка в правом столбце.', 'Button above the language selector in the right sidebar.')}</span></span>
+          <input id="show-transfer-button" type="checkbox" disabled>
         </label>
         <label class="setting" style="margin-top: 18px">
           <span><span class="setting-name">${ui('Анимации', 'Animations')}</span>
@@ -375,6 +388,20 @@ function togglePanel() {
     } finally {
       updateYourLikesToggle();
     }
+  });
+  const transferToggle = shadow.querySelector('#show-transfer-button');
+  transferToggle.addEventListener('change', async () => {
+    const previous = state.showTransferButton;
+    state.showTransferButton = transferToggle.checked;
+    syncTransferButton();
+    transferToggle.disabled = true;
+    try { await ipcRenderer.invoke(CHANNEL.set('showTransferButton'), state.showTransferButton); }
+    catch (error) {
+      state.showTransferButton = previous;
+      syncTransferButton();
+      shadow.querySelector('.status').textContent = ui('Не удалось сохранить настройку.', 'Could not save the setting.');
+      console.error('Could not save transfer button visibility:', error);
+    } finally { updateTransferToggle(); }
   });
   const animationsToggle = shadow.querySelector('#animations');
   animationsToggle.addEventListener('change', async () => {
@@ -529,6 +556,7 @@ function togglePanel() {
   updateAnimationsToggle();
   updateRespectSystemMotionToggle();
   updateYourLikesToggle();
+  updateTransferToggle();
   updateInsightsRestoreControl();
   updateDiscordControls();
   updateAutoStartControls();
@@ -546,6 +574,7 @@ module.exports = {
   updateAnimationsToggle,
   updateRespectSystemMotionToggle,
   updateYourLikesToggle,
+  updateTransferToggle,
   updateSystemMotionHint,
   closePanel,
   togglePanel

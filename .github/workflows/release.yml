@@ -104,4 +104,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
-        run: gh release create "$RELEASE_TAG" release/* --target "$GITHUB_SHA" --title "SoundCloud Desktop ${RELEASE_TAG#v}" --notes-file "release-notes/$RELEASE_TAG.md"
+        run: |
+          release_flags=()
+          if [[ "$RELEASE_TAG" == *-* ]]; then
+            release_flags+=(--prerelease --latest=false)
+          fi
+          gh release create "$RELEASE_TAG" release/* --target "$GITHUB_SHA" --title "SoundCloud Desktop ${RELEASE_TAG#v}" --notes-file "release-notes/$RELEASE_TAG.md" "${release_flags[@]}"

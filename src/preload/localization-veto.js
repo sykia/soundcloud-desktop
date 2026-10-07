@@ -14,9 +14,9 @@
 // cannot be used here: the document element carries the control classes
 // (cusade-animations, cusade-ui, cusade-page-*, cusade-hide-*, ...), and an
 // ancestor match against that substring would veto every node on the page.
-const CUSADE_OWNED = '#cusade-panel-host, #cusade-update-host, #cusade-insights-host,' +
+const CUSADE_OWNED = '#cusade-panel-host, #cusade-update-host, #cusade-insights-host, #cusade-transfer-dialog-host,' +
   ' .cusade-route, .cusade-route__bar, .cusade-route__veil, .cusade-route--intro,' +
-  ' .cusade-visualization, .cusade-likes-shuffle, .cusade-likes-transition,' +
+  ' .cusade-visualization, .cusade-likes-shuffle, .cusade-likes-transition, .cusade-transfer,' +
   ' .cusade-track-backdrop, .cusade-insights-banner, .cusade-insights-editbar,' +
   ' .cusade-insights-dropzone, .cusade-insights-drag-ghost, .cusade-insights-slot,' +
   ' .cusade-update, .cusade-panel';

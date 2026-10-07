@@ -26,6 +26,7 @@ const state = {
   respectSystemMotion: false,
   settingsLoaded: false,
   showYourLikesButton: true,
+  showTransferButton: true,
   artworkRadii: { ...DEFAULT_RADII },
   savedArtworkRadii: { ...DEFAULT_RADII },
   appLanguage: 'site',
