@@ -13,7 +13,7 @@
   "scripts": {
     "start": "node build.js && electron .",
     "check": "node scripts/check-consistency.js",
-    "test": "node --test scripts/*.test.js",
+    "test": "node --test scripts/localization.test.js scripts/linux-package-install.test.js",
     "build": "node build.js",
     "build:watch": "node build.js --watch",
     "predist:linux": "node build.js",
