@@ -20,6 +20,7 @@ const tray = require('./tray.js');
 const locale = require('./locale.js');
 const autoTranslate = require('./auto-translate.js');
 const insightsStore = require('./insights-store.js');
+const downloads = require('./downloads.js');
 const { setAutoStart } = require('./autostart.js');
 
 const BOOLEAN_KEYS = [
@@ -33,6 +34,14 @@ const BOOLEAN_KEYS = [
 ];
 
 function register() {
+  ipcMain.handle(CHANNEL.downloadTrack, async (event, url) => {
+    if (!isMainSoundCloudPage(event.sender)) throw new Error('Unavailable');
+    try {
+      return { saved: await downloads.downloadTrack(url, getMainWindow()) };
+    } catch (error) {
+      return { error: error.message || 'Не удалось скачать трек.' };
+    }
+  });
   ipcMain.handle(CHANNEL.getSettings, event => {
     if (!isMainSoundCloudPage(event.sender)) throw new Error('Unavailable');
     return getSettings();

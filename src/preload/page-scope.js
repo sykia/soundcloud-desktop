@@ -18,19 +18,27 @@ function syncArtworkPage() {
 // full of tabs, rows and buttons that deserve the same reactions as the rest.
 const PAGE_SCOPES = [
   ['settings', /^\/settings(\/|$)/],
-  ['studio', /^\/studio(\/|$)/],
+  ['studio', /^\/(?:studio|artists)(\/|$)/],
   ['upload', /^\/upload(\/|$)/],
   ['subscriptions', /^\/subscriptions(\/|$)/],
   ['notifications', /^\/notifications(\/|$)/],
   ['messages', /^\/(?:messages|im)(\/|$)/],
+  ['search', /^\/search(\/|$)/],
   ['library', /^\/you\/library(\/|$)/],
   ['feed', /^\/feed(\/|$)/],
   ['discover', /^\/(?:discover)?\/?$/]
 ];
 
 function detectPageScope() {
+  if (location.hostname === 'artists.soundcloud.com') return 'studio';
   const path = location.pathname.toLowerCase();
   for (const [name, pattern] of PAGE_SCOPES) if (pattern.test(path)) return name;
+  // Personal permalinks are normally /artist, /artist/track and
+  // /artist/sets/playlist. They need distinct translation contexts, but the
+  // broad 'other' style scope still applies to all three.
+  if (/^\/[a-z0-9_.-]+\/sets\/[^/]+/i.test(path)) return 'playlist';
+  if (/^\/[a-z0-9_.-]+\/[^/]+/i.test(path) && !/^\/(?:you|studio|pages|tags|stations|charts|pro|artists|newsroom|help|support|subscriptions|settings|upload)\//.test(path)) return 'track';
+  if (/^\/[a-z0-9_.-]+\/?$/i.test(path) && !/^\/(?:you|studio|pages|tags|stations|charts|pro|artists|newsroom|help|support|subscriptions|settings|upload)\/?$/.test(path)) return 'profile';
   return 'other';
 }
 

@@ -30,6 +30,7 @@ const state = {
   savedArtworkRadii: { ...DEFAULT_RADII },
   appLanguage: 'site',
   sourceLanguage: 'en',
+  localizationCapturePaused: false,
   appIconStyle: 'orange',
   languageSavePending: false,
   insightsHiddenUntil: 0,

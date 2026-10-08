@@ -5,6 +5,7 @@
 // state.pageScope.
 
 const { state } = require('./state.js');
+const languageNames = require('../../shared/localization-language-names.json');
 
 // ---------------------------------------------------------------------------
 // Localization
@@ -107,7 +108,7 @@ const RU_TRANSLATIONS = {
   // Home
   'Made for you': 'Создано для вас',
   'Curated by SoundCloud': 'Подборка SoundCloud',
-  'More of what you like': 'Ещё из того, что вам нравится',
+  'More of what you like': 'Музыка, которая вам понравится',
   'Recently played': 'Недавно прослушано',
   'Recently Played': 'Недавно прослушано',
   'Recently played:': 'Недавно прослушано:',
@@ -144,7 +145,7 @@ const RU_TRANSLATIONS = {
   // Library
   'Overview': 'Обзор',
   'Likes': 'Понравившееся',
-  'Playlists': 'Пейлисты',
+  'Playlists': 'Плейлисты',
   'Albums': 'Альбомы',
   'Stations': 'Станции',
   'Following': 'Подписки',
@@ -543,6 +544,12 @@ const RU_COUNT_FORMS = {
   visit: ['визит', 'визита', 'визитов'],
   visits: ['визит', 'визита', 'визитов'],
   reposted: ['репост', 'репоста', 'репостов'],
+  ascolto: ['прослушивание', 'прослушивания', 'прослушиваний'],
+  ascolti: ['прослушивание', 'прослушивания', 'прослушиваний'],
+  commento: ['комментарий', 'комментария', 'комментариев'],
+  commenti: ['комментарий', 'комментария', 'комментариев'],
+  ripubblicazione: ['репост', 'репоста', 'репостов'],
+  ripubblicazioni: ['репост', 'репоста', 'репостов'],
   seguidor: ['подписчик', 'подписчика', 'подписчиков'],
   seguidores: ['подписчик', 'подписчика', 'подписчиков'],
   faixa: ['трек', 'трека', 'треков'],
@@ -607,6 +614,10 @@ function countAmount(token) {
 }
 
 function translatedValue(value, element) {
+  if (state.pageScope === 'settings') {
+    const languageName = languageNames[state.sourceLanguage]?.[value.toLocaleLowerCase(state.sourceLanguage)];
+    if (languageName) return languageName;
+  }
   if (element?.matches?.('.localeSelector_language')) return 'Русский';
   if (element?.closest?.('.localeSelector') && value.endsWith(':')) return 'Язык:';
   if (element?.closest?.('.header__navMenuItem')) {
@@ -636,10 +647,18 @@ function translatedValue(value, element) {
   if (match) return `ПОНРАВИЛОСЬ: ${match[1]}`;
   match = value.match(/^(\d[\d,.]*) (likes|curtidas)$/);
   if (match) return `Понравилось: ${match[1]}`;
+  match = value.match(/^(\d[\d,.]*) Mi piace$/i);
+  if (match) return `Понравилось: ${match[1]}`;
   match = value.match(/^(?:Mixed for|Mixado para) (.+)$/);
-  if (match) return `Микс для ${match[1]}`;
+  if (match) return `Миксы для ${match[1]}`;
   match = value.match(/^Criado para (.+)$/);
   if (match) return `Создано для ${match[1]}`;
+  match = value.match(/^Segui (.{1,80})$/i);
+  if (match) return `Подписаться на ${match[1]}`;
+  match = value.match(/^Non seguire più (.{1,80})$/i);
+  if (match) return `Отписаться от ${match[1]}`;
+  match = value.match(/^Hai iniziato a seguire (.{1,80})$/i);
+  if (match) return `Вы подписались на ${match[1]}`;
   match = value.match(/^(\d[\d.,]*%?) of uploads used$/);
   if (match) return `Использовано загрузок: ${match[1]}`;
   match = value.match(/^(.*)\s+of uploads used$/);

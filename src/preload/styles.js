@@ -59,6 +59,20 @@ function inject() {
   const style = document.createElement('style');
   style.id = 'cusade-page-style';
   style.textContent = `
+    .cusade-download { display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; }
+    html.cusade-animations .cusade-download--loading svg {
+      animation: cusade-download-pulse 900ms ease-in-out infinite;
+    }
+    html.cusade-animations .cusade-download--done svg,
+    html.cusade-animations .cusade-download--error svg {
+      animation: cusade-action-pop 380ms cubic-bezier(.3,.62,.36,1);
+    }
+    @keyframes cusade-download-pulse {
+      0%, 100% { transform: translateY(-2px); opacity: .65; }
+      50% { transform: translateY(2px); opacity: 1; }
+    }
+    .cusade-download--error { color: #d30029 !important; }
+    .cusade-download--done { color: #19a352 !important; }
     html.cusade-hide-artist-tools .newUploadBanner,
     html.cusade-hide-artist-tools .banner,
     html.cusade-hide-artist-tools .sidebarModule:has(iframe[title="Artist tools" i], iframe[src*="/n/embeds/credit-tracker"]) {
@@ -139,6 +153,14 @@ function inject() {
     .cusade-visualization__artist { display: block; margin-top: 5px; color: #b9d9e8;
       font-size: 14px; text-decoration: none; }
     .cusade-visualization__title:hover, .cusade-visualization__artist:hover { text-decoration: underline; }
+    /* Russian settings tabs need their full labels without a second line. */
+    html.cusade-page-settings .settingsMain__tabs {
+      display: flex; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; max-width: 100%;
+    }
+    html.cusade-page-settings .settingsMain__tabs > .g-tabs-item { flex: 0 0 auto; float: none; }
+    html.cusade-page-settings .settingsMain__tabs .g-tabs-link {
+      white-space: nowrap; font-size: 20px; padding-left: 8px; padding-right: 8px;
+    }
     .cusade-visualization__wave { position: relative; width: 100%; height: 108px;
       margin-top: auto; border: 0; padding: 0; background: transparent; cursor: pointer; }
     .cusade-visualization__bars { position: absolute; inset: 0; display: flex;
@@ -488,22 +510,26 @@ function inject() {
     html.cusade-animations :is(.commentPopover, .userDropbar, .playControlsPanel):not([hidden]) {
       animation: cusade-menu-enter 300ms cubic-bezier(.3,.62,.36,1) both;
     }
-    /* Page transitions. Two fixed layers that only ever move opacity and scaleX,
-       so a route change stays on the compositor instead of repainting the column
-       that is being swapped underneath. The bar is a 2px accent line across the
-       top, the veil a soft dim that rises for a moment and clears again. */
+    /* Page and tab transitions use fixed compositor layers. */
     .cusade-route { position: fixed; inset: 0; z-index: 2147483647; pointer-events: none; }
     .cusade-route__veil { position: absolute; inset: 0; opacity: 0;
       background: radial-gradient(130% 100% at 50% 35%, #0b0d13b0, #05060ae8); }
+    .cusade-route__wash { position: absolute; inset: 0; opacity: 0;
+      transform: scale(.88); transform-origin: var(--cusade-route-x, 50%) var(--cusade-route-y, 28%);
+      background: radial-gradient(circle at var(--cusade-route-x, 50%) var(--cusade-route-y, 28%),
+        color-mix(in srgb, var(--cusade-accent, #ff5500) 30%, transparent), transparent 55%); }
     .cusade-route__bar { position: absolute; top: 0; left: 0; width: 100%; height: 2px;
       opacity: 0; transform: scaleX(0); transform-origin: left center;
       background: linear-gradient(90deg, transparent 2%, var(--cusade-accent, #ff5500) 18%,
         #ffffffd9 50%, var(--cusade-accent, #ff5500) 82%, transparent 98%); }
     html.cusade-animations .cusade-route__veil { transition: opacity 520ms cubic-bezier(.3,.62,.36,1); }
+    html.cusade-animations .cusade-route__wash { transition: opacity 420ms cubic-bezier(.3,.62,.36,1),
+      transform 600ms cubic-bezier(.3,.62,.36,1); }
     html.cusade-animations .cusade-route__bar { transition: transform 760ms cubic-bezier(.3,.62,.36,1),
       opacity 340ms ease; }
     html.cusade-animations .cusade-route--intro .cusade-route__veil { opacity: 1; }
     html.cusade-animations .cusade-route--veil .cusade-route__veil { opacity: .42; }
+    html.cusade-animations .cusade-route--veil .cusade-route__wash { opacity: 1; transform: scale(1.08); }
     html.cusade-animations .cusade-route--sweep .cusade-route__bar { opacity: 1; transform: scaleX(1); }
     @keyframes cusade-content-enter {
       from { opacity: 0; transform: translateY(9px); }

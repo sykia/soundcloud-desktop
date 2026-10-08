@@ -21,6 +21,22 @@ const locale = require('./locale.js');
 const autoTranslate = require('./auto-translate.js');
 const tray = require('./tray.js');
 const ipc = require('./ipc.js');
+const localizationCapture = require('./localization-capture.js');
+const frameLocalization = require('./frame-localization.js');
+const downloads = require('./downloads.js');
+
+let captureRunning = false;
+function captureFromArgs(argv) {
+  const flag = argv.find(value => value.startsWith('--capture-localization='));
+  if (!flag || captureRunning || !window.getMainWindow()) return false;
+  captureRunning = true;
+  const output = flag.slice('--capture-localization='.length) || '/tmp/soundcloud-labels.jsonl';
+  localizationCapture.captureRoutes(window.getMainWindow().webContents, output)
+    .then(report => console.log('Localization capture:', report))
+    .catch(error => console.error('Localization capture failed:', error))
+    .finally(() => { captureRunning = false; });
+  return true;
+}
 
 // cusade animates transforms, opacities, filters and blurred cover backgrounds.
 // That work belongs on the GPU: app.disableHardwareAcceleration() forces the
@@ -37,7 +53,9 @@ if (gpu.consumeGpuFallback()) {
 const hasInstanceLock = app.requestSingleInstanceLock();
 if (!hasInstanceLock) app.quit();
 window.initPendingLaunchUrl(process.argv);
-app.on('second-instance', (_event, argv) => window.onSecondInstance(argv));
+app.on('second-instance', (_event, argv) => {
+  if (!captureFromArgs(argv)) window.onSecondInstance(argv);
+});
 app.on('open-url', (event, url) => {
   event.preventDefault();
   window.openSoundCloudUrl(urls.launchUrl(url));
@@ -64,9 +82,13 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
 if (hasInstanceLock) app.whenReady().then(async () => {
   app.setAppUserModelId('io.github.sykia.soundcloud-desktop');
   dns.configureDnsServer(0);
+  downloads.watchClientId();
 
   settings.loadSettings();
-  locale.watchSourceLocale(value => window.sendToRenderer(CHANNEL.siteLocale, value));
+  locale.watchSourceLocale(value => {
+    window.sendToRenderer(CHANNEL.siteLocale, value);
+    frameLocalization.refresh(window.getMainWindow()?.webContents).catch(() => {});
+  });
   insightsStore.loadInsights();
   const current = settings.getSettings();
   if (current.autoStart) {
@@ -115,6 +137,8 @@ if (hasInstanceLock) app.whenReady().then(async () => {
   window.setHasTray(tray.hasTray);
   window.createWindow(process.argv.includes('--autostart') &&
     process.argv.includes('--minimized') && !window.hasPendingLaunchUrl());
+  frameLocalization.attach(window.getMainWindow().webContents);
+  captureFromArgs(process.argv);
   updates.setupUpdates();
   app.on('activate', () => {
     window.showMainWindow();

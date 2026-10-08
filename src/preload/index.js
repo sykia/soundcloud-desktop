@@ -1,5 +1,6 @@
 'use strict';
 
+
 // Preload entry: wires every feature module together and reproduces the boot
 // sequence of the original single-file preload.js (style injection, page scope,
 // settings load, heartbeat intervals, IPC listeners and document-level
@@ -8,6 +9,7 @@
 const { ipcRenderer } = require('electron');
 const { CHANNEL } = require('../../shared/ipc.js');
 const { state } = require('./state.js');
+const { chooseSourceLanguage } = require('./source-language.js');
 const { hosts } = require('./hosts.js');
 
 const { inject } = require('./styles.js');
@@ -45,6 +47,7 @@ const {
   finishPlaybackSwitch
 } = require('./visualization.js');
 const { syncHomeLikesButton } = require('./likes.js');
+const { startDownloads } = require('./downloads.js');
 const {
   syncInsightsBanner,
   syncInsightsPlayback,
@@ -61,7 +64,9 @@ const {
 const {
   updateLocalizationWatcher,
   scheduleLocalization,
-  refreshLocalizedUi
+  restoreSiteLanguage,
+  refreshLocalizedUi,
+  auditLocalization
 } = require('./localization.js');
 const { loadSettings, onSettingsLoaded } = require('./settings.js');
 
@@ -70,9 +75,12 @@ function documentSourceLanguage() {
   return ['en', 'it', 'es'].includes(language) ? language : null;
 }
 
-function syncSourceLanguage(fallback = 'en') {
-  const language = documentSourceLanguage() || fallback;
+let cookieSourceLanguage = 'en';
+function syncSourceLanguage(fallback) {
+  if (['en', 'it', 'es'].includes(fallback)) cookieSourceLanguage = fallback;
+  const language = chooseSourceLanguage(documentSourceLanguage(), cookieSourceLanguage);
   if (state.sourceLanguage === language) return;
+  if (state.appLanguage === 'ru') restoreSiteLanguage();
   state.sourceLanguage = language;
   scheduleLocalization(true);
 }
@@ -160,6 +168,19 @@ ipcRenderer.on(CHANNEL.showUpdate, (_event, value) => showUpdatePanel(value));
 ipcRenderer.on(CHANNEL.siteLocale, (_event, language) => {
   syncSourceLanguage(language);
 });
+ipcRenderer.on(CHANNEL.localizationCaptureBegin, () => {
+  state.localizationCapturePaused = true;
+  restoreSiteLanguage();
+  updateLocalizationWatcher();
+});
+ipcRenderer.on(CHANNEL.localizationCaptureEnd, () => {
+  state.localizationCapturePaused = false;
+  updateLocalizationWatcher();
+  scheduleLocalization(true);
+});
+ipcRenderer.on(CHANNEL.localizationAuditRequest, (_event, nonce) => {
+  ipcRenderer.send(CHANNEL.localizationAuditResponse, nonce, auditLocalization());
+});
 
 document.addEventListener('pointerdown', event => {
   if (hosts.panelHost && !hosts.panelHost.contains(event.target)) closePanel();
@@ -184,6 +205,7 @@ function boot() {
   new MutationObserver(() => syncSourceLanguage()).observe(document.documentElement,
     { attributes: true, attributeFilter: ['lang'] });
   inject();
+  startDownloads();
   updateLocalizationWatcher();
   syncPageScope();
   scheduleLocalization();

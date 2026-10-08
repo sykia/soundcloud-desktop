@@ -1,5 +1,7 @@
 'use strict';
 
+const { state } = require('./state.js');
+
 // AUTO-SPLIT from preload.js — requires/exports finished by hand.
 // // Rules that decide whether a text node belongs to the interface or to a person.
 
@@ -26,6 +28,7 @@ const SKIP_TEXT_CONTEXT = 'script, style, noscript, template, svg, math, iframe,
 
 // The element itself is a title, a name or a value written by a person.
 const USER_TEXT_OWN = '.soundTitle__title, .soundTitle__username, .soundTitle__performer, ' +
+  '.header__userNavButton, .header__userName, .accountSocialItem__name, ' +
   '.sound__title, .sound__username, .sound__performerName, .fullHero__title, .fullHero__username, ' +
   '.fullHero__userName, .trackItem__title, .trackItem__performer, .playableTile__title, ' +
   '.playableTile__subtitle, .playableTile__username, .playableTile__header, .playableTile__tagLink, ' +
@@ -40,6 +43,8 @@ const USER_TEXT_OWN = '.soundTitle__title, .soundTitle__username, .soundTitle__p
 
 // A block that belongs to a person: their text, not the interface around it.
 const USER_TEXT_INSIDE = '.commentItem, .commentPopover, .commentForm__form, ' +
+  'a.MuiLink-underlineAlways, ' +
+  '.userBadge, .soundBadge, .playableTile, .trackItem, .playbackSoundBadge, ' +
   '.profileHeaderInfo__additional, .listenDescription, .listenInfo__description, .listenTags, ' +
   '.entityContext__caption, .playlist-description, .playlist__description, .playlistTracks, ' +
   '.messageItem, .messageListItem, .messageItemContent, .messageContainer, .conversationItem, ' +
@@ -52,18 +57,24 @@ const USER_TEXT_INSIDE = '.commentItem, .commentPopover, .commentForm__form, ' +
 const CONTROL_SELECTOR = 'button, a, input, textarea, select, option, label, [role="button"], ' +
   '[role="option"], .sc-button, .sc-button-icon, .sc-button-follow, .sc-button-like';
 
-const UI_ROUTE = /^\/(?:you|im|settings|pages|discover|stations|station-search|tags|charts|pro|studio|upload|artists?|mobile|developers?|jobs|newsroom|terms|privacy|search|help|support|download|insights|stream|feed|messages|notifications|subscriptions|soundcloud|go|magic|premium|popular|trending|explore|sounds?|likes|history|overview|following|albums|vinyl|blog|news|press|legal|dmca|careers|about|app|desktop|api|store)(?:[/?#]|$)/i;
+const UI_ROUTE = /^\/(?:you|im|settings|pages|discover|stations|station-search|tags|charts|pro|studio|upload|artists|artist-studio|hc|mobile|developers|jobs|newsroom|terms|privacy|search|help|support|download|insights|stream|feed|messages|notifications|subscriptions|soundcloud|go|magic|premium|popular|trending|explore|likes|history|overview|following|albums|vinyl|blog|news|press|legal|dmca|careers|about|app|desktop|api|store)(?:[/?#]|$)/i;
 
 // A link that leaves the interface behind and points at a person, a track, a
 // playlist or a station. Its label is user content, whatever it says.
 function isContentHref(href) {
-  const value = String(href || '').trim();
+  let value = String(href || '').trim();
   // An anchor with an empty href is a button-shaped interface control (its
   // label is UI text), not a link to a person, track, playlist or station.
   // Real content links on SoundCloud always carry a real path.
   if (!value) return false;
   if (/^(mailto:|tel:|sms:|javascript:|#)/i.test(value)) return false;
-  if (/^(https?:)?\/\//i.test(value)) return false;
+  if (/^(https?:)?\/\//i.test(value)) {
+    try {
+      const url = new URL(value, 'https://soundcloud.com');
+      if (!/(^|\.)soundcloud\.com$/i.test(url.hostname)) return true;
+      value = url.pathname;
+    } catch { return true; }
+  }
   const path = value.startsWith('/') ? value : `/${value.replace(/^\.\//, '')}`;
   if (/^\/(user|users|playlist|station|track|tracks)s?(\/|$)/i.test(path)) return true;
   return !UI_ROUTE.test(path);
@@ -82,16 +93,88 @@ function isTranslatableText(element) {
   return true;
 }
 
-function isInterfaceElement(element, mode = 'text') {
-  if (!element || element.nodeType !== Node.ELEMENT_NODE) return false;
-  if (element.closest(`script, style, noscript, template, svg, ${CUSADE_OWNED}`)) return false;
-  if (mode === 'text' && !isTranslatableText(element)) return false;
-  if (element.matches(USER_TEXT_OWN)) return false;
-  // A button, an input or a placeholder inside a comment still describes itself.
-  if (mode === 'attributes' && element.matches(CONTROL_SELECTOR)) return true;
-  if (element.closest(USER_TEXT_INSIDE)) return false;
+// Classify the *purpose* of a node. A page family alone is never sufficient:
+// playlists, people and messages can occur inside every page family. Strong
+// content containers take precedence over surrounding settings/forms markup.
+const FORM_CONTEXT = 'form, fieldset, label, [role="group"], [role="radiogroup"], ' +
+  '[role="switch"], [role="checkbox"], [class*="setting"], [class*="Setting"], ' +
+  '[class*="preference"], [class*="Preference"], [class*="toggle"], [class*="Toggle"], ' +
+  '[class*="form"], [class*="Form"], [class*="upload"], [class*="Upload"]';
+const UI_REGION = 'header, nav, aside, footer, [role="navigation"], [role="menu"], ' +
+  '[role="dialog"], [role="alert"], [role="status"], [role="tooltip"], ' +
+  '[class*="header"], [class*="Header"], [class*="sidebar"], [class*="Sidebar"], ' +
+  '[class*="menu"], [class*="Menu"], [class*="modal"], [class*="Modal"], ' +
+  '[class*="notification"], [class*="Notification"]';
+const CONTROL_CONTEXT = 'button, select, option, optgroup, label, summary, [role="button"], ' +
+  '[role="tab"], [role="menuitem"], [role="option"], [role="switch"], [role="checkbox"], ' +
+  '[role="radio"], [role="link"], .sc-button, .MuiTab-root, .header__navMenuItem, .localeSelector';
+
+function classifyInterface(element, mode = 'text') {
+  if (!element || element.nodeType !== Node.ELEMENT_NODE) return { kind: 'skip', reason: 'non-element' };
+  if (element.closest(`script, style, noscript, template, svg, ${CUSADE_OWNED}`) ||
+      (mode === 'text' && !isTranslatableText(element))) return { kind: 'skip', reason: 'non-visible-or-owned' };
+  if (element.matches(USER_TEXT_OWN)) return { kind: 'protected', reason: 'content-field' };
+  const contentBlock = element.closest(USER_TEXT_INSIDE);
+  const control = element.closest(CONTROL_CONTEXT);
+  const enclosingButton = mode === 'text' ? element.closest('button, [role="button"]') : null;
+  if (enclosingButton?.querySelector?.('img, [class*="avatar"], [class*="Avatar"], ' +
+      '[class*="userName"], [class*="username"]')) {
+    return { kind: 'protected', reason: 'person-control' };
+  }
+  if (contentBlock && (mode === 'attributes' ||
+      !element.closest('button, [role="button"], input, textarea, select, option'))) {
+    return { kind: 'protected', reason: 'content-container' };
+  }
   const link = element.closest('a[href]');
-  return !(link && isContentHref(link.getAttribute('href')));
+  const studioMetric = state.pageScope === 'studio' && element.matches('.MuiTypography-h6') &&
+    element.closest('a.MuiLink-underlineNone');
+  if (link && isContentHref(link.getAttribute('href')) &&
+      !element.closest('.MuiTab-root, .header, footer, [role="contentinfo"], .footer') && !studioMetric) {
+    return { kind: 'protected', reason: 'content-link' };
+  }
+  if (['profile', 'track', 'playlist'].includes(state.pageScope) &&
+      element.closest('h1') && !control && !element.closest('.sidebarHeader__actualTitle')) {
+    return { kind: 'protected', reason: 'entity-title' };
+  }
+  if (studioMetric) {
+    return { kind: 'ui', reason: 'studio-metric' };
+  }
+  if (link && /^(?:https?:)?\/\/help\.soundcloud\.com\/hc\//i.test(link.href || '')) {
+    return { kind: 'ui', reason: 'help-link' };
+  }
+  if (mode === 'attributes' && !element.matches('button, input, textarea, select, option, ' +
+      '[role="button"], [role="tab"], [role="menuitem"], [role="switch"], [role="checkbox"], .sc-button')) {
+    return { kind: 'ambiguous', reason: 'non-control-attribute' };
+  }
+  if (control) return { kind: 'ui', reason: 'interactive-control' };
+  if (mode === 'attributes' && element.matches('input, textarea, select, [aria-label], [title]')) {
+    if (element.closest(FORM_CONTEXT) || element.closest(UI_REGION)) return { kind: 'ui', reason: 'control-attribute' };
+    return { kind: 'ambiguous', reason: 'unscoped-attribute' };
+  }
+  if (element.closest(FORM_CONTEXT)) return { kind: 'ui', reason: 'form-or-settings' };
+  if (element.closest('h1, h2, h3, h4, [role="heading"]')) return { kind: 'ui', reason: 'heading' };
+  if (element.closest(UI_REGION)) return { kind: 'ui', reason: 'interface-region' };
+  return { kind: 'ambiguous', reason: 'unscoped-text' };
 }
 
-module.exports = { CUSADE_OWNED, isInterfaceElement };
+function isInterfaceElement(element, mode = 'text') {
+  const kind = classifyInterface(element, mode).kind;
+  return kind === 'ui' || kind === 'ambiguous';
+}
+
+function isSafeFallback(element, mode = 'text') {
+  // A form's selected value can contain personal data or a site-defined enum.
+  // Reviewed catalog/dictionary entries still apply, but Bergamot must not
+  // rewrite an unfamiliar value into a plausible-looking wrong answer.
+  if (mode === 'text' && (element.matches('option') ||
+      (element.matches('.sc-button-label-default') && element.closest('.form-dropdown')))) return false;
+  return classifyInterface(element, mode).kind === 'ui';
+}
+
+function isSafeSingleWord(element, mode = 'text') {
+  return isSafeFallback(element, mode);
+}
+
+module.exports = { CUSADE_OWNED, SKIP_TEXT_CONTEXT, USER_TEXT_OWN, USER_TEXT_INSIDE,
+  FORM_CONTEXT, UI_REGION, CONTROL_CONTEXT, UI_ROUTE, isTranslatableText,
+  classifyInterface, isInterfaceElement, isSafeFallback, isSafeSingleWord, isContentHref };

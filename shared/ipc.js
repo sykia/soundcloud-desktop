@@ -11,6 +11,10 @@ const CHANNEL = {
   getSiteLocale: 'cusade:get-site-locale',
   siteLocale: 'cusade:site-locale',
   translateLabels: 'cusade:translate-labels',
+  localizationCaptureBegin: 'cusade:localization-capture-begin',
+  localizationCaptureEnd: 'cusade:localization-capture-end',
+  localizationAuditRequest: 'cusade:localization-audit-request',
+  localizationAuditResponse: 'cusade:localization-audit-response',
   playbackState: 'cusade:playback-state',
   capturePage: 'cusade:capture-page',
   togglePanel: 'cusade:toggle-panel',
@@ -25,6 +29,7 @@ const CHANNEL = {
   setInsightsLayout: 'cusade:set-insights-layout',
   recordInsight: 'cusade:record-insight',
   exportInsightCard: 'cusade:export-insight-card',
+  downloadTrack: 'cusade:download-track',
   setArtworkRadius: 'cusade:set-artwork-radius',
   set(key) {
     return `cusade:set-${kebab(key)}`;

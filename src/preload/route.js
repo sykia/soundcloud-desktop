@@ -7,6 +7,7 @@
 
 const { motionActive } = require('./motion.js');
 const { syncPageScope } = require('./page-scope.js');
+const { scheduleLocalization } = require('./localization.js');
 
 // Page transitions. SoundCloud routes inside its SPA with history.pushState, so
 // a route change is caught there; a full page load only gets the intro reveal.
@@ -17,6 +18,7 @@ let routeWatchReady = false;
 let routeLastUrl = '';
 let routeVeilTimer = 0;
 let routeSweepTimer = 0;
+let lastTransitionAt = 0;
 const ROUTE_INTRO_WINDOW_MS = 3000;
 
 // The reveal belongs to the first page the app opens, not to the moment someone
@@ -30,8 +32,14 @@ function setIntroPending(value) {
   routeIntroPending = Boolean(value);
 }
 
-function runRouteTransition() {
+function runRouteTransition(origin) {
   if (!routeHost?.isConnected) return;
+  if (performance.now() - lastTransitionAt < 220) return;
+  lastTransitionAt = performance.now();
+  const x = origin?.x ?? window.innerWidth / 2;
+  const y = origin?.y ?? Math.min(window.innerHeight * .28, 240);
+  routeHost.style.setProperty('--cusade-route-x', `${x}px`);
+  routeHost.style.setProperty('--cusade-route-y', `${y}px`);
   routeHost.classList.remove('cusade-route--veil', 'cusade-route--sweep');
   // Restart the sweep from scaleX(0): without a forced reflow between the class
   // changes the bar has no previous value to animate from and snaps to full width.
@@ -43,16 +51,28 @@ function runRouteTransition() {
   routeSweepTimer = setTimeout(() => routeHost?.classList.remove('cusade-route--sweep'), 900);
 }
 
+function onTabActivated(event) {
+  if (!motionActive() || !routeHost?.isConnected) return;
+  const target = event.target instanceof Element ? event.target : event.target?.parentElement;
+  const tab = target?.closest('[role="tab"], .settingsMain__tabs .g-tabs-link, ' +
+    '.profileTabs a, .userNetworkTabs a');
+  if (!tab || tab.closest('#cusade-panel-host') || tab.getAttribute('aria-selected') === 'true' ||
+      tab.getAttribute('aria-current') === 'page') return;
+  const rect = tab.getBoundingClientRect();
+  runRouteTransition({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+}
+
 function onRouteChanged() {
   // The scope and the localization context follow the route even when motion is
   // off, so the dictionary never lags a page behind by one navigation.
-  syncPageScope();
-  if (!motionActive() || !routeHost?.isConnected) return;
   const url = location.href;
-  // SoundCloud pushes the same URL for scroll restoration; a veil for that
-  // would flicker on every scroll.
   if (url === routeLastUrl) return;
   routeLastUrl = url;
+  syncPageScope();
+  scheduleLocalization(true);
+  if (!motionActive() || !routeHost?.isConnected) return;
+  // SoundCloud pushes the same URL for scroll restoration; a veil for that
+  // would flicker on every scroll.
   runRouteTransition();
 }
 
@@ -71,6 +91,10 @@ function installRouteWatch() {
     history[method] = patched;
   }
   addEventListener('popstate', onRouteChanged);
+  document.addEventListener('click', onTabActivated, true);
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Enter' || event.key === ' ') onTabActivated(event);
+  }, true);
 }
 
 function updateRouteTransition() {
@@ -91,8 +115,8 @@ function updateRouteTransition() {
   routeHost.className = 'cusade-route';
   routeHost.setAttribute('aria-hidden', 'true');
   // The bar goes in first so the accent line stays above the veil.
-  routeHost.innerHTML = '<span class="cusade-route__bar"></span>' +
-    '<span class="cusade-route__veil"></span>';
+  routeHost.innerHTML = '<span class="cusade-route__veil"></span>' +
+    '<span class="cusade-route__wash"></span><span class="cusade-route__bar"></span>';
   document.body.appendChild(routeHost);
   routeLastUrl = location.href;
   // The reveal plays when motion first turns on during startup, or very early in

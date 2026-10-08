@@ -11,7 +11,8 @@ const { CHANNEL } = require('../../shared/ipc.js');
 const { state } = require('./state.js');
 const { hosts } = require('./hosts.js');
 const { ui, translationKey, translatedValue } = require('./localization-dict.js');
-const { CUSADE_OWNED, isInterfaceElement } = require('./localization-veto.js');
+const { catalogValue, contextRole } = require('./localization-catalog.js');
+const { CUSADE_OWNED, classifyInterface, isInterfaceElement, isSafeFallback, isSafeSingleWord } = require('./localization-veto.js');
 const { closePanel, togglePanel } = require('./panel.js');
 
 let localizationWatcher = null;
@@ -28,48 +29,72 @@ let localizationBody = null;
 const automaticCache = new Map();
 const automaticPending = new Map();
 let automaticTimer = null;
+let translatedContext = '';
+let translationEpoch = 0;
+
+function lookup(key, element, attribute) {
+  return catalogValue(key, element, state.sourceLanguage, state.pageScope, attribute) ||
+    translatedValue(key, element);
+}
+
+function acceptableAutomatic(source, translated) {
+  if (!/[А-Яа-яЁё]/.test(translated) || /[\u0000-\u001f<>]/.test(translated)) return false;
+  if (translated.length > Math.max(90, source.length * 3)) return false;
+  // A translation that drops product names, numbers, or placeholders is unsafe.
+  const protectedParts = source.match(/(?:SoundCloud|Go\+|Artist Pro|\d+[\d.,%]*|\{[^}]+\})/g) || [];
+  return protectedParts.every(part => translated.includes(part));
+}
 
 function applyAutomatic(target, translated, language) {
-  if (state.appLanguage !== 'ru' || state.sourceLanguage !== language ||
+  if (state.appLanguage !== 'ru' || state.localizationCapturePaused || state.sourceLanguage !== language ||
+      target.epoch !== translationEpoch ||
+      target.pageScope !== state.pageScope ||
       !translated || translated === target.key || !target.element.isConnected ||
-      !isInterfaceElement(target.element, target.attribute ? 'attributes' : 'text')) return;
+      !isSafeFallback(target.element, target.attribute ? 'attributes' : 'text') ||
+      !acceptableAutomatic(target.key, translated)) return;
   if (target.attribute) {
     if (target.element.getAttribute(target.attribute) !== target.original) return;
     if (!translatedAttributes.has(target.element)) translatedAttributes.set(target.element, new Map());
     translatedAttributes.get(target.element).set(target.attribute,
-      { original: target.original, translated });
+      { original: target.original, translated, automatic: true });
     target.element.setAttribute(target.attribute, translated);
     return;
   }
   if (target.node.nodeValue !== target.original) return;
   if (target.element.matches('option') && !target.element.hasAttribute('value')) {
-    translatedOptionValues.set(target.element, target.key);
-    target.element.setAttribute('value', target.key);
+    translatedOptionValues.set(target.element, target.original);
+    target.element.setAttribute('value', target.original);
   }
   const value = target.original.includes(target.key)
     ? target.original.replace(target.key, translated) : translated;
-  translatedText.set(target.node, { original: target.original, translated: value });
+  translatedText.set(target.node, { original: target.original, translated: value, automatic: true });
   target.node.nodeValue = value;
 }
 
 function queueAutomatic(target) {
   const { key } = target;
   if (!/[a-zA-ZÀ-ÿ]/.test(key) || /[А-Яа-яЁё]/.test(key) ||
-      key.length > 300 || /^https?:\/\//i.test(key)) return;
+      key.length > 120 || (key.split(/\s+/).length < 2 &&
+        !isSafeSingleWord(target.element, target.attribute ? 'attributes' : 'text')) ||
+      /^https?:\/\//i.test(key) || /^(?:ctrl|alt|shift|cmd|⌘)\s*\+/i.test(key) ||
+      !isSafeFallback(target.element, target.attribute ? 'attributes' : 'text')) return;
   const language = state.sourceLanguage;
-  const id = `${language}\0${key}`;
+  target.pageScope = state.pageScope;
+  target.epoch = translationEpoch;
+  const id = `${language}\0${state.pageScope}\0${contextRole(target.element, target.attribute)}\0${key}`;
   if (automaticCache.has(id)) {
     applyAutomatic(target, automaticCache.get(id), language);
     return;
   }
-  if (!automaticPending.has(id)) automaticPending.set(id, { language, key, targets: [] });
-  automaticPending.get(id).targets.push(target);
+  if (!automaticPending.has(id)) automaticPending.set(id, { id, language, key, targets: [] });
+  const targets = automaticPending.get(id).targets;
+  if (targets.length < 100) targets.push(target);
   if (!automaticTimer) automaticTimer = setTimeout(flushAutomatic, 80);
 }
 
 async function flushAutomatic() {
   automaticTimer = null;
-  if (state.appLanguage !== 'ru') {
+  if (state.appLanguage !== 'ru' || state.localizationCapturePaused) {
     automaticPending.clear();
     return;
   }
@@ -78,7 +103,7 @@ async function flushAutomatic() {
     if (entry.language !== language) automaticPending.delete(id);
   }
   const entries = [...automaticPending.values()].filter(entry => entry.language === language).slice(0, 50);
-  for (const entry of entries) automaticPending.delete(`${entry.language}\0${entry.key}`);
+  for (const entry of entries) automaticPending.delete(entry.id);
   if (automaticPending.size) automaticTimer = setTimeout(flushAutomatic, 80);
   if (!entries.length) return;
   try {
@@ -87,7 +112,7 @@ async function flushAutomatic() {
     entries.forEach((entry, index) => {
       const translation = String(translations[index] || '').trim();
       if (!translation) return;
-      if (automaticCache.size < 3000) automaticCache.set(`${language}\0${entry.key}`, translation);
+      if (acceptableAutomatic(entry.key, translation) && automaticCache.size < 3000) automaticCache.set(entry.id, translation);
       for (const target of entry.targets) applyAutomatic(target, translation, language);
     });
   } catch (error) {
@@ -104,7 +129,7 @@ function translateTextNode(node) {
   if (!element || !isInterfaceElement(element, 'text')) return;
   const key = translationKey(current);
   if (!key || key.length > 400) return;
-  const translation = translatedValue(key, element);
+  const translation = lookup(key, element);
   if (!translation) {
     queueAutomatic({ node, element, original: current, key });
     return;
@@ -112,8 +137,8 @@ function translateTextNode(node) {
   // An option without a value attribute submits its own text, so the value
   // SoundCloud would have sent is pinned before the label changes.
   if (element.matches('option') && !element.hasAttribute('value')) {
-    translatedOptionValues.set(element, key);
-    element.setAttribute('value', key);
+    translatedOptionValues.set(element, current);
+    element.setAttribute('value', current);
   }
   const translated = current.includes(key) ? current.replace(key, translation) : translation;
   if (translated === current) return;
@@ -129,7 +154,7 @@ function translateAttributes(element) {
     const current = element.getAttribute(name);
     const prior = translatedAttributes.get(element)?.get(name);
     if (prior?.translated === current) continue;
-    const translation = translatedValue(translationKey(current), element);
+    const translation = lookup(translationKey(current), element, name);
     if (!translation) {
       queueAutomatic({ element, attribute: name, original: current, key: translationKey(current) });
       continue;
@@ -142,6 +167,9 @@ function translateAttributes(element) {
 }
 
 function translateSite() {
+  const context = `${state.sourceLanguage}\0${state.pageScope}`;
+  if (translatedContext && translatedContext !== context) restoreSiteLanguage();
+  translatedContext = context;
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   while (walker.nextNode()) translateTextNode(walker.currentNode);
   for (const element of document.querySelectorAll('[title], [aria-label], [placeholder]')) {
@@ -174,6 +202,8 @@ function translateAddedNode(root) {
 }
 
 function restoreSiteLanguage() {
+  translationEpoch += 1;
+  translatedContext = '';
   for (const [node, prior] of translatedText) {
     if (node.isConnected && node.nodeValue === prior.translated) node.nodeValue = prior.original;
   }
@@ -185,10 +215,114 @@ function restoreSiteLanguage() {
     }
   }
   translatedAttributes.clear();
-  for (const [element] of translatedOptionValues) {
-    if (element.isConnected) element.removeAttribute('value');
+  for (const [element, pinned] of translatedOptionValues) {
+    if (element.isConnected && element.getAttribute('value') === pinned) element.removeAttribute('value');
   }
   translatedOptionValues.clear();
+}
+
+// Development audit uses the same classifier and translation state as the
+// renderer. Never serialize content text, input values or message bodies.
+function auditLocalization() {
+  const elements = new Map();
+  const candidates = [];
+  const source = state.sourceLanguage;
+  const page = state.pageScope;
+  function visit(element, value, rendered, translated, attribute, automatic) {
+    const key = translationKey(value || '');
+    if (!key || key.length > 400 || !/[A-Za-zÀ-ÿ]/.test(key) ||
+        /^(?:SoundCloud|Go\+|Artist Pro)$/i.test(key) ||
+        element.closest('[id*="onetrust"], [class*="onetrust"], [id*="ot-sdk"]') ||
+        (element.getClientRects && !element.getClientRects().length)) return;
+    const verdict = classifyInterface(element, attribute ? 'attributes' : 'text');
+    if (verdict.kind === 'skip') return;
+    let item = elements.get(element);
+    if (!item) {
+      item = { kind: verdict.kind, translated: true, machineTranslated: false,
+        reasons: new Set(), protectedUnchanged: true };
+      elements.set(element, item);
+    }
+    if (verdict.kind === 'protected') {
+      item.kind = 'protected';
+      item.protectedUnchanged &&= !translated;
+      return;
+    }
+    if (verdict.kind === 'ambiguous') {
+      if (item.kind !== 'protected') item.kind = 'ambiguous';
+      item.reasons.add(verdict.reason);
+      return;
+    }
+    if (item.kind !== 'protected' && item.kind !== 'ambiguous') item.kind = 'ui';
+    item.machineTranslated ||= Boolean(automatic);
+    const localized = translated || /[А-Яа-яЁё]/.test(rendered || '');
+    if (!localized) {
+      item.translated = false;
+      item.reasons.add(isSafeFallback(element, attribute ? 'attributes' : 'text')
+        ? 'fallback-missing-or-rejected' : 'fallback-veto');
+    }
+    if (!localized || automatic) {
+      // Only unambiguous UI labels are eligible for catalog preparation.
+      // Account content, messages, profiles and notifications remain out of
+      // persisted candidate files even if a control carries their text.
+      const catalogRegion = ['settings', 'upload', 'studio'].includes(page) ||
+        element.closest('.header__navMenu, .header__moreMenu, .localeSelector, [role="menu"]');
+      const template = key.replace(/^(Segui|Non seguire più|Hai iniziato a seguire) .{1,80}$/i,
+        '$1 {user}');
+      if (catalogRegion && key.length <= 120 && !/@|https?:\/\/|\d|avatar|user stats/i.test(template) &&
+          !element.closest('input, textarea, [contenteditable], [class*="account"], [class*="Account"], ' +
+            '.header__userNav, [class*="username"], [class*="userName"]')) {
+        candidates.push({ source, text: template, page, role: contextRole(element, attribute) });
+      }
+    }
+  }
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  while (walker.nextNode()) {
+    const node = walker.currentNode;
+    if (node.parentElement) visit(node.parentElement,
+      translatedText.get(node)?.original || node.nodeValue, node.nodeValue,
+      translatedText.get(node)?.translated === node.nodeValue, null,
+      translatedText.get(node)?.automatic);
+  }
+  for (const element of document.querySelectorAll('[title], [aria-label], [placeholder]')) {
+    for (const name of ['title', 'aria-label', 'placeholder']) {
+      if (!element.hasAttribute(name)) continue;
+      const prior = translatedAttributes.get(element)?.get(name);
+      visit(element, prior?.original || element.getAttribute(name), element.getAttribute(name),
+        prior?.translated === element.getAttribute(name), name, prior?.automatic);
+    }
+  }
+  const counts = { total: 0, translated: 0, untranslated: 0, machineTranslated: 0, ambiguous: 0,
+    protected: 0, protectedUnchanged: 0 };
+  const reasons = {};
+  const untranslatedItems = [];
+  const ambiguousItems = [];
+  let index = 0;
+  for (const [element, item] of elements) {
+    if (item.kind === 'protected') {
+      counts.protected++;
+      if (item.protectedUnchanged) counts.protectedUnchanged++;
+    } else if (item.kind === 'ambiguous') {
+      counts.ambiguous++;
+      ambiguousItems.push({ index, tag: element.tagName?.toLowerCase(), reasons: [...item.reasons] });
+    }
+    else {
+      counts.total++;
+      if (item.translated) counts.translated++;
+      else {
+        counts.untranslated++;
+        untranslatedItems.push({ index, tag: element.tagName?.toLowerCase(),
+          role: contextRole(element), reasons: [...item.reasons] });
+      }
+      if (item.machineTranslated) counts.machineTranslated++;
+    }
+    if (item.kind !== 'ui' || !item.translated) {
+      for (const reason of item.reasons) reasons[reason] = (reasons[reason] || 0) + 1;
+    }
+    index++;
+  }
+  return { counts, reasons, untranslatedItems, ambiguousItems,
+    candidates: [...new Map(candidates.map(item =>
+    [`${item.source}\0${item.text}\0${item.page}\0${item.role}`, item])).values()] };
 }
 
 function syncLanguageMenu() {
@@ -213,7 +347,7 @@ function syncLanguageMenu() {
 // in SoundCloud's own language menu still needs child insertions, so the
 // observer stays connected with a cheaper option set.
 function updateLocalizationWatcher() {
-  const options = state.appLanguage === 'ru'
+  const options = state.appLanguage === 'ru' && !state.localizationCapturePaused
     ? {
       childList: true,
       characterData: true,
@@ -247,7 +381,7 @@ function isOwnTranslation(mutation) {
 
 function scheduleLocalization(mutations) {
   if (Array.isArray(mutations)) {
-    if (state.appLanguage === 'ru') {
+    if (state.appLanguage === 'ru' && !state.localizationCapturePaused) {
       for (const mutation of mutations) {
         if (isOwnTranslation(mutation)) continue;
         if (mutation.type === 'childList') {
@@ -267,7 +401,7 @@ function scheduleLocalization(mutations) {
       // pipeline: scheduleLocalization would stay pending and the queue would
       // grow forever. Swallow it so translation keeps running either way.
     }
-    if (state.appLanguage === 'ru') {
+    if (state.appLanguage === 'ru' && !state.localizationCapturePaused) {
       if (localizationFullScan) translateSite();
       else for (const node of localizationQueue) translateAddedNode(node);
       if (Date.now() - localizationLastCleanup > 30000) {
@@ -363,5 +497,6 @@ module.exports = {
   updateLocalizationWatcher,
   scheduleLocalization,
   refreshLocalizedUi,
-  releaseRussianTranslation
+  releaseRussianTranslation,
+  auditLocalization
 };

@@ -242,7 +242,7 @@ function togglePanel() {
         </label>
         <label class="setting" style="margin-top: 18px">
           <span><span class="setting-name">${ui('Анимации', 'Animations')}</span>
-          <span class="hint">${ui('Оживляет обложки, карточки, кнопки и меню.', 'Animates artwork, cards, buttons and menus.')}</span>
+          <span class="hint">${ui('Оживляет обложки, карточки, кнопки, меню и переходы между страницами и вкладками.', 'Animates artwork, cards, buttons, menus, and page and tab transitions.')}</span>
           <span class="hint motion-hint" hidden></span></span>
           <input id="animations" type="checkbox" disabled>
         </label>

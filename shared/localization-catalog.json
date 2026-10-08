@@ -1,0 +1,5258 @@
+[
+  {
+    "source": "en",
+    "text": "Add to Next up",
+    "ru": "Добавить в очередь"
+  },
+  {
+    "source": "en",
+    "text": "Appearance",
+    "ru": "Оформление"
+  },
+  {
+    "source": "en",
+    "text": "Clear queue",
+    "ru": "Очистить очередь"
+  },
+  {
+    "source": "en",
+    "text": "Clear",
+    "ru": "Очистить очередь",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "en",
+    "text": "Clear",
+    "ru": "Очистить очередь",
+    "pages": [
+      "feed"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "en",
+    "text": "Clear",
+    "ru": "Очистить очередь",
+    "pages": [
+      "library"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "en",
+    "text": "Clear",
+    "ru": "Очистить очередь",
+    "pages": [
+      "other"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "en",
+    "text": "Dark mode",
+    "ru": "Тёмная тема"
+  },
+  {
+    "source": "en",
+    "text": "Dark",
+    "ru": "Тёмная тема"
+  },
+  {
+    "source": "en",
+    "text": "Edit profile",
+    "ru": "Редактировать профиль"
+  },
+  {
+    "source": "en",
+    "text": "Follow back",
+    "ru": "Подписаться в ответ"
+  },
+  {
+    "source": "en",
+    "text": "Following",
+    "ru": "Вы подписаны",
+    "pages": [
+      "notifications"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "en",
+    "text": "Following",
+    "ru": "Вы подписаны",
+    "pages": [
+      "notifications"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "en",
+    "text": "Light mode",
+    "ru": "Светлая тема"
+  },
+  {
+    "source": "en",
+    "text": "Light",
+    "ru": "Светлая тема"
+  },
+  {
+    "source": "en",
+    "text": "Listen now",
+    "ru": "Слушать"
+  },
+  {
+    "source": "en",
+    "text": "Listening history",
+    "ru": "История прослушиваний",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "en",
+    "text": "Listening history",
+    "ru": "История прослушиваний",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "link"
+    ]
+  },
+  {
+    "source": "en",
+    "text": "Listening history",
+    "ru": "История прослушиваний",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "en",
+    "text": "Listening history",
+    "ru": "История прослушиваний",
+    "pages": [
+      "library"
+    ],
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "en",
+    "text": "Listening history",
+    "ru": "История прослушиваний",
+    "pages": [
+      "library"
+    ],
+    "roles": [
+      "link"
+    ]
+  },
+  {
+    "source": "en",
+    "text": "Listening history",
+    "ru": "История прослушиваний",
+    "pages": [
+      "library"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "en",
+    "text": "Listening history",
+    "ru": "История прослушиваний"
+  },
+  {
+    "source": "en",
+    "text": "Listening in recent years",
+    "ru": "История прослушиваний",
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "en",
+    "text": "Listening in recent years",
+    "ru": "История прослушиваний",
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "en",
+    "text": "Made for you",
+    "ru": "Подобрано для вас",
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "en",
+    "text": "Made for you",
+    "ru": "Подобрано для вас",
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "en",
+    "text": "Made for you",
+    "ru": "Подобрано для вас"
+  },
+  {
+    "source": "en",
+    "text": "Mark all as read",
+    "ru": "Отметить все как прочитанные"
+  },
+  {
+    "source": "en",
+    "text": "Message",
+    "ru": "Сообщение"
+  },
+  {
+    "source": "en",
+    "text": "Mixed for {user}",
+    "ru": "Миксы для {user}"
+  },
+  {
+    "source": "en",
+    "text": "More of what you like",
+    "ru": "Музыка, которая вам понравится",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "en",
+    "text": "More of what you like",
+    "ru": "Музыка, которая вам понравится",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "en",
+    "text": "More of what you like",
+    "ru": "Музыка, которая вам понравится"
+  },
+  {
+    "source": "en",
+    "text": "More than what you like",
+    "ru": "Больше любимой музыки"
+  },
+  {
+    "source": "en",
+    "text": "New message",
+    "ru": "Новое сообщение"
+  },
+  {
+    "source": "en",
+    "text": "New releases",
+    "ru": "Новые релизы"
+  },
+  {
+    "source": "en",
+    "text": "New",
+    "ru": "Новое сообщение",
+    "pages": [
+      "messages"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "en",
+    "text": "New",
+    "ru": "Новое сообщение",
+    "pages": [
+      "messages"
+    ],
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "en",
+    "text": "Next up",
+    "ru": "Следом заиграет",
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "en",
+    "text": "Next up",
+    "ru": "Следом заиграет",
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "en",
+    "text": "No results found",
+    "ru": "Ничего не найдено"
+  },
+  {
+    "source": "en",
+    "text": "Notifications",
+    "ru": "Уведомления"
+  },
+  {
+    "source": "en",
+    "text": "Popular on SoundCloud",
+    "ru": "Популярно в SoundCloud"
+  },
+  {
+    "source": "en",
+    "text": "Private",
+    "ru": "Приватный"
+  },
+  {
+    "source": "en",
+    "text": "Public",
+    "ru": "Открытый"
+  },
+  {
+    "source": "en",
+    "text": "Queue",
+    "ru": "Очередь"
+  },
+  {
+    "source": "en",
+    "text": "Recently played",
+    "ru": "Недавно слушали",
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "en",
+    "text": "Recently played",
+    "ru": "Недавно слушали",
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "en",
+    "text": "Recently played",
+    "ru": "Недавно слушали"
+  },
+  {
+    "source": "en",
+    "text": "Recommended for you",
+    "ru": "Рекомендуем вам"
+  },
+  {
+    "source": "en",
+    "text": "Remove from Next up",
+    "ru": "Убрать из очереди"
+  },
+  {
+    "source": "en",
+    "text": "Save changes",
+    "ru": "Сохранить изменения"
+  },
+  {
+    "source": "en",
+    "text": "Search artists",
+    "ru": "Поиск исполнителей"
+  },
+  {
+    "source": "en",
+    "text": "Search for tracks, artists, and more",
+    "ru": "Ищите треки, исполнителей и не только"
+  },
+  {
+    "source": "en",
+    "text": "Search playlists",
+    "ru": "Поиск плейлистов"
+  },
+  {
+    "source": "en",
+    "text": "Search tracks",
+    "ru": "Поиск треков"
+  },
+  {
+    "source": "en",
+    "text": "Shuffle play",
+    "ru": "Слушать в случайном порядке"
+  },
+  {
+    "source": "en",
+    "text": "Theme",
+    "ru": "Тема"
+  },
+  {
+    "source": "en",
+    "text": "Try another search",
+    "ru": "Попробуйте другой запрос"
+  },
+  {
+    "source": "en",
+    "text": "Write a message",
+    "ru": "Напишите сообщение"
+  },
+  {
+    "source": "en",
+    "text": "Your feed",
+    "ru": "Ваша лента"
+  },
+  {
+    "source": "en",
+    "text": "Your library",
+    "ru": "Ваша медиатека"
+  },
+  {
+    "source": "en",
+    "text": "Your likes",
+    "ru": "Понравившиеся треки"
+  },
+  {
+    "source": "en",
+    "text": "Your listening history",
+    "ru": "История прослушиваний",
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "en",
+    "text": "Your listening history",
+    "ru": "История прослушиваний",
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "es",
+    "text": "A continuación",
+    "ru": "Далее"
+  },
+  {
+    "source": "es",
+    "text": "Activar",
+    "ru": "Включить"
+  },
+  {
+    "source": "es",
+    "text": "Ajustes",
+    "ru": "Настройки"
+  },
+  {
+    "source": "es",
+    "text": "Álbumes",
+    "ru": "Альбомы"
+  },
+  {
+    "source": "es",
+    "text": "Aleatorio",
+    "ru": "Случайный порядок"
+  },
+  {
+    "source": "es",
+    "text": "Añadir a la lista de reproducción",
+    "ru": "Добавить в плейлист"
+  },
+  {
+    "source": "es",
+    "text": "Añadir",
+    "ru": "Добавить"
+  },
+  {
+    "source": "es",
+    "text": "Anterior",
+    "ru": "Назад"
+  },
+  {
+    "source": "es",
+    "text": "Apariencia",
+    "ru": "Оформление"
+  },
+  {
+    "source": "es",
+    "text": "Artistas",
+    "ru": "Исполнители"
+  },
+  {
+    "source": "es",
+    "text": "Bandeja de entrada",
+    "ru": "Входящие"
+  },
+  {
+    "source": "es",
+    "text": "Biblioteca",
+    "ru": "Медиатека"
+  },
+  {
+    "source": "es",
+    "text": "Borrar cola",
+    "ru": "Очистить очередь"
+  },
+  {
+    "source": "es",
+    "text": "Buscar artistas",
+    "ru": "Поиск исполнителей"
+  },
+  {
+    "source": "es",
+    "text": "Buscar listas de reproducción",
+    "ru": "Поиск плейлистов"
+  },
+  {
+    "source": "es",
+    "text": "Buscar pistas",
+    "ru": "Поиск треков"
+  },
+  {
+    "source": "es",
+    "text": "Buscar",
+    "ru": "Поиск"
+  },
+  {
+    "source": "es",
+    "text": "Búsqueda",
+    "ru": "Поиск"
+  },
+  {
+    "source": "es",
+    "text": "Calidad de audio",
+    "ru": "Качество звука"
+  },
+  {
+    "source": "es",
+    "text": "Cancelar",
+    "ru": "Отмена"
+  },
+  {
+    "source": "es",
+    "text": "Canciones",
+    "ru": "Треки"
+  },
+  {
+    "source": "es",
+    "text": "Cerrar sesión",
+    "ru": "Выйти"
+  },
+  {
+    "source": "es",
+    "text": "Cerrar",
+    "ru": "Закрыть"
+  },
+  {
+    "source": "es",
+    "text": "Claro",
+    "ru": "Светлая тема"
+  },
+  {
+    "source": "es",
+    "text": "Cola",
+    "ru": "Очередь"
+  },
+  {
+    "source": "es",
+    "text": "Comentar",
+    "ru": "Комментировать"
+  },
+  {
+    "source": "es",
+    "text": "Comentarios",
+    "ru": "Комментарии"
+  },
+  {
+    "source": "es",
+    "text": "Compartir",
+    "ru": "Поделиться"
+  },
+  {
+    "source": "es",
+    "text": "Configuración",
+    "ru": "Настройки"
+  },
+  {
+    "source": "es",
+    "text": "Contenido",
+    "ru": "Контент"
+  },
+  {
+    "source": "es",
+    "text": "Continuar",
+    "ru": "Продолжить"
+  },
+  {
+    "source": "es",
+    "text": "Cuenta",
+    "ru": "Аккаунт"
+  },
+  {
+    "source": "es",
+    "text": "Dejar de seguir",
+    "ru": "Отписаться"
+  },
+  {
+    "source": "es",
+    "text": "Desactivar",
+    "ru": "Выключить"
+  },
+  {
+    "source": "es",
+    "text": "Descubrir",
+    "ru": "Открыть музыку"
+  },
+  {
+    "source": "es",
+    "text": "Editar perfil",
+    "ru": "Редактировать профиль"
+  },
+  {
+    "source": "es",
+    "text": "Editar",
+    "ru": "Изменить"
+  },
+  {
+    "source": "es",
+    "text": "Eliminar",
+    "ru": "Удалить"
+  },
+  {
+    "source": "es",
+    "text": "Enviar",
+    "ru": "Отправить"
+  },
+  {
+    "source": "es",
+    "text": "Escribe un mensaje",
+    "ru": "Напишите сообщение"
+  },
+  {
+    "source": "es",
+    "text": "Escuchado recientemente",
+    "ru": "Недавно слушали",
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "es",
+    "text": "Escuchado recientemente",
+    "ru": "Недавно слушали",
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "es",
+    "text": "Escuchar ahora",
+    "ru": "Слушать"
+  },
+  {
+    "source": "es",
+    "text": "Estaciones",
+    "ru": "Станции"
+  },
+  {
+    "source": "es",
+    "text": "Explorar",
+    "ru": "Открыть музыку"
+  },
+  {
+    "source": "es",
+    "text": "Feed",
+    "ru": "Лента"
+  },
+  {
+    "source": "es",
+    "text": "Géneros",
+    "ru": "Жанры"
+  },
+  {
+    "source": "es",
+    "text": "Guardar cambios",
+    "ru": "Сохранить изменения"
+  },
+  {
+    "source": "es",
+    "text": "Guardar",
+    "ru": "Сохранить"
+  },
+  {
+    "source": "es",
+    "text": "Hecho para ti",
+    "ru": "Подобрано для вас"
+  },
+  {
+    "source": "es",
+    "text": "Hecho",
+    "ru": "Готово"
+  },
+  {
+    "source": "es",
+    "text": "Historial de reproducción",
+    "ru": "История прослушиваний"
+  },
+  {
+    "source": "es",
+    "text": "Historial",
+    "ru": "История"
+  },
+  {
+    "source": "es",
+    "text": "Idioma:",
+    "ru": "Язык:"
+  },
+  {
+    "source": "es",
+    "text": "Idioma",
+    "ru": "Язык"
+  },
+  {
+    "source": "es",
+    "text": "Iniciar sesión",
+    "ru": "Войти"
+  },
+  {
+    "source": "es",
+    "text": "Inicio",
+    "ru": "Главная"
+  },
+  {
+    "source": "es",
+    "text": "Listas de reproducción",
+    "ru": "Плейлисты"
+  },
+  {
+    "source": "es",
+    "text": "Marcar todo como leído",
+    "ru": "Отметить всё как прочитанное"
+  },
+  {
+    "source": "es",
+    "text": "Más de lo que te gusta",
+    "ru": "Музыка, которая вам понравится"
+  },
+  {
+    "source": "es",
+    "text": "Más",
+    "ru": "Ещё"
+  },
+  {
+    "source": "es",
+    "text": "Me gusta",
+    "ru": "Нравится"
+  },
+  {
+    "source": "es",
+    "text": "Mensajes",
+    "ru": "Сообщения"
+  },
+  {
+    "source": "es",
+    "text": "Mezclado para {user}",
+    "ru": "Миксы для {user}"
+  },
+  {
+    "source": "es",
+    "text": "Mezclas para {user}",
+    "ru": "Миксы для {user}"
+  },
+  {
+    "source": "es",
+    "text": "Modo claro",
+    "ru": "Светлая тема"
+  },
+  {
+    "source": "es",
+    "text": "Modo oscuro",
+    "ru": "Тёмная тема"
+  },
+  {
+    "source": "es",
+    "text": "Mostrar todo",
+    "ru": "Показать всё"
+  },
+  {
+    "source": "es",
+    "text": "No hay resultados",
+    "ru": "Ничего не найдено"
+  },
+  {
+    "source": "es",
+    "text": "Notificaciones",
+    "ru": "Уведомления"
+  },
+  {
+    "source": "es",
+    "text": "Nuevo mensaje",
+    "ru": "Новое сообщение"
+  },
+  {
+    "source": "es",
+    "text": "Nuevo",
+    "ru": "Новое"
+  },
+  {
+    "source": "es",
+    "text": "Nuevos lanzamientos",
+    "ru": "Новые релизы"
+  },
+  {
+    "source": "es",
+    "text": "Oscuro",
+    "ru": "Тёмная тема"
+  },
+  {
+    "source": "es",
+    "text": "Pausa",
+    "ru": "Пауза"
+  },
+  {
+    "source": "es",
+    "text": "Perfil",
+    "ru": "Профиль"
+  },
+  {
+    "source": "es",
+    "text": "Pistas",
+    "ru": "Треки"
+  },
+  {
+    "source": "es",
+    "text": "Popular en SoundCloud",
+    "ru": "Популярно в SoundCloud"
+  },
+  {
+    "source": "es",
+    "text": "Privacidad",
+    "ru": "Конфиденциальность"
+  },
+  {
+    "source": "es",
+    "text": "Privado",
+    "ru": "Приватный"
+  },
+  {
+    "source": "es",
+    "text": "Prueba Artist Pro",
+    "ru": "Попробовать Artist Pro"
+  },
+  {
+    "source": "es",
+    "text": "Prueba Go+",
+    "ru": "Попробовать Go+"
+  },
+  {
+    "source": "es",
+    "text": "Publicidad",
+    "ru": "Реклама"
+  },
+  {
+    "source": "es",
+    "text": "Público",
+    "ru": "Открытый"
+  },
+  {
+    "source": "es",
+    "text": "Quitar",
+    "ru": "Убрать"
+  },
+  {
+    "source": "es",
+    "text": "Recientes",
+    "ru": "Недавние"
+  },
+  {
+    "source": "es",
+    "text": "Recomendado para ti",
+    "ru": "Рекомендуем вам"
+  },
+  {
+    "source": "es",
+    "text": "Registrarse",
+    "ru": "Зарегистрироваться"
+  },
+  {
+    "source": "es",
+    "text": "Reintentar",
+    "ru": "Повторить"
+  },
+  {
+    "source": "es",
+    "text": "Repetir",
+    "ru": "Повтор"
+  },
+  {
+    "source": "es",
+    "text": "Reposts",
+    "ru": "Репосты"
+  },
+  {
+    "source": "es",
+    "text": "Reproducción",
+    "ru": "Воспроизведение"
+  },
+  {
+    "source": "es",
+    "text": "Reproducido recientemente",
+    "ru": "Недавно слушали"
+  },
+  {
+    "source": "es",
+    "text": "Reproducir",
+    "ru": "Воспроизвести"
+  },
+  {
+    "source": "es",
+    "text": "Seguir también",
+    "ru": "Подписаться в ответ"
+  },
+  {
+    "source": "es",
+    "text": "Seguir",
+    "ru": "Подписаться"
+  },
+  {
+    "source": "es",
+    "text": "Seguridad",
+    "ru": "Безопасность"
+  },
+  {
+    "source": "es",
+    "text": "Selecciona tu idioma",
+    "ru": "Выберите язык"
+  },
+  {
+    "source": "es",
+    "text": "Siguiendo",
+    "ru": "Подписки"
+  },
+  {
+    "source": "es",
+    "text": "Siguiente",
+    "ru": "Далее"
+  },
+  {
+    "source": "es",
+    "text": "Subir",
+    "ru": "Загрузить"
+  },
+  {
+    "source": "es",
+    "text": "Suscribirse",
+    "ru": "Подписаться"
+  },
+  {
+    "source": "es",
+    "text": "Suscripciones",
+    "ru": "Подписки"
+  },
+  {
+    "source": "es",
+    "text": "Tema",
+    "ru": "Тема"
+  },
+  {
+    "source": "es",
+    "text": "Todas",
+    "ru": "Все"
+  },
+  {
+    "source": "es",
+    "text": "Todos",
+    "ru": "Все"
+  },
+  {
+    "source": "es",
+    "text": "Tu biblioteca",
+    "ru": "Ваша медиатека"
+  },
+  {
+    "source": "es",
+    "text": "Ver todo",
+    "ru": "Показать всё"
+  },
+  {
+    "source": "es",
+    "text": "Volver a publicar",
+    "ru": "Сделать репост"
+  },
+  {
+    "source": "es",
+    "text": "Ya no me gusta",
+    "ru": "Больше не нравится"
+  },
+  {
+    "source": "it",
+    "text": "{count} Mi piace",
+    "ru": "Понравилось: {count}",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "{count} Mi piace",
+    "ru": "Понравилось: {count}",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "{count} Mi piace",
+    "ru": "Понравилось: {count}",
+    "pages": [
+      "feed"
+    ],
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "{count} Mi piace",
+    "ru": "Понравилось: {count}",
+    "pages": [
+      "feed"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "{count} Mi piace",
+    "ru": "Понравилось: {count}"
+  },
+  {
+    "source": "it",
+    "text": "{count}% dei caricamenti utilizzati",
+    "ru": "Использовано загрузок: {count}%",
+    "pages": [
+      "studio"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "{count}% dei caricamenti utilizzati",
+    "ru": "Использовано загрузок: {count}%",
+    "pages": [
+      "upload"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "A seguire",
+    "ru": "Далее",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "A seguire",
+    "ru": "Далее",
+    "pages": [
+      "upload"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Abbonamenti",
+    "ru": "Подписки"
+  },
+  {
+    "source": "it",
+    "text": "Abbonamento",
+    "ru": "Подписка"
+  },
+  {
+    "source": "it",
+    "text": "Abbonati",
+    "ru": "Подписаться"
+  },
+  {
+    "source": "it",
+    "text": "Accedi da dispositivi mobili",
+    "ru": "Слушайте в мобильном приложении",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Accedi da dispositivi mobili",
+    "ru": "Слушайте в мобильном приложении",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Accedi da dispositivi mobili",
+    "ru": "Слушайте в мобильном приложении",
+    "pages": [
+      "feed"
+    ],
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Accedi da dispositivi mobili",
+    "ru": "Слушайте в мобильном приложении",
+    "pages": [
+      "feed"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Accedi da dispositivi mobili",
+    "ru": "Слушайте в мобильном приложении"
+  },
+  {
+    "source": "it",
+    "text": "Accedi",
+    "ru": "Войти"
+  },
+  {
+    "source": "it",
+    "text": "Account",
+    "ru": "Аккаунт"
+  },
+  {
+    "source": "it",
+    "text": "Aggiornamenti da SoundCloud",
+    "ru": "Новости SoundCloud",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Aggiornamento funzionalità SoundCloud e formazione",
+    "ru": "Обновления функций SoundCloud и обучающие материалы",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Aggiungi alla coda",
+    "ru": "Добавить в очередь"
+  },
+  {
+    "source": "it",
+    "text": "Aggiungi alla playlist",
+    "ru": "Добавить в плейлист"
+  },
+  {
+    "source": "it",
+    "text": "Aggiungi traccia o playlist",
+    "ru": "Добавить трек или плейлист",
+    "pages": [
+      "messages"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Aggiungi traccia o playlist",
+    "ru": "Добавить трек или плейлист"
+  },
+  {
+    "source": "it",
+    "text": "Aggiungi",
+    "ru": "Добавить"
+  },
+  {
+    "source": "it",
+    "text": "Album",
+    "ru": "Альбомы"
+  },
+  {
+    "source": "it",
+    "text": "Altro di ciò che ti piace",
+    "ru": "Музыка, которая вам понравится",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Altro",
+    "ru": "Ещё",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Altro",
+    "ru": "Ещё",
+    "pages": [
+      "feed"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Altro",
+    "ru": "Ещё"
+  },
+  {
+    "source": "it",
+    "text": "Ancora di quello che ti piace",
+    "ru": "Больше любимой музыки"
+  },
+  {
+    "source": "it",
+    "text": "Annulla",
+    "ru": "Отмена",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Annulla",
+    "ru": "Отмена"
+  },
+  {
+    "source": "it",
+    "text": "Apparire nelle liste pubbliche dei Top Fan e First Fan",
+    "ru": "Показывать меня в публичных списках первых и главных поклонников",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Applicazioni connesse",
+    "ru": "Подключённые приложения",
+    "pages": [
+      "settings"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Apprendimento",
+    "ru": "Образование",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Apri menu microfono",
+    "ru": "Открыть меню микрофона",
+    "pages": [
+      "upload"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Archivia questa conversazione",
+    "ru": "Архивировать переписку",
+    "pages": [
+      "messages"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Archivia questa conversazione",
+    "ru": "Архивировать переписку"
+  },
+  {
+    "source": "it",
+    "text": "Arte",
+    "ru": "Искусство",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Artisti",
+    "ru": "Исполнители"
+  },
+  {
+    "source": "it",
+    "text": "Ascolta ora",
+    "ru": "Слушать"
+  },
+  {
+    "source": "it",
+    "text": "Ascoltati di recente",
+    "ru": "Недавно слушали"
+  },
+  {
+    "source": "it",
+    "text": "Ascolti recenti",
+    "ru": "Недавно слушали",
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Ascolti recenti",
+    "ru": "Недавно слушали",
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Ascolti su SC",
+    "ru": "Прослушивания в SoundCloud",
+    "pages": [
+      "studio"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Aspetto",
+    "ru": "Оформление"
+  },
+  {
+    "source": "it",
+    "text": "Attiva",
+    "ru": "Включить"
+  },
+  {
+    "source": "it",
+    "text": "Attività",
+    "ru": "Активность",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Attività",
+    "ru": "Активность"
+  },
+  {
+    "source": "it",
+    "text": "avanti",
+    "ru": "Далее",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "avanti",
+    "ru": "Далее",
+    "pages": [
+      "feed"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "avanti",
+    "ru": "Далее"
+  },
+  {
+    "source": "it",
+    "text": "Avanti",
+    "ru": "Далее"
+  },
+  {
+    "source": "it",
+    "text": "Badge di verifica",
+    "ru": "Подтверждение аккаунта",
+    "pages": [
+      "settings"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Bambini e Famiglia",
+    "ru": "Дети и семья",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Blocca",
+    "ru": "Заблокировать",
+    "pages": [
+      "messages"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Blocca",
+    "ru": "Заблокировать"
+  },
+  {
+    "source": "it",
+    "text": "Bloccato",
+    "ru": "Заблокирован",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Brani",
+    "ru": "Треки"
+  },
+  {
+    "source": "it",
+    "text": "Business",
+    "ru": "Бизнес",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Cancella coda",
+    "ru": "Очистить очередь"
+  },
+  {
+    "source": "it",
+    "text": "Cancella",
+    "ru": "Очистить",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Cancella",
+    "ru": "Очистить",
+    "pages": [
+      "feed"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Cancella",
+    "ru": "Очистить",
+    "pages": [
+      "library"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Cancella",
+    "ru": "Очистить",
+    "pages": [
+      "messages"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Cancella",
+    "ru": "Очистить",
+    "pages": [
+      "notifications"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Cancella",
+    "ru": "Очистить",
+    "pages": [
+      "search"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Cancella",
+    "ru": "Очистить",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Cancella",
+    "ru": "Очистить",
+    "pages": [
+      "upload"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Cancella",
+    "ru": "Очистить"
+  },
+  {
+    "source": "it",
+    "text": "Carica i tuoi file audio.",
+    "ru": "Загрузите аудиофайлы.",
+    "pages": [
+      "upload"
+    ],
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Carica promemoria vocali registrati, aggiornamenti, notizie o intro alle nuove uscite.",
+    "ru": "Загружайте голосовые заметки, новости или вступления к новым релизам.",
+    "pages": [
+      "studio"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Carica promemoria vocali registrati, aggiornamenti, notizie o intro alle nuove uscite.",
+    "ru": "Загружайте голосовые заметки, новости или вступления к новым релизам.",
+    "pages": [
+      "upload"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Carica",
+    "ru": "Загрузить"
+  },
+  {
+    "source": "it",
+    "text": "Caricamenti",
+    "ru": "Загрузки"
+  },
+  {
+    "source": "it",
+    "text": "Casella di posta",
+    "ru": "Входящие"
+  },
+  {
+    "source": "it",
+    "text": "Casuale",
+    "ru": "Случайный порядок",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Casuale",
+    "ru": "Случайный порядок",
+    "pages": [
+      "feed"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Casuale",
+    "ru": "Случайный порядок",
+    "pages": [
+      "library"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Casuale",
+    "ru": "Случайный порядок",
+    "pages": [
+      "messages"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Casuale",
+    "ru": "Случайный порядок",
+    "pages": [
+      "notifications"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Casuale",
+    "ru": "Случайный порядок",
+    "pages": [
+      "search"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Casuale",
+    "ru": "Случайный порядок",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Casuale",
+    "ru": "Случайный порядок",
+    "pages": [
+      "upload"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Casuale",
+    "ru": "Случайный порядок"
+  },
+  {
+    "source": "it",
+    "text": "Categoria",
+    "ru": "Категория",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Cerca artisti",
+    "ru": "Поиск исполнителей"
+  },
+  {
+    "source": "it",
+    "text": "Cerca brani",
+    "ru": "Поиск треков"
+  },
+  {
+    "source": "it",
+    "text": "Cerca playlist",
+    "ru": "Поиск плейлистов"
+  },
+  {
+    "source": "it",
+    "text": "Cerca",
+    "ru": "Поиск",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Cerca",
+    "ru": "Поиск",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "placeholder"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Cerca",
+    "ru": "Поиск",
+    "pages": [
+      "feed"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Cerca",
+    "ru": "Поиск",
+    "pages": [
+      "feed"
+    ],
+    "roles": [
+      "placeholder"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Cerca",
+    "ru": "Поиск",
+    "pages": [
+      "library"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Cerca",
+    "ru": "Поиск",
+    "pages": [
+      "library"
+    ],
+    "roles": [
+      "placeholder"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Cerca",
+    "ru": "Поиск",
+    "pages": [
+      "messages"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Cerca",
+    "ru": "Поиск",
+    "pages": [
+      "messages"
+    ],
+    "roles": [
+      "placeholder"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Cerca",
+    "ru": "Поиск",
+    "pages": [
+      "notifications"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Cerca",
+    "ru": "Поиск",
+    "pages": [
+      "notifications"
+    ],
+    "roles": [
+      "placeholder"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Cerca",
+    "ru": "Поиск",
+    "pages": [
+      "search"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Cerca",
+    "ru": "Поиск",
+    "pages": [
+      "search"
+    ],
+    "roles": [
+      "placeholder"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Cerca",
+    "ru": "Поиск",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Cerca",
+    "ru": "Поиск",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "placeholder"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Cerca",
+    "ru": "Поиск",
+    "pages": [
+      "upload"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Cerca",
+    "ru": "Поиск",
+    "pages": [
+      "upload"
+    ],
+    "roles": [
+      "placeholder"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Cerca",
+    "ru": "Поиск"
+  },
+  {
+    "source": "it",
+    "text": "Chi siamo",
+    "ru": "О нас",
+    "pages": [
+      "upload"
+    ],
+    "roles": [
+      "link"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Chiaro",
+    "ru": "Светлая тема"
+  },
+  {
+    "source": "it",
+    "text": "Chiudi",
+    "ru": "Закрыть",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Chiudi",
+    "ru": "Закрыть",
+    "pages": [
+      "feed"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Chiudi",
+    "ru": "Закрыть",
+    "pages": [
+      "library"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Chiudi",
+    "ru": "Закрыть",
+    "pages": [
+      "notifications"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Chiudi",
+    "ru": "Закрыть",
+    "pages": [
+      "search"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Chiudi",
+    "ru": "Закрыть",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Chiudi",
+    "ru": "Закрыть",
+    "pages": [
+      "upload"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Chiudi",
+    "ru": "Закрыть"
+  },
+  {
+    "source": "it",
+    "text": "Cinese (semplificato)",
+    "ru": "Китайский (упрощённый)",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Cinese (tradizionale)",
+    "ru": "Китайский (традиционный)",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Classifiche",
+    "ru": "Чарты",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "link"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Coda",
+    "ru": "Очередь"
+  },
+  {
+    "source": "it",
+    "text": "Come funziona SoundCloud per artisti in ogni fase.",
+    "ru": "Как SoundCloud помогает артистам на каждом этапе.",
+    "pages": [
+      "studio"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Commedia",
+    "ru": "Комедия",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Commenta",
+    "ru": "Комментировать"
+  },
+  {
+    "source": "it",
+    "text": "Commenti",
+    "ru": "Комментарии",
+    "pages": [
+      "studio"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Commenti",
+    "ru": "Комментарии"
+  },
+  {
+    "source": "it",
+    "text": "Commento su un tuo post",
+    "ru": "Комментарий к вашей публикации",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Condividi",
+    "ru": "Поделиться",
+    "pages": [
+      "feed"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Condividi",
+    "ru": "Поделиться"
+  },
+  {
+    "source": "it",
+    "text": "Consenti l'accesso al microfono nelle impostazioni del tuo browser web.",
+    "ru": "Разрешите доступ к микрофону в настройках браузера.",
+    "pages": [
+      "upload"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Consigliati per te",
+    "ru": "Рекомендуем вам"
+  },
+  {
+    "source": "it",
+    "text": "Contenuti promozionali e partnership",
+    "ru": "Реклама и партнёрские предложения",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Contenuti",
+    "ru": "Контент"
+  },
+  {
+    "source": "it",
+    "text": "Contenuto consigliato",
+    "ru": "Рекомендации",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Contenuto",
+    "ru": "Контент",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "link"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Contenuto",
+    "ru": "Контент"
+  },
+  {
+    "source": "it",
+    "text": "Contiene contenuti espliciti",
+    "ru": "Содержит материалы 18+",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Continua",
+    "ru": "Продолжить"
+  },
+  {
+    "source": "it",
+    "text": "Cookie",
+    "ru": "Файлы cookie",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Copia link",
+    "ru": "Скопировать ссылку",
+    "pages": [
+      "feed"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Copia link",
+    "ru": "Скопировать ссылку"
+  },
+  {
+    "source": "it",
+    "text": "Creato per te",
+    "ru": "Подобрано для вас"
+  },
+  {
+    "source": "it",
+    "text": "Cronologia ascolti",
+    "ru": "История прослушиваний",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Cronologia ascolti",
+    "ru": "История прослушиваний",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Cronologia ascolti",
+    "ru": "История прослушиваний",
+    "pages": [
+      "feed"
+    ],
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Cronologia ascolti",
+    "ru": "История прослушиваний",
+    "pages": [
+      "feed"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Cronologia ascolti",
+    "ru": "История прослушиваний"
+  },
+  {
+    "source": "it",
+    "text": "Cronologia di ascolto",
+    "ru": "История прослушиваний"
+  },
+  {
+    "source": "it",
+    "text": "Cronologia",
+    "ru": "История"
+  },
+  {
+    "source": "it",
+    "text": "Diritti d'autore",
+    "ru": "Авторские права",
+    "pages": [
+      "upload"
+    ],
+    "roles": [
+      "link"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Disattiva",
+    "ru": "Выключить"
+  },
+  {
+    "source": "it",
+    "text": "Dischi in vinile",
+    "ru": "Виниловые пластинки",
+    "pages": [
+      "studio"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Disconnetti account",
+    "ru": "Отключить аккаунт",
+    "pages": [
+      "settings"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Dispositivi",
+    "ru": "Устройства",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Distribuzione",
+    "ru": "Дистрибуция",
+    "pages": [
+      "studio"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Donna",
+    "ru": "Женщина",
+    "pages": [
+      "settings"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Download",
+    "ru": "Скачивания",
+    "pages": [
+      "studio"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "E-mail",
+    "ru": "Электронная почта",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Elenco dei partner",
+    "ru": "Список партнёров",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Elenco dei partner",
+    "ru": "Список партнёров",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Elenco dei partner",
+    "ru": "Список партнёров",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "title"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Elimina",
+    "ru": "Удалить"
+  },
+  {
+    "source": "it",
+    "text": "Esci",
+    "ru": "Выйти"
+  },
+  {
+    "source": "it",
+    "text": "Esplora",
+    "ru": "Открыть музыку"
+  },
+  {
+    "source": "it",
+    "text": "Fan",
+    "ru": "Поклонники",
+    "pages": [
+      "studio"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "FATTI ASCOLTARE",
+    "ru": "ЗАЯВИ О СЕБЕ",
+    "pages": [
+      "studio"
+    ],
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "FATTI PAGARE",
+    "ru": "ЗАРАБАТЫВАЙ",
+    "pages": [
+      "studio"
+    ],
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Fatto",
+    "ru": "Готово"
+  },
+  {
+    "source": "it",
+    "text": "Feed RSS",
+    "ru": "RSS-лента",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Feed RSS",
+    "ru": "RSS-лента"
+  },
+  {
+    "source": "it",
+    "text": "Feed",
+    "ru": "Лента",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Feed",
+    "ru": "Лента",
+    "pages": [
+      "feed"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Feed",
+    "ru": "Лента",
+    "pages": [
+      "library"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Feed",
+    "ru": "Лента",
+    "pages": [
+      "messages"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Feed",
+    "ru": "Лента",
+    "pages": [
+      "notifications"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Feed",
+    "ru": "Лента",
+    "pages": [
+      "search"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Feed",
+    "ru": "Лента",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Feed",
+    "ru": "Лента",
+    "pages": [
+      "upload"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Feed",
+    "ru": "Лента"
+  },
+  {
+    "source": "it",
+    "text": "Feedback",
+    "ru": "Обратная связь",
+    "pages": [
+      "upload"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Femmina",
+    "ru": "Женщина",
+    "pages": [
+      "settings"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Fiction",
+    "ru": "Художественные истории",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Gaelico",
+    "ru": "Гэльский",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Genere",
+    "ru": "Пол",
+    "pages": [
+      "settings"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Generi",
+    "ru": "Жанры"
+  },
+  {
+    "source": "it",
+    "text": "Gestione cookie",
+    "ru": "Настройки cookie",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "link"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Gestione cookie",
+    "ru": "Настройки cookie",
+    "pages": [
+      "upload"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Gestisci le tue preferenze sui cookie",
+    "ru": "Настроить файлы cookie",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Governo",
+    "ru": "Государство",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Guadagni",
+    "ru": "Доход",
+    "pages": [
+      "studio"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Hawaiano",
+    "ru": "Гавайский",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Home",
+    "ru": "Главная",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Home",
+    "ru": "Главная",
+    "pages": [
+      "feed"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Home",
+    "ru": "Главная",
+    "pages": [
+      "library"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Home",
+    "ru": "Главная",
+    "pages": [
+      "messages"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Home",
+    "ru": "Главная",
+    "pages": [
+      "notifications"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Home",
+    "ru": "Главная",
+    "pages": [
+      "search"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Home",
+    "ru": "Главная",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Home",
+    "ru": "Главная",
+    "pages": [
+      "upload"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Home",
+    "ru": "Главная"
+  },
+  {
+    "source": "it",
+    "text": "I tuoi First Fans e Top Fans verranno visualizzati nelle tue tracce",
+    "ru": "Первые и главные поклонники будут показаны на страницах ваших треков",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Impostazioni della privacy",
+    "ru": "Настройки конфиденциальности",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Impostazioni della privacy",
+    "ru": "Настройки конфиденциальности"
+  },
+  {
+    "source": "it",
+    "text": "Impostazioni e altro",
+    "ru": "Настройки и другое",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Impostazioni e altro",
+    "ru": "Настройки и другое",
+    "pages": [
+      "feed"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Impostazioni e altro",
+    "ru": "Настройки и другое",
+    "pages": [
+      "library"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Impostazioni e altro",
+    "ru": "Настройки и другое",
+    "pages": [
+      "messages"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Impostazioni e altro",
+    "ru": "Настройки и другое",
+    "pages": [
+      "notifications"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Impostazioni e altro",
+    "ru": "Настройки и другое",
+    "pages": [
+      "other"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Impostazioni e altro",
+    "ru": "Настройки и другое",
+    "pages": [
+      "profile"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Impostazioni e altro",
+    "ru": "Настройки и другое",
+    "pages": [
+      "search"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Impostazioni e altro",
+    "ru": "Настройки и другое",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Impostazioni e altro",
+    "ru": "Настройки и другое",
+    "pages": [
+      "upload"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Impostazioni predefinite di caricamento",
+    "ru": "Настройки загрузки по умолчанию",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Impostazioni predefinite di caricamento",
+    "ru": "Настройки загрузки по умолчанию"
+  },
+  {
+    "source": "it",
+    "text": "Impostazioni pubblicità",
+    "ru": "Настройки рекламы",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Impostazioni",
+    "ru": "Настройки"
+  },
+  {
+    "source": "it",
+    "text": "In coda",
+    "ru": "Далее"
+  },
+  {
+    "source": "it",
+    "text": "Includi nel feed RSS",
+    "ru": "Добавлять в RSS-ленту",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "indietro",
+    "ru": "Назад",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "indietro",
+    "ru": "Назад",
+    "pages": [
+      "feed"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "indietro",
+    "ru": "Назад"
+  },
+  {
+    "source": "it",
+    "text": "Indietro",
+    "ru": "Назад"
+  },
+  {
+    "source": "it",
+    "text": "Indirizzo e-mail visualizzato",
+    "ru": "Отображаемый адрес электронной почты",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Informativa sui cookie",
+    "ru": "Политика использования cookie",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "link"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Inglese",
+    "ru": "Английский",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Inglese",
+    "ru": "Английский"
+  },
+  {
+    "source": "it",
+    "text": "Inizia",
+    "ru": "Начать",
+    "pages": [
+      "studio"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Inizio",
+    "ru": "Главная"
+  },
+  {
+    "source": "it",
+    "text": "Invia",
+    "ru": "Отправить"
+  },
+  {
+    "source": "it",
+    "text": "Iscriviti",
+    "ru": "Зарегистрироваться"
+  },
+  {
+    "source": "it",
+    "text": "Italiano",
+    "ru": "Русский",
+    "pages": [
+      "upload"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "La migliore qualità disponibile (HQ)",
+    "ru": "Максимальное доступное качество (HQ)",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "La tua libreria",
+    "ru": "Ваша медиатека"
+  },
+  {
+    "source": "it",
+    "text": "Legal",
+    "ru": "Правовая информация",
+    "pages": [
+      "upload"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Libreria",
+    "ru": "Медиатека",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Libreria",
+    "ru": "Медиатека",
+    "pages": [
+      "feed"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Libreria",
+    "ru": "Медиатека",
+    "pages": [
+      "library"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Libreria",
+    "ru": "Медиатека",
+    "pages": [
+      "messages"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Libreria",
+    "ru": "Медиатека",
+    "pages": [
+      "notifications"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Libreria",
+    "ru": "Медиатека",
+    "pages": [
+      "search"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Libreria",
+    "ru": "Медиатека",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Libreria",
+    "ru": "Медиатека",
+    "pages": [
+      "upload"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Libreria",
+    "ru": "Медиатека"
+  },
+  {
+    "source": "it",
+    "text": "Licenza Creative Commons",
+    "ru": "Лицензия Creative Commons",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Lingua: Italiano",
+    "ru": "Язык: итальянский",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Lingua: Italiano",
+    "ru": "Язык: итальянский",
+    "pages": [
+      "feed"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Lingua: Italiano",
+    "ru": "Язык: итальянский",
+    "pages": [
+      "library"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Lingua: Italiano",
+    "ru": "Язык: итальянский",
+    "pages": [
+      "notifications"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Lingua: Italiano",
+    "ru": "Язык: итальянский",
+    "pages": [
+      "search"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Lingua: Italiano",
+    "ru": "Язык: итальянский",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Lingua: Italiano",
+    "ru": "Язык: итальянский"
+  },
+  {
+    "source": "it",
+    "text": "Lingua:",
+    "ru": "Язык:"
+  },
+  {
+    "source": "it",
+    "text": "Lingua",
+    "ru": "Язык"
+  },
+  {
+    "source": "it",
+    "text": "Lo streaming in alta qualità richiede una connessione di rete potente.",
+    "ru": "Для высокого качества звука нужно быстрое и стабильное подключение.",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Maschio",
+    "ru": "Мужчина",
+    "pages": [
+      "settings"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Messaggi",
+    "ru": "Сообщения",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Messaggi",
+    "ru": "Сообщения",
+    "pages": [
+      "feed"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Messaggi",
+    "ru": "Сообщения",
+    "pages": [
+      "library"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Messaggi",
+    "ru": "Сообщения",
+    "pages": [
+      "messages"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Messaggi",
+    "ru": "Сообщения",
+    "pages": [
+      "notifications"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Messaggi",
+    "ru": "Сообщения",
+    "pages": [
+      "search"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Messaggi",
+    "ru": "Сообщения",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Messaggi",
+    "ru": "Сообщения",
+    "pages": [
+      "upload"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Messaggi",
+    "ru": "Сообщения"
+  },
+  {
+    "source": "it",
+    "text": "Mi piace e ascolti relativi al tuo post",
+    "ru": "Отметки «Нравится» и прослушивания вашей публикации",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Mi piace",
+    "ru": "Нравится",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Mi piace",
+    "ru": "Нравится",
+    "pages": [
+      "feed"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Mi piace",
+    "ru": "Нравится"
+  },
+  {
+    "source": "it",
+    "text": "Mix creati per {user}",
+    "ru": "Миксы для {user}"
+  },
+  {
+    "source": "it",
+    "text": "Mix per {user}",
+    "ru": "Миксы для {user}"
+  },
+  {
+    "source": "it",
+    "text": "Mixato per {user}",
+    "ru": "Миксы для {user}"
+  },
+  {
+    "source": "it",
+    "text": "Modifica profilo",
+    "ru": "Редактировать профиль"
+  },
+  {
+    "source": "it",
+    "text": "Modifica",
+    "ru": "Изменить"
+  },
+  {
+    "source": "it",
+    "text": "Mostra First Fans e Top Fans delle mie tracce",
+    "ru": "Показывать первых и главных поклонников моих треков",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Mostra le mie attività nei moduli e nelle playlist di scoperta sui social",
+    "ru": "Показывать мою активность в рекомендациях и плейлистах",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Mostra quando sono un First o Top Fan",
+    "ru": "Показывать мой статус первого или главного поклонника",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Mostra tutto",
+    "ru": "Показать всё"
+  },
+  {
+    "source": "it",
+    "text": "Musica",
+    "ru": "Музыка",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Nascondi coda",
+    "ru": "Скрыть очередь",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "title"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Nascondi coda",
+    "ru": "Скрыть очередь",
+    "pages": [
+      "upload"
+    ],
+    "roles": [
+      "title"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Nessun microfono trovato",
+    "ru": "Микрофон не найден",
+    "pages": [
+      "upload"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Nessun risultato trovato",
+    "ru": "Ничего не найдено"
+  },
+  {
+    "source": "it",
+    "text": "Nessun risultato",
+    "ru": "Ничего не найдено"
+  },
+  {
+    "source": "it",
+    "text": "Newsletter di SoundCloud",
+    "ru": "Рассылка SoundCloud",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Nome dell'autore personalizzato",
+    "ru": "Имя автора для публикаций",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Non mi piace più",
+    "ru": "Больше не нравится",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Non mi piace più",
+    "ru": "Больше не нравится",
+    "pages": [
+      "feed"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Non mi piace più",
+    "ru": "Больше не нравится",
+    "pages": [
+      "library"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Non mi piace più",
+    "ru": "Больше не нравится",
+    "pages": [
+      "messages"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Non mi piace più",
+    "ru": "Больше не нравится",
+    "pages": [
+      "notifications"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Non mi piace più",
+    "ru": "Больше не нравится",
+    "pages": [
+      "search"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Non mi piace più",
+    "ru": "Больше не нравится",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Non mi piace più",
+    "ru": "Больше не нравится",
+    "pages": [
+      "upload"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Non mi piace più",
+    "ru": "Больше не нравится"
+  },
+  {
+    "source": "it",
+    "text": "Non mostrare l'indirizzo e-mail",
+    "ru": "Не показывать адрес электронной почты",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Non mostrare l'indirizzo e-mail",
+    "ru": "Не показывать адрес электронной почты"
+  },
+  {
+    "source": "it",
+    "text": "Non seguire più",
+    "ru": "Отписаться"
+  },
+  {
+    "source": "it",
+    "text": "Notifiche",
+    "ru": "Уведомления",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Notifiche",
+    "ru": "Уведомления",
+    "pages": [
+      "feed"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Notifiche",
+    "ru": "Уведомления",
+    "pages": [
+      "library"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Notifiche",
+    "ru": "Уведомления",
+    "pages": [
+      "messages"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Notifiche",
+    "ru": "Уведомления",
+    "pages": [
+      "notifications"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Notifiche",
+    "ru": "Уведомления",
+    "pages": [
+      "search"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Notifiche",
+    "ru": "Уведомления",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Notifiche",
+    "ru": "Уведомления",
+    "pages": [
+      "upload"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Notifiche",
+    "ru": "Уведомления"
+  },
+  {
+    "source": "it",
+    "text": "Notizie",
+    "ru": "Новости",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Nuove tracce",
+    "ru": "Новые треки",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Nuove tracce",
+    "ru": "Новые треки",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Nuove tracce",
+    "ru": "Новые треки",
+    "pages": [
+      "feed"
+    ],
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Nuove tracce",
+    "ru": "Новые треки",
+    "pages": [
+      "feed"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Nuove tracce",
+    "ru": "Новые треки"
+  },
+  {
+    "source": "it",
+    "text": "Nuove uscite",
+    "ru": "Новые релизы"
+  },
+  {
+    "source": "it",
+    "text": "Nuovo follower",
+    "ru": "Новый подписчик",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Nuovo messaggio",
+    "ru": "Новое сообщение"
+  },
+  {
+    "source": "it",
+    "text": "Nuovo post di un utente seguito",
+    "ru": "Новая публикация от пользователя, на которого вы подписаны",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Nuovo",
+    "ru": "Новое"
+  },
+  {
+    "source": "it",
+    "text": "O registra con un microfono",
+    "ru": "Или запишите звук с микрофона",
+    "pages": [
+      "studio"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "O registra con un microfono",
+    "ru": "Или запишите звук с микрофона",
+    "pages": [
+      "upload"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Ottieni 1 mese gratis della suite 360 Pro di Native Instruments",
+    "ru": "Получите 1 месяц бесплатного доступа к пакету 360 Pro от Native Instruments",
+    "pages": [
+      "studio"
+    ],
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Ottieni 2 mesi gratis di campioni royalty-free Splice Sounds+",
+    "ru": "Получите 2 месяца бесплатного доступа к семплам Splice Sounds+ без роялти",
+    "pages": [
+      "studio"
+    ],
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Ottieni 3 mesi gratis del plugin e dei campioni di Output Arcade",
+    "ru": "Получите 3 месяца бесплатного доступа к плагину и семплам Output Arcade",
+    "pages": [
+      "studio"
+    ],
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Ottieni caricamenti illimitati",
+    "ru": "Получить неограниченные загрузки",
+    "pages": [
+      "upload"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "OTTIENI FAN",
+    "ru": "НАЙДИ ПОКЛОННИКОВ",
+    "pages": [
+      "studio"
+    ],
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Ottieni il 20% di sconto su tutte le campagne su Groover.co e un add-on hype gratuito",
+    "ru": "Получите скидку 20% на все кампании Groover.co и бесплатное дополнение Hype",
+    "pages": [
+      "studio"
+    ],
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Panoramica",
+    "ru": "Обзор"
+  },
+  {
+    "source": "it",
+    "text": "Pausa",
+    "ru": "Пауза"
+  },
+  {
+    "source": "it",
+    "text": "Per la migliore qualità, usa WAV, FLAC, AIFF o ALAC. La dimensione massima del file è 4GB non compresso.",
+    "ru": "Для лучшего качества используйте WAV, FLAC, AIFF или ALAC. Максимальный размер несжатого файла — 4 ГБ.",
+    "pages": [
+      "upload"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Piace",
+    "ru": "Нравится"
+  },
+  {
+    "source": "it",
+    "text": "Più di ciò che ti piace",
+    "ru": "Музыка, которая вам понравится"
+  },
+  {
+    "source": "it",
+    "text": "Più di quello che ti piace",
+    "ru": "Музыка, которая вам понравится"
+  },
+  {
+    "source": "it",
+    "text": "Playlist",
+    "ru": "Плейлисты"
+  },
+  {
+    "source": "it",
+    "text": "Politica sui cookie",
+    "ru": "Политика использования cookie",
+    "pages": [
+      "upload"
+    ],
+    "roles": [
+      "link"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Popolari su SoundCloud",
+    "ru": "Популярно в SoundCloud"
+  },
+  {
+    "source": "it",
+    "text": "Preferiti",
+    "ru": "Избранное",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Preferiti",
+    "ru": "Понравилось",
+    "pages": [
+      "studio"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Preferiti",
+    "ru": "Избранное",
+    "pages": [
+      "upload"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Preferiti",
+    "ru": "Избранное"
+  },
+  {
+    "source": "it",
+    "text": "Prefisso URL del servizio statistiche",
+    "ru": "Префикс URL сервиса статистики",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Privacy",
+    "ru": "Конфиденциальность"
+  },
+  {
+    "source": "it",
+    "text": "Privato",
+    "ru": "Приватный"
+  },
+  {
+    "source": "it",
+    "text": "Profilo",
+    "ru": "Профиль"
+  },
+  {
+    "source": "it",
+    "text": "Prova Artist Pro",
+    "ru": "Попробовать Artist Pro"
+  },
+  {
+    "source": "it",
+    "text": "Prova Go+",
+    "ru": "Попробовать Go+"
+  },
+  {
+    "source": "it",
+    "text": "Pubblicità",
+    "ru": "Реклама"
+  },
+  {
+    "source": "it",
+    "text": "Pubblico",
+    "ru": "Открытый"
+  },
+  {
+    "source": "it",
+    "text": "Qualità audio",
+    "ru": "Качество звука"
+  },
+  {
+    "source": "it",
+    "text": "Qualità streaming",
+    "ru": "Качество звука",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Raccolta",
+    "ru": "Медиатека"
+  },
+  {
+    "source": "it",
+    "text": "Recenti",
+    "ru": "Недавние"
+  },
+  {
+    "source": "it",
+    "text": "Reindirizzamento degli iscritti",
+    "ru": "Перенаправление подписчиков",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Religione e Spiritualità",
+    "ru": "Религия и духовность",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Revoca accesso",
+    "ru": "Отозвать доступ",
+    "pages": [
+      "settings"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Ricevi i pagamenti",
+    "ru": "Получать выплаты",
+    "pages": [
+      "studio"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Ricevi messaggi da chiunque.",
+    "ru": "Получать сообщения от всех.",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Rimuovi",
+    "ru": "Убрать"
+  },
+  {
+    "source": "it",
+    "text": "Ripeti la traccia",
+    "ru": "Повторять трек",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Ripeti la traccia",
+    "ru": "Повторять трек",
+    "pages": [
+      "feed"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Ripeti la traccia",
+    "ru": "Повторять трек",
+    "pages": [
+      "library"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Ripeti la traccia",
+    "ru": "Повторять трек",
+    "pages": [
+      "messages"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Ripeti la traccia",
+    "ru": "Повторять трек",
+    "pages": [
+      "notifications"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Ripeti la traccia",
+    "ru": "Повторять трек",
+    "pages": [
+      "search"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Ripeti la traccia",
+    "ru": "Повторять трек",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Ripeti la traccia",
+    "ru": "Повторять трек",
+    "pages": [
+      "upload"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Ripeti la traccia",
+    "ru": "Повторять трек"
+  },
+  {
+    "source": "it",
+    "text": "Ripeti",
+    "ru": "Повтор"
+  },
+  {
+    "source": "it",
+    "text": "Riproduci",
+    "ru": "Воспроизвести",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Riproduci",
+    "ru": "Воспроизвести",
+    "pages": [
+      "feed"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Riproduci",
+    "ru": "Воспроизвести",
+    "pages": [
+      "library"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Riproduci",
+    "ru": "Воспроизвести",
+    "pages": [
+      "messages"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Riproduci",
+    "ru": "Воспроизвести",
+    "pages": [
+      "notifications"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Riproduci",
+    "ru": "Воспроизвести",
+    "pages": [
+      "search"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Riproduci",
+    "ru": "Воспроизвести",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Riproduci",
+    "ru": "Воспроизвести",
+    "pages": [
+      "upload"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Riproduci",
+    "ru": "Воспроизвести"
+  },
+  {
+    "source": "it",
+    "text": "Riproduzione casuale",
+    "ru": "Случайный порядок"
+  },
+  {
+    "source": "it",
+    "text": "Riproduzione",
+    "ru": "Воспроизведение"
+  },
+  {
+    "source": "it",
+    "text": "Riprova",
+    "ru": "Повторить"
+  },
+  {
+    "source": "it",
+    "text": "Ripubblica",
+    "ru": "Сделать репост",
+    "pages": [
+      "feed"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Ripubblica",
+    "ru": "Сделать репост"
+  },
+  {
+    "source": "it",
+    "text": "Ripubblicazione di un tuo post",
+    "ru": "Репост вашей публикации",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Ripubblicazioni",
+    "ru": "Репосты",
+    "pages": [
+      "studio"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Ripubblicazioni",
+    "ru": "Репосты"
+  },
+  {
+    "source": "it",
+    "text": "Risparmia 25,98 $",
+    "ru": "Сэкономьте 25,98 $",
+    "pages": [
+      "studio"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Salute & Fitness",
+    "ru": "Здоровье и фитнес",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Salva modifiche",
+    "ru": "Сохранить изменения",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Salva modifiche",
+    "ru": "Сохранить изменения"
+  },
+  {
+    "source": "it",
+    "text": "Salva",
+    "ru": "Сохранить"
+  },
+  {
+    "source": "it",
+    "text": "Sblocca",
+    "ru": "Разблокировать",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Sblocca",
+    "ru": "Разблокировать",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "title"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Scegli file",
+    "ru": "Выбрать файлы",
+    "pages": [
+      "studio"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Scegli file",
+    "ru": "Выбрать файлы",
+    "pages": [
+      "upload"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Scienza",
+    "ru": "Наука",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Scopri di più.",
+    "ru": "Подробнее",
+    "pages": [
+      "upload"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Scopri di più",
+    "ru": "Подробнее",
+    "pages": [
+      "upload"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Scopri",
+    "ru": "Открыть музыку"
+  },
+  {
+    "source": "it",
+    "text": "Scrivi un commento",
+    "ru": "Напишите комментарий",
+    "pages": [
+      "feed"
+    ],
+    "roles": [
+      "placeholder"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Scrivi un commento",
+    "ru": "Напишите комментарий"
+  },
+  {
+    "source": "it",
+    "text": "Scrivi un messaggio",
+    "ru": "Напишите сообщение"
+  },
+  {
+    "source": "it",
+    "text": "Scuro",
+    "ru": "Тёмная тема"
+  },
+  {
+    "source": "it",
+    "text": "Segna come non letto",
+    "ru": "Отметить как непрочитанное",
+    "pages": [
+      "messages"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Segna come non letto",
+    "ru": "Отметить как непрочитанное"
+  },
+  {
+    "source": "it",
+    "text": "Segna tutto come letto",
+    "ru": "Отметить всё как прочитанное"
+  },
+  {
+    "source": "it",
+    "text": "Segui a tua volta",
+    "ru": "Подписаться в ответ"
+  },
+  {
+    "source": "it",
+    "text": "Segui anche tu",
+    "ru": "Подписаться в ответ",
+    "pages": [
+      "notifications"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Segui anche tu",
+    "ru": "Подписаться в ответ"
+  },
+  {
+    "source": "it",
+    "text": "Segui già",
+    "ru": "Вы подписаны"
+  },
+  {
+    "source": "it",
+    "text": "Segui",
+    "ru": "Подписаться",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Segui",
+    "ru": "Подписаться"
+  },
+  {
+    "source": "it",
+    "text": "Seguiti",
+    "ru": "Подписки",
+    "pages": [
+      "library"
+    ],
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Seguiti",
+    "ru": "Подписки"
+  },
+  {
+    "source": "it",
+    "text": "Seguito",
+    "ru": "Подписки"
+  },
+  {
+    "source": "it",
+    "text": "Seleziona la lingua",
+    "ru": "Выберите язык"
+  },
+  {
+    "source": "it",
+    "text": "Sfoglia le playlist di tendenza",
+    "ru": "Популярные плейлисты",
+    "pages": [
+      "library"
+    ],
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Sfoglia le playlist di tendenza",
+    "ru": "Популярные плейлисты"
+  },
+  {
+    "source": "it",
+    "text": "Sicurezza",
+    "ru": "Безопасность"
+  },
+  {
+    "source": "it",
+    "text": "Smetti di seguire",
+    "ru": "Отписаться",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Smetti di seguire",
+    "ru": "Отписаться",
+    "pages": [
+      "feed"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Smetti di seguire",
+    "ru": "Отписаться",
+    "pages": [
+      "library"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Smetti di seguire",
+    "ru": "Отписаться",
+    "pages": [
+      "messages"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Smetti di seguire",
+    "ru": "Отписаться",
+    "pages": [
+      "notifications"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Smetti di seguire",
+    "ru": "Отписаться",
+    "pages": [
+      "search"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Smetti di seguire",
+    "ru": "Отписаться",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Smetti di seguire",
+    "ru": "Отписаться",
+    "pages": [
+      "upload"
+    ],
+    "roles": [
+      "aria-label"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Smetti di seguire",
+    "ru": "Отписаться"
+  },
+  {
+    "source": "it",
+    "text": "Società e Cultura",
+    "ru": "Общество и культура",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Sondaggi e opinioni",
+    "ru": "Опросы и отзывы",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Sport",
+    "ru": "Спорт",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Standard",
+    "ru": "Стандартное",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Statistiche complessive aggiornate ogni giorno.",
+    "ru": "Общая статистика обновляется ежедневно.",
+    "pages": [
+      "studio"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Stazioni",
+    "ru": "Станции"
+  },
+  {
+    "source": "it",
+    "text": "Streaming",
+    "ru": "Воспроизведение"
+  },
+  {
+    "source": "it",
+    "text": "Studio dell'artista",
+    "ru": "Студия артиста",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "link"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Studio dell'artista",
+    "ru": "Студия артиста",
+    "pages": [
+      "upload"
+    ],
+    "roles": [
+      "link"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Studio dell'artista",
+    "ru": "Студия артиста"
+  },
+  {
+    "source": "it",
+    "text": "Tecnologia",
+    "ru": "Технологии",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Tema chiaro",
+    "ru": "Светлая тема"
+  },
+  {
+    "source": "it",
+    "text": "Tema scuro",
+    "ru": "Тёмная тема"
+  },
+  {
+    "source": "it",
+    "text": "Tema",
+    "ru": "Тема"
+  },
+  {
+    "source": "it",
+    "text": "Tempo libero",
+    "ru": "Досуг",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Thai",
+    "ru": "Тайский",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Titolo del feed personalizzato",
+    "ru": "Название персональной ленты",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Tracce SoundCloud",
+    "ru": "Треки SoundCloud",
+    "pages": [
+      "studio"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Tracce",
+    "ru": "Треки"
+  },
+  {
+    "source": "it",
+    "text": "Trascina e rilascia i file audio per iniziare.",
+    "ru": "Перетащите аудиофайлы сюда, чтобы начать.",
+    "pages": [
+      "studio"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Trascina e rilascia i file audio per iniziare.",
+    "ru": "Перетащите аудиофайлы сюда, чтобы начать.",
+    "pages": [
+      "upload"
+    ],
+    "roles": [
+      "text"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "True Crime",
+    "ru": "Реальные преступления",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Tutte le notifiche",
+    "ru": "Все уведомления",
+    "pages": [
+      "notifications"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Tutte le notifiche",
+    "ru": "Все уведомления"
+  },
+  {
+    "source": "it",
+    "text": "Tutte",
+    "ru": "Все"
+  },
+  {
+    "source": "it",
+    "text": "Tutti",
+    "ru": "Все"
+  },
+  {
+    "source": "it",
+    "text": "TV e Film",
+    "ru": "Телевидение и кино",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Uomo",
+    "ru": "Мужчина",
+    "pages": [
+      "settings"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Utenti bloccati",
+    "ru": "Заблокированные пользователи",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Vai alla precedente",
+    "ru": "Предыдущий трек",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Vai alla precedente",
+    "ru": "Предыдущий трек",
+    "pages": [
+      "feed"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Vai alla precedente",
+    "ru": "Предыдущий трек",
+    "pages": [
+      "library"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Vai alla precedente",
+    "ru": "Предыдущий трек",
+    "pages": [
+      "messages"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Vai alla precedente",
+    "ru": "Предыдущий трек",
+    "pages": [
+      "notifications"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Vai alla precedente",
+    "ru": "Предыдущий трек",
+    "pages": [
+      "search"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Vai alla precedente",
+    "ru": "Предыдущий трек",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Vai alla precedente",
+    "ru": "Предыдущий трек",
+    "pages": [
+      "upload"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Vai alla precedente",
+    "ru": "Предыдущий трек"
+  },
+  {
+    "source": "it",
+    "text": "Vai alla successiva",
+    "ru": "Следующий трек",
+    "pages": [
+      "discover"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Vai alla successiva",
+    "ru": "Следующий трек",
+    "pages": [
+      "feed"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Vai alla successiva",
+    "ru": "Следующий трек",
+    "pages": [
+      "library"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Vai alla successiva",
+    "ru": "Следующий трек",
+    "pages": [
+      "messages"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Vai alla successiva",
+    "ru": "Следующий трек",
+    "pages": [
+      "notifications"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Vai alla successiva",
+    "ru": "Следующий трек",
+    "pages": [
+      "search"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Vai alla successiva",
+    "ru": "Следующий трек",
+    "pages": [
+      "settings"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Vai alla successiva",
+    "ru": "Следующий трек",
+    "pages": [
+      "upload"
+    ],
+    "roles": [
+      "button"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Vai alla successiva",
+    "ru": "Следующий трек"
+  },
+  {
+    "source": "it",
+    "text": "Vantaggi dell'iscrizione Artist Pro",
+    "ru": "Преимущества подписки Artist Pro",
+    "pages": [
+      "studio"
+    ],
+    "roles": [
+      "heading"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Vantaggi",
+    "ru": "Преимущества",
+    "pages": [
+      "studio"
+    ]
+  },
+  {
+    "source": "it",
+    "text": "Vedi tutto",
+    "ru": "Показать всё"
+  },
+  {
+    "source": "it",
+    "text": "Verifica della richiesta",
+    "ru": "Проверить заявку",
+    "pages": [
+      "settings"
+    ]
+  }
+]

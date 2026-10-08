@@ -1,6 +1,6 @@
 {
   "name": "soundcloud-desktop",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "private": true,
   "description": "SoundCloud desktop client with offline Russian interface translation and customization",
   "author": {
@@ -13,9 +13,11 @@
   "scripts": {
     "start": "node build.js && electron .",
     "check": "node scripts/check-consistency.js",
-    "test": "node --test scripts/localization.test.js scripts/linux-package-install.test.js",
+    "test": "node --test scripts/localization.test.js scripts/localization.integration.test.js scripts/frame-localization.test.js scripts/catalog-generation.test.js scripts/linux-package-install.test.js scripts/downloads.test.js",
     "build": "node build.js",
     "build:watch": "node build.js --watch",
+    "localization:capture": "node build.js && electron . --capture-localization=/tmp/soundcloud-labels.jsonl",
+    "localization:generate": "node scripts/generate-localization-catalog.js",
     "predist:linux": "node build.js",
     "dist:linux": "electron-builder --linux AppImage deb rpm pacman --x64 --publish never",
     "predist:win": "node build.js",
