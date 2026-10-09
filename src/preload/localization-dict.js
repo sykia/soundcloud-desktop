@@ -61,6 +61,8 @@ const RU_TRANSLATIONS = {
   'Sign out': 'Выйти',
   'Sign up': 'Регистрация',
   'Log in': 'Войти',
+  'Sign in': 'Войти',
+  'Create account': 'Создать аккаунт',
   'Copyright': 'Авторские права',
   // Player actions
   'Play': 'Воспроизвести',
@@ -106,6 +108,13 @@ const RU_TRANSLATIONS = {
   'Learn more': 'Подробнее',
   'Learn More': 'Подробнее',
   // Home
+  'Discover Tracks and Playlists': 'Открывайте треки и плейлисты',
+  // Current Italian home labels, verified in the signed-in SoundCloud DOM.
+  'Tracce trendy per genere': 'Популярное по жанрам',
+  'Nuova crew, consigliata per te': 'Новые исполнители для вас',
+  'Artisti da tenere d\'occhio': 'Исполнители, на которых стоит обратить внимание',
+  'Scopri nuove tracce con le stazioni': 'Открывайте музыку через станции',
+  'Per te': 'Для вас',
   'Made for you': 'Создано для вас',
   'Curated by SoundCloud': 'Подборка SoundCloud',
   'More of what you like': 'Музыка, которая вам понравится',

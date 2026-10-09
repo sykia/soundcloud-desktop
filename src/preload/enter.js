@@ -15,14 +15,18 @@ const ENTER_TARGETS = '.soundList__item, .searchList__item, .trackList__item,' +
 const pendingEnterElements = new Set();
 let enterIntersection = null;
 let enterWatcher = null;
+let revealedElements = new WeakSet();
 
 function watchEnterTarget(element) {
-  if (pendingEnterElements.has(element)) return;
+  if (pendingEnterElements.has(element) || revealedElements.has(element) ||
+      element.closest(CUSADE_OWNED)) return;
   pendingEnterElements.add(element);
   enterIntersection ??= new IntersectionObserver(entries => {
     for (const entry of entries) {
-      if (!entry.isIntersecting) continue;
+      if (!motionActive() || !entry.isIntersecting || !entry.target.isConnected ||
+          !pendingEnterElements.has(entry.target)) continue;
       entry.target.classList.add('cusade-enter-target');
+      revealedElements.add(entry.target);
       enterIntersection.unobserve(entry.target);
       pendingEnterElements.delete(entry.target);
     }
@@ -66,7 +70,8 @@ const PAGE_ENTER_SCOPES = new Set(['settings', 'studio', 'upload', 'subscription
 
 function outermostMatches(root, selector) {
   const matches = new Set();
-  for (const element of root.querySelectorAll(selector)) {
+  const candidates = root.matches(selector) ? [root, ...root.querySelectorAll(selector)] : root.querySelectorAll(selector);
+  for (const element of candidates) {
     if (element.closest(CUSADE_OWNED)) continue;
     if (element.closest(PAGE_ENTER_SKIP)) continue;
     if (element.parentElement?.closest?.(selector)) continue;
@@ -80,7 +85,7 @@ function queuePageEnterTargets(root) {
   const scope = root && root.nodeType === Node.ELEMENT_NODE ? root : document.body;
   // An inserted node that holds none of the candidates is skipped without
   // walking it, which is what keeps this off the hot path of a busy feed.
-  if (scope !== document.body && !scope.querySelector(PAGE_ENTER_BLOCKS)) return;
+  if (scope !== document.body && !scope.matches(PAGE_ENTER_BLOCKS) && !scope.querySelector(PAGE_ENTER_BLOCKS)) return;
   let queued = 0;
   for (const element of outermostMatches(scope, PAGE_ENTER_BLOCKS)) {
     watchEnterTarget(element);
@@ -103,18 +108,32 @@ function updateEnterWatcher() {
     if (!enterWatcher) {
       enterWatcher = new MutationObserver(mutations => {
         if (!motionActive()) return;
+        for (const element of pendingEnterElements) {
+          if (element.isConnected) continue;
+          enterIntersection?.unobserve(element);
+          pendingEnterElements.delete(element);
+        }
         for (const mutation of mutations) {
           if (mutation.type !== 'childList') continue;
           for (const node of mutation.addedNodes) queueEnterTargets(node);
         }
       });
     }
-    if (document.body) enterWatcher.observe(document.body, { childList: true, subtree: true });
+    if (document.body) {
+      enterWatcher.observe(document.body, { childList: true, subtree: true });
+      // Settings may arrive after the page has rendered, or motion may be
+      // enabled from the panel. Existing rows need the same reveal as new rows.
+      queueEnterTargets(document.body);
+    }
     return;
   }
   enterWatcher?.disconnect();
-  for (const element of pendingEnterElements) element.classList.remove('cusade-enter-target');
+  enterIntersection?.disconnect();
+  for (const element of document.querySelectorAll('.cusade-enter-target')) {
+    element.classList.remove('cusade-enter-target');
+  }
   pendingEnterElements.clear();
+  revealedElements = new WeakSet();
 }
 
 module.exports = { queuePageEnterTargets, updateEnterWatcher };

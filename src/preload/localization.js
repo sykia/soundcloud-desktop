@@ -73,7 +73,8 @@ function applyAutomatic(target, translated, language) {
 
 function queueAutomatic(target) {
   const { key } = target;
-  if (!/[a-zA-ZÀ-ÿ]/.test(key) || /[А-Яа-яЁё]/.test(key) ||
+  if (/^(?:SoundCloud|Go\+|Artist Pro)$/i.test(key) ||
+      !/[a-zA-ZÀ-ÿ]/.test(key) || /[А-Яа-яЁё]/.test(key) ||
       key.length > 120 || (key.split(/\s+/).length < 2 &&
         !isSafeSingleWord(target.element, target.attribute ? 'attributes' : 'text')) ||
       /^https?:\/\//i.test(key) || /^(?:ctrl|alt|shift|cmd|⌘)\s*\+/i.test(key) ||
@@ -347,6 +348,8 @@ function syncLanguageMenu() {
 // in SoundCloud's own language menu still needs child insertions, so the
 // observer stays connected with a cheaper option set.
 function updateLocalizationWatcher() {
+  document.documentElement?.classList.toggle('cusade-russian',
+    state.appLanguage === 'ru' && !state.localizationCapturePaused);
   const options = state.appLanguage === 'ru' && !state.localizationCapturePaused
     ? {
       childList: true,

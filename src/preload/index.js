@@ -24,7 +24,7 @@ const {
 const { syncPageScope } = require('./page-scope.js');
 const { applyMotion, setMotionHooks } = require('./motion.js');
 const { updateEnterWatcher } = require('./enter.js');
-const { updateRouteTransition, setIntroPending } = require('./route.js');
+const { installRouteWatch, updateRouteTransition, setIntroPending } = require('./route.js');
 const {
   updatePanelToggle,
   updateNearbyEventsToggle,
@@ -122,6 +122,7 @@ onSettingsLoaded.add(() => {
   refreshLocalizedUi();
 });
 onSettingsLoaded.add(() => {
+  updateLocalizationWatcher();
   scheduleLocalization();
   ipcRenderer.invoke(CHANNEL.getSiteLocale).then(language => {
     syncSourceLanguage(language);
@@ -208,6 +209,7 @@ function boot() {
   startDownloads();
   updateLocalizationWatcher();
   syncPageScope();
+  installRouteWatch();
   scheduleLocalization();
   loadSettings();
 }

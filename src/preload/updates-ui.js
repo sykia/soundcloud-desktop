@@ -35,7 +35,10 @@ function renderUpdatePanel() {
     details.textContent = ui(`Загрузка обновления: ${state.progress}%`, `Downloading update: ${state.progress}%`);
     action.textContent = ui('Загрузка…', 'Downloading…');
   } else if (state.status === 'installing') {
-    details.textContent = isPackage
+    details.textContent = state.packageType === 'nix'
+      ? ui('Nix загружает и устанавливает обновление. После установки приложение перезапустится.',
+        'Nix is downloading and installing the update. The app will restart when installation finishes.')
+      : isPackage
       ? ui('Подтвердите установку в системном окне.', 'Confirm installation in the system dialog.')
       : ui('Запускается установка и перезапуск.', 'Starting installation and restart.');
     action.textContent = ui('Установка…', 'Installing…');
@@ -48,9 +51,11 @@ function renderUpdatePanel() {
         : ui('AppImage будет обновлён, затем приложение перезапустится.', 'The AppImage will update and the app will restart.'));
     action.textContent = ui('Установить и перезапустить', 'Install and restart');
   } else {
-    details.textContent = state.error || ui('Нажмите «Обновить», чтобы загрузить новую версию.',
-      'Select Update to download the new version.');
-    action.textContent = ui('Обновить', 'Update');
+    details.textContent = state.error || (state.packageType === 'nix'
+      ? ui('Обновление установится в отдельный пользовательский профиль Nix с проверкой контрольной суммы. Затем приложение перезапустится.',
+        'The update will install into a dedicated user Nix profile with checksum verification, then the app will restart.')
+      : ui('Нажмите «Обновить», чтобы загрузить новую версию.', 'Select Update to download the new version.'));
+    action.textContent = state.packageType === 'nix' ? ui('Обновить через Nix', 'Update with Nix') : ui('Обновить', 'Update');
   }
   action.disabled = state.status === 'downloading' || state.status === 'installing';
   progress.hidden = state.status !== 'downloading';

@@ -10,6 +10,7 @@ const CHANNEL = {
   getSettings: 'cusade:get-settings',
   getSiteLocale: 'cusade:get-site-locale',
   siteLocale: 'cusade:site-locale',
+  siteNavigation: 'cusade:site-navigation',
   translateLabels: 'cusade:translate-labels',
   localizationCaptureBegin: 'cusade:localization-capture-begin',
   localizationCaptureEnd: 'cusade:localization-capture-end',

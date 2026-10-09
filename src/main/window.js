@@ -10,6 +10,7 @@
 const path = require('node:path');
 const { BrowserWindow, session, shell } = require('electron');
 const { HOME_URL } = require('../../shared/constants.js');
+const { CHANNEL } = require('../../shared/ipc.js');
 const { isSoundCloudUrl, isSignInPopupUrl, launchUrl, launchUrlFromArgs } = require('./urls.js');
 const { getSettings } = require('./settings.js');
 const dns = require('./dns.js');
@@ -127,6 +128,11 @@ function createWindow(hidden = false) {
   });
 
   const contents = mainWindow.webContents;
+  // Observe the site's history in Electron, outside the isolated preload world.
+  // Subframe navigation must not change the main page's translation context.
+  contents.on('did-navigate-in-page', (_event, url, isMainFrame) => {
+    if (isMainFrame && isSoundCloudUrl(url)) contents.send(CHANNEL.siteNavigation);
+  });
   let loadTimer;
   let loadId = 0;
   let failureHandled = false;

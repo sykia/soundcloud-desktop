@@ -29,7 +29,9 @@ function setAutoStart(enabled, minimized) {
   const configHome = process.env.XDG_CONFIG_HOME || path.join(app.getPath('home'), '.config');
   const file = path.join(configHome, 'autostart', AUTOSTART_FILE);
   if (!enabled) { fs.rmSync(file, { force: true }); return; }
-  const args = app.isPackaged ? [process.execPath] : [process.execPath, app.getAppPath()];
+  const executable = app.isPackaged && process.env.SOUNDCLOUD_DESKTOP_NIX_LAUNCHER
+    ? process.env.SOUNDCLOUD_DESKTOP_NIX_LAUNCHER : process.execPath;
+  const args = app.isPackaged ? [executable] : [executable, app.getAppPath()];
   args.push('--autostart');
   if (minimized) args.push('--minimized');
   const content = `[Desktop Entry]\nType=Application\nName=SoundCloud Desktop\nExec=${args.map(desktopQuote).join(' ')}\nIcon=soundcloud-desktop\nTerminal=false\nX-GNOME-Autostart-enabled=true\n`;

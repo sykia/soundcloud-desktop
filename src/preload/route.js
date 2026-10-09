@@ -6,6 +6,8 @@
 // toggle in the panel.
 
 const { motionActive } = require('./motion.js');
+const { ipcRenderer } = require('electron');
+const { CHANNEL } = require('../../shared/ipc.js');
 const { syncPageScope } = require('./page-scope.js');
 const { scheduleLocalization } = require('./localization.js');
 
@@ -79,17 +81,8 @@ function onRouteChanged() {
 function installRouteWatch() {
   if (routeWatchReady) return;
   routeWatchReady = true;
-  for (const method of ['pushState', 'replaceState']) {
-    const original = history[method];
-    if (typeof original !== 'function' || original.cusade === true) continue;
-    const patched = function (...args) {
-      const result = original.apply(this, args);
-      queueMicrotask(onRouteChanged);
-      return result;
-    };
-    patched.cusade = true;
-    history[method] = patched;
-  }
+  routeLastUrl = location.href;
+  ipcRenderer.on(CHANNEL.siteNavigation, onRouteChanged);
   addEventListener('popstate', onRouteChanged);
   document.addEventListener('click', onTabActivated, true);
   document.addEventListener('keydown', event => {
@@ -130,4 +123,4 @@ function updateRouteTransition() {
   }
 }
 
-module.exports = { updateRouteTransition, setIntroPending };
+module.exports = { installRouteWatch, updateRouteTransition, setIntroPending };

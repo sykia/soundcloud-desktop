@@ -13,6 +13,7 @@ const { Notification, app } = require('electron');
 const { CHANNEL } = require('../../shared/ipc.js');
 const { sendToRenderer, showMainWindow, getMainWindow } = require('./window.js');
 const { installLinuxPackage } = require('./linux-package-install.js');
+const { NixUpdater, isNixInstallation } = require('./nix-updates.js');
 
 let updater;
 let updateReady = false;
@@ -27,6 +28,7 @@ let manualUpdateCheck = false;
 let updateTimer;
 let initialUpdateTimer;
 let refreshHook = null;
+const nixInstallation = isNixInstallation();
 
 function attachRefresh(fn) {
   refreshHook = fn;
@@ -51,6 +53,7 @@ function showUpdateNotice(body, click) {
 function updateState() {
   let packageType = 'linux';
   if (process.platform === 'win32') packageType = 'win';
+  else if (nixInstallation) packageType = 'nix';
   else if (process.env.APPIMAGE) packageType = 'AppImage';
   else {
     try { packageType = fs.readFileSync(path.join(process.resourcesPath, 'package-type'), 'utf8').trim(); }
@@ -76,7 +79,7 @@ function showUpdatePanel() {
 }
 
 async function checkForUpdates(manual = false) {
-  if (!updater || updateCheckRunning || updateDownloadRunning || updateReady) return;
+  if (!updater || updateCheckRunning || updateDownloadRunning || updateReady || updateStatus === 'installing') return;
   manualUpdateCheck = manual;
   updateCheckRunning = true;
   refreshHook?.();
@@ -94,6 +97,24 @@ async function checkForUpdates(manual = false) {
 
 async function runUpdateAction() {
   if (!updater || !availableUpdateVersion || updateDownloadRunning || updateStatus === 'installing') {
+    return updateState();
+  }
+  if (nixInstallation) {
+    updateStatus = 'installing';
+    updateError = '';
+    publishUpdateState();
+    setImmediate(async () => {
+      try {
+        const executable = await updater.installUpdate();
+        app.relaunch({ execPath: executable, args: [] });
+        app.quit();
+      } catch (error) {
+        console.error('Could not install Nix update:', error);
+        updateStatus = 'error';
+        updateError = `Не удалось обновить через Nix: ${error.message}`;
+        publishUpdateState();
+      }
+    });
     return updateState();
   }
   if (updateReady) {
@@ -142,7 +163,8 @@ async function runUpdateAction() {
 
 function setupUpdates() {
   if (!app.isPackaged || !['win32', 'linux'].includes(process.platform)) return;
-  ({ autoUpdater: updater } = require('electron-updater'));
+  if (nixInstallation) updater = new NixUpdater({ version: app.getVersion(), home: app.getPath('home') });
+  else ({ autoUpdater: updater } = require('electron-updater'));
   updater.autoDownload = false;
   updater.autoInstallOnAppQuit = false;
   updater.on('update-available', info => {
@@ -212,6 +234,7 @@ function getAvailableVersion() {
 function teardown() {
   clearTimeout(initialUpdateTimer);
   clearInterval(updateTimer);
+  updater?.teardown?.();
 }
 
 module.exports = {

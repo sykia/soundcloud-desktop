@@ -53,11 +53,18 @@ jobs:
           RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
         run: node -e "if ('v' + require('./package.json').version !== process.env.RELEASE_TAG) process.exit(1)"
       - run: npm ci
+      - run: npm run electron:install
       - run: npm run check
       - run: npm test
+      - name: UI smoke (Windows)
+        if: matrix.platform == 'win'
+        run: npm run test:ui
       - name: Install Linux packaging tools
         if: matrix.platform == 'linux'
-        run: sudo apt-get update && sudo apt-get install -y libarchive-tools zstd rpm
+        run: sudo apt-get update && sudo apt-get install -y libarchive-tools zstd rpm xvfb
+      - name: UI smoke (Linux)
+        if: matrix.platform == 'linux'
+        run: xvfb-run --auto-servernum npm run test:ui
       - run: npm run dist:${{ matrix.platform }}
       - uses: actions/upload-artifact@v4
         if: matrix.platform == 'linux'

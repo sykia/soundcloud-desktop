@@ -1,6 +1,6 @@
 {
   "name": "soundcloud-desktop",
-  "version": "0.5.4",
+  "version": "0.5.5-debug.1",
   "private": true,
   "description": "SoundCloud desktop client with offline Russian interface translation and customization",
   "author": {
@@ -13,7 +13,9 @@
   "scripts": {
     "start": "node build.js && electron .",
     "check": "node scripts/check-consistency.js",
-    "test": "node --test scripts/localization.test.js scripts/localization.integration.test.js scripts/frame-localization.test.js scripts/catalog-generation.test.js scripts/linux-package-install.test.js scripts/downloads.test.js",
+    "test": "node --test scripts/localization.test.js scripts/localization.integration.test.js scripts/frame-localization.test.js scripts/catalog-generation.test.js scripts/linux-package-install.test.js scripts/downloads.test.js scripts/nix-updates.test.js",
+    "test:ui": "node build.js && electron scripts/ui-smoke.js",
+    "electron:install": "install-electron --no",
     "build": "node build.js",
     "build:watch": "node build.js --watch",
     "localization:capture": "node build.js && electron . --capture-localization=/tmp/soundcloud-labels.jsonl",
@@ -21,7 +23,8 @@
     "predist:linux": "node build.js",
     "dist:linux": "electron-builder --linux AppImage deb rpm pacman --x64 --publish never",
     "predist:win": "node build.js",
-    "dist:win": "electron-builder --win nsis --x64 --publish never"
+    "dist:win": "electron-builder --win nsis --x64 --publish never",
+    "install:nixos": "node scripts/install-nixos.js"
   },
   "devDependencies": {
     "electron": "44.5.1",
@@ -122,6 +125,7 @@
     }
   },
   "dependencies": {
-    "electron-updater": "6.8.10"
+    "electron-updater": "6.8.10",
+    "semver": "7.8.5"
   }
 }

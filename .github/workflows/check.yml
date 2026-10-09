@@ -6,7 +6,11 @@ on:
 
 jobs:
   syntax:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -14,7 +18,15 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-        env:
-          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+      - run: npm run electron:install
+      - name: Install UI test display
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y xvfb
       - run: npm run check
       - run: npm test
+      - name: UI smoke (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run --auto-servernum npm run test:ui
+      - name: UI smoke (Windows)
+        if: runner.os == 'Windows'
+        run: npm run test:ui

@@ -24,6 +24,7 @@ const ipc = require('./ipc.js');
 const localizationCapture = require('./localization-capture.js');
 const frameLocalization = require('./frame-localization.js');
 const downloads = require('./downloads.js');
+const { installAudioAdRule } = require('./audio-ads.js');
 
 let captureRunning = false;
 function captureFromArgs(argv) {
@@ -99,14 +100,7 @@ if (hasInstanceLock) app.whenReady().then(async () => {
     discord.startRpc(current.discordClientId);
   }
 
-  session.defaultSession.webRequest.onBeforeRequest(
-    { urls: ['https://api-v2.soundcloud.com/audio-ads*'] },
-    (details, callback) => {
-      const isAudioAdRequest = details.method === 'GET' &&
-        new URL(details.url).pathname === '/audio-ads';
-      callback({ cancel: settings.getSettings().blockAudioAds && isAudioAdRequest });
-    }
-  );
+  installAudioAdRule(session.defaultSession, settings.getSettings);
 
   ipc.register();
 

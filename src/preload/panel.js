@@ -11,7 +11,7 @@ const { DEFAULT_RADII } = require('../../shared/constants.js');
 const { state } = require('./state.js');
 const { hosts } = require('./hosts.js');
 const { ui } = require('./localization-dict.js');
-const { motionActive, systemReducedMotion } = require('./motion.js');
+const { motionActive, systemReducedMotion, applyMotion } = require('./motion.js');
 const {
   applyArtistToolsVisibility,
   applyNearbyEventsVisibility,
@@ -217,7 +217,7 @@ function togglePanel() {
         <div class="insights-restore" hidden><span class="hint"></span><button type="button">${ui('Показать Insights сейчас', 'Show Insights now')}</button></div>
         <label class="setting">
           <span><span class="setting-name">${ui('Скрыть Artist tools', 'Hide Artist tools')}</span>
-          <span class="hint">${ui('Убирает промобаннеры и блок Artist tools.', 'Hides promotional banners and the Artist tools section.')}</span></span>
+          <span class="hint">${ui('Убирает промобаннеры, блок Artist tools и предложения Go+ и Artist Pro в верхней панели.', 'Hides promotional banners, Artist tools, and the Go+ and Artist Pro offers in the header.')}</span></span>
           <input id="hide-artist-tools" type="checkbox" disabled>
         </label>
         <label class="setting" style="margin-top: 18px">

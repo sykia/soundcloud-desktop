@@ -59,6 +59,40 @@ function inject() {
   const style = document.createElement('style');
   style.id = 'cusade-page-style';
   style.textContent = `
+    /* Russian labels are wider than SoundCloud's English header. Prevent the
+       floated navigation and login buttons from wrapping onto the banner. */
+    html.cusade-russian .header,
+    html.cusade-russian .header__inner { min-width: 0; }
+    html.cusade-russian .header__left {
+      display: flex; align-items: center; flex: 0 0 auto;
+    }
+    html.cusade-russian .header__right { flex: 0 0 auto; white-space: nowrap; }
+    html.cusade-russian .header__middle { min-width: 72px; }
+    html.cusade-russian .header__navMenuItem { white-space: nowrap; }
+    html.cusade-russian .header__loginMenu {
+      display: flex; align-items: center; gap: 8px; flex: 0 0 auto;
+    }
+    html.cusade-russian .header__loginMenu .sc-button { margin: 0; white-space: nowrap; }
+    /* In a signed-in account the two subscription offers take the space the
+       search field needs. Keep account/navigation controls visible first. */
+    @media (max-width: 1280px) {
+      html.cusade-russian .header__upsellWrapper { display: none; }
+    }
+    @media (max-width: 1200px) {
+      html.cusade-russian .header__logo { width: 52px; }
+      html.cusade-russian .header__logoLink-wordmark { display: none; }
+      html.cusade-russian .header__logoLink-iconOnly { display: block; }
+    }
+    @media (max-width: 980px) {
+      html.cusade-russian .header__inner { padding-inline: 8px; }
+      html.cusade-russian .header__navMenuItem { font-size: 13px; padding-inline: 6px; }
+      html.cusade-russian .header__navMenuItem.sc-mr-1x { margin-right: 4px; }
+      html.cusade-russian .header__loginMenu { padding-inline: 6px; gap: 4px; }
+      html.cusade-russian .header__right { column-gap: 4px; }
+      html.cusade-russian .header__forArtistsButton {
+        max-width: 104px; overflow: hidden; text-overflow: ellipsis;
+      }
+    }
     .cusade-download { display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; }
     html.cusade-animations .cusade-download--loading svg {
       animation: cusade-download-pulse 900ms ease-in-out infinite;
@@ -75,6 +109,7 @@ function inject() {
     .cusade-download--done { color: #19a352 !important; }
     html.cusade-hide-artist-tools .newUploadBanner,
     html.cusade-hide-artist-tools .banner,
+    html.cusade-hide-artist-tools .header__upsellWrapper,
     html.cusade-hide-artist-tools .sidebarModule:has(iframe[title="Artist tools" i], iframe[src*="/n/embeds/credit-tracker"]) {
       display: none !important;
     }
