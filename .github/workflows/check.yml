@@ -19,6 +19,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run electron:install
+      - name: Configure Electron sandbox
+        if: runner.os == 'Linux'
+        run: |
+          sudo chown root:root node_modules/electron/dist/chrome-sandbox
+          sudo chmod 4755 node_modules/electron/dist/chrome-sandbox
       - name: Install UI test display
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y xvfb

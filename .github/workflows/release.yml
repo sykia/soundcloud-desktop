@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     branches: [main]
-    paths: [package.json]
+    paths: [package.json, .github/workflows/release.yml]
 
 permissions:
   contents: write
@@ -54,6 +54,11 @@ jobs:
         run: node -e "if ('v' + require('./package.json').version !== process.env.RELEASE_TAG) process.exit(1)"
       - run: npm ci
       - run: npm run electron:install
+      - name: Configure Electron sandbox
+        if: matrix.platform == 'linux'
+        run: |
+          sudo chown root:root node_modules/electron/dist/chrome-sandbox
+          sudo chmod 4755 node_modules/electron/dist/chrome-sandbox
       - run: npm run check
       - run: npm test
       - name: UI smoke (Windows)
