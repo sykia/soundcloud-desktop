@@ -86,17 +86,50 @@ function scan() {
   }
 }
 
+// A document-wide rescan is only needed when an element was inserted or
+// removed: text churn (timestamps, counters, our own button insertion) can
+// never create or destroy a button group. This keeps the observer from
+// scheduling five document-wide querySelectorAll passes on every text update.
+function needsRescan(records) {
+  for (const record of records) {
+    for (const node of record.addedNodes) {
+      if (node.nodeType === Node.ELEMENT_NODE && !node.classList.contains('cusade-download')) return true;
+    }
+    for (const node of record.removedNodes) {
+      if (node.nodeType === Node.ELEMENT_NODE) return true;
+    }
+  }
+  return false;
+}
+
 function startDownloads() {
   scan();
-  let pending = false;
-  new MutationObserver(() => {
-    if (pending) return;
-    pending = true;
-    requestAnimationFrame(() => {
-      pending = false;
-      scan();
-    });
+  const SCAN_INTERVAL_MS = 250;
+  let scheduled = false;
+  let lastScan = 0;
+  function runScan() {
+    scheduled = false;
+    lastScan = Date.now();
+    scan();
+  }
+  // At most one rescan per SCAN_INTERVAL_MS, with a trailing run so the last
+  // mutation of a burst is always processed. backgroundThrottling is off in
+  // this app, so the renderer keeps animating while the window is hidden:
+  // scans are skipped entirely there and a catch-up scan runs when the page
+  // becomes visible again.
+  function requestScan() {
+    if (scheduled || document.hidden) return;
+    const wait = SCAN_INTERVAL_MS - (Date.now() - lastScan);
+    scheduled = true;
+    if (wait > 0) setTimeout(runScan, wait);
+    else requestAnimationFrame(runScan);
+  }
+  new MutationObserver(records => {
+    if (needsRescan(records)) requestScan();
   }).observe(document.body, { childList: true, subtree: true });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') requestScan();
+  });
 }
 
 module.exports = { startDownloads };

@@ -100,6 +100,20 @@ function installFrame(config) {
   }
   let scheduled = false;
   const dirty = new Set();
+  // The frame pages (upload/studio) re-render their long lists constantly, so
+  // translated nodes and elements detach all the time. The main-page pipeline
+  // drops such entries every 30s; the injected frame copy had no cleanup, so
+  // translatedAttributes/optionValues kept detached elements — and their whole
+  // subtrees — alive for as long as the frame stayed open.
+  let lastPrune = 0;
+  function pruneDetached() {
+    const now = Date.now();
+    if (now - lastPrune < 30000) return;
+    lastPrune = now;
+    for (const [node] of translatedText) if (!node.isConnected) translatedText.delete(node);
+    for (const [element] of translatedAttributes) if (!element.isConnected) translatedAttributes.delete(element);
+    for (const [element] of optionValues) if (!element.isConnected) optionValues.delete(element);
+  }
   function schedule(root) {
     dirty.add(root);
     if (scheduled) return;
@@ -109,6 +123,7 @@ function installFrame(config) {
       if (dirty.size > 100) scan();
       else for (const node of dirty) scan(node);
       dirty.clear();
+      pruneDetached();
     });
   }
   function restore() {
