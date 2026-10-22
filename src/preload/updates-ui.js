@@ -20,18 +20,32 @@ function setCurrentUpdateState(value) {
 function renderUpdatePanel() {
   if (!hosts.updateHost || !currentUpdateState) return;
   const state = currentUpdateState;
-  if (!state.version || state.status === 'none') {
+  if (state.status === 'none') {
     hosts.updateHost.remove();
     hosts.updateHost = null;
     return;
   }
   const shadow = hosts.updateHost.shadowRoot;
-  shadow.querySelector('.version').textContent = ui(`Доступна версия ${state.version}`, `Version ${state.version} is available`);
+  shadow.querySelector('.version').textContent = state.version
+    ? ui(`Обновление ${state.version}`, `Update ${state.version}`)
+    : ui('Обновления SoundCloud Desktop', 'SoundCloud Desktop updates');
   const details = shadow.querySelector('.details');
   const action = shadow.querySelector('.action');
   const progress = shadow.querySelector('progress');
   const isPackage = ['deb', 'rpm', 'pacman'].includes(state.packageType);
-  if (state.status === 'downloading') {
+  if (state.status === 'checking') {
+    details.textContent = ui('Проверяем наличие новой версии…', 'Checking for a new version…');
+    action.textContent = ui('Проверка…', 'Checking…');
+  } else if (state.status === 'current') {
+    details.textContent = ui('Установлена последняя версия.', 'You are up to date.');
+    action.textContent = ui('Проверить ещё раз', 'Check again');
+  } else if (state.status === 'unsupported') {
+    details.textContent = state.error;
+    action.textContent = ui('Недоступно в этой сборке', 'Unavailable in this build');
+  } else if (!state.version) {
+    details.textContent = state.error || ui('Проверьте наличие обновлений.', 'Check for updates.');
+    action.textContent = ui('Повторить проверку', 'Retry check');
+  } else if (state.status === 'downloading') {
     details.textContent = ui(`Загрузка обновления: ${state.progress}%`, `Downloading update: ${state.progress}%`);
     action.textContent = ui('Загрузка…', 'Downloading…');
   } else if (state.status === 'installing') {
@@ -49,7 +63,7 @@ function renderUpdatePanel() {
         ? ui('Обновление установится в текущую папку без мастера установки. При необходимости Windows запросит права администратора.',
           'The update will install in the current folder without setup screens. Windows may request administrator access.')
         : ui('AppImage будет обновлён, затем приложение перезапустится.', 'The AppImage will update and the app will restart.'));
-    action.textContent = ui('Установить и перезапустить', 'Install and restart');
+    action.textContent = ui('Перезапустить и обновить', 'Restart and update');
   } else {
     details.textContent = state.error || (state.packageType === 'nix'
       ? ui('Обновление установится в отдельный пользовательский профиль Nix с проверкой контрольной суммы. Затем приложение перезапустится.',
@@ -57,14 +71,15 @@ function renderUpdatePanel() {
       : ui('Нажмите «Обновить», чтобы загрузить новую версию.', 'Select Update to download the new version.'));
     action.textContent = state.packageType === 'nix' ? ui('Обновить через Nix', 'Update with Nix') : ui('Обновить', 'Update');
   }
-  action.disabled = state.status === 'downloading' || state.status === 'installing';
+  action.disabled = ['checking', 'downloading', 'installing', 'unsupported'].includes(state.status);
+  shadow.querySelector('.release').hidden = !state.version;
   progress.hidden = state.status !== 'downloading';
   progress.value = state.progress || 0;
 }
 
 function showUpdatePanel(state) {
   if (state) currentUpdateState = state;
-  if (!currentUpdateState?.version) return;
+  if (!currentUpdateState || currentUpdateState.status === 'none') return;
   if (!document.body) {
     document.addEventListener('DOMContentLoaded', () => showUpdatePanel(), { once: true });
     return;
@@ -115,7 +130,9 @@ function showUpdatePanel(state) {
       if (!event.isTrusted) return;
       const action = shadow.querySelector('.action');
       action.disabled = true;
-      try { currentUpdateState = await ipcRenderer.invoke(CHANNEL.runUpdate); }
+      try {
+        currentUpdateState = await ipcRenderer.invoke(currentUpdateState.version ? CHANNEL.runUpdate : CHANNEL.checkUpdates);
+      }
       catch (error) {
         shadow.querySelector('.details').textContent = ui('Не удалось начать обновление.', 'Could not start the update.');
         console.error('Could not run update:', error);

@@ -16,6 +16,66 @@ const pendingEnterElements = new Set();
 let enterIntersection = null;
 let enterWatcher = null;
 let revealedElements = new WeakSet();
+let scrollFrame = 0;
+let scrollTarget = 0;
+let scrollLastTime = 0;
+let scrollExpected = 0;
+let scrollPosition = 0;
+
+function stopSmoothScroll() {
+  cancelAnimationFrame(scrollFrame);
+  scrollFrame = 0;
+}
+
+function smoothScrollTick(time) {
+  if (!motionActive() || document.hidden || Math.abs(window.scrollY - scrollExpected) > 3) {
+    stopSmoothScroll();
+    return;
+  }
+  const dt = Math.min(64, Math.max(1, time - scrollLastTime));
+  scrollLastTime = time;
+  const max = Math.max(0, document.scrollingElement.scrollHeight - innerHeight);
+  scrollTarget = Math.max(0, Math.min(max, scrollTarget));
+  const remaining = scrollTarget - scrollPosition;
+  const next = Math.abs(remaining) < .5 ? scrollTarget : scrollPosition + remaining * (1 - Math.exp(-dt / 90));
+  scrollPosition = next;
+  window.scrollTo({ top: next, behavior: 'instant' });
+  scrollExpected = window.scrollY;
+  if (Math.abs(scrollTarget - scrollExpected) < .5) stopSmoothScroll();
+  else scrollFrame = requestAnimationFrame(smoothScrollTick);
+}
+
+function onSmoothWheel(event) {
+  if (!motionActive() || event.defaultPrevented || !event.cancelable || event.ctrlKey ||
+      event.metaKey || event.shiftKey || Math.abs(event.deltaX) > Math.abs(event.deltaY) || !event.deltaY) return;
+  // Leave dialogs, shadow panels and nested scroll containers to their owners.
+  for (const node of event.composedPath()) {
+    if (!(node instanceof Element)) continue;
+    if (node.matches(CUSADE_OWNED) || node.matches('[role="dialog"], input, textarea, select, [contenteditable="true"]')) return;
+    if (node === document.body || node === document.documentElement) break;
+    const style = getComputedStyle(node);
+    if (/(auto|scroll)/.test(style.overflowY) && node.scrollHeight > node.clientHeight + 1) return;
+  }
+  const max = Math.max(0, document.scrollingElement.scrollHeight - innerHeight);
+  const delta = event.deltaY * (event.deltaMode === 1 ? 20 : event.deltaMode === 2 ? innerHeight : 1);
+  if (!scrollFrame) scrollTarget = window.scrollY;
+  const next = Math.max(0, Math.min(max, scrollTarget + delta));
+  if (next === scrollTarget && !scrollFrame) return;
+  event.preventDefault();
+  scrollTarget = next;
+  if (!scrollFrame) {
+    scrollExpected = window.scrollY;
+    scrollPosition = window.scrollY;
+    scrollLastTime = performance.now();
+    scrollFrame = requestAnimationFrame(smoothScrollTick);
+  }
+}
+
+document.addEventListener('wheel', onSmoothWheel, { passive: false });
+document.addEventListener('pointerdown', stopSmoothScroll, true);
+document.addEventListener('keydown', stopSmoothScroll, true);
+document.addEventListener('visibilitychange', stopSmoothScroll);
+globalThis.addEventListener?.('pagehide', stopSmoothScroll);
 
 function watchEnterTarget(element) {
   if (pendingEnterElements.has(element) || revealedElements.has(element) ||
@@ -30,7 +90,7 @@ function watchEnterTarget(element) {
       enterIntersection.unobserve(entry.target);
       pendingEnterElements.delete(entry.target);
     }
-  }, { rootMargin: '160px 0px' });
+  }, { rootMargin: '0px 0px -24px 0px', threshold: 0 });
   enterIntersection.observe(element);
 }
 
@@ -128,6 +188,7 @@ function updateEnterWatcher() {
     return;
   }
   enterWatcher?.disconnect();
+  stopSmoothScroll();
   enterIntersection?.disconnect();
   for (const element of document.querySelectorAll('.cusade-enter-target')) {
     element.classList.remove('cusade-enter-target');

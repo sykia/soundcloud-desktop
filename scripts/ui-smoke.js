@@ -101,6 +101,50 @@ app.whenReady().then(async () => {
   assert.equal(settings.getSettings().animations, true);
   console.log('PASS: animation toggle, cancellation, re-enable, persistence');
 
+  await evaluate(`(()=>{const pad=document.createElement('div');pad.id='scroll-fixture';pad.style.height='5000px';document.body.append(pad);window.scrollTo(0,0);})()`);
+  for (const [deltaY, deltaMode, target] of [[480, 0, 480], [12, 1, 240], [1, 2, null]]) {
+    await evaluate('window.scrollTo(0,0)');
+    await sleep(50);
+    const expected = target ?? await evaluate('innerHeight');
+    assert.equal(await evaluate(`document.body.dispatchEvent(new WheelEvent('wheel',{deltaY:${deltaY},deltaMode:${deltaMode},bubbles:true,cancelable:true}))`), false);
+    await waitFor('scrollY>0', 'Wheel did not start');
+    const midway = await evaluate('scrollY');
+    assert.ok(midway > 0 && midway < expected, `Wheel must interpolate, got ${midway}/${expected}`);
+    await waitFor(`Math.abs(scrollY-${expected})<=1`, 'Wheel did not settle');
+  }
+  for (const extra of ['ctrlKey:true', 'deltaX:500', 'shiftKey:true']) {
+    assert.equal(await evaluate(`document.body.dispatchEvent(new WheelEvent('wheel',{deltaY:100,${extra},bubbles:true,cancelable:true}))`), true);
+  }
+  await evaluate(`(()=>{const pane=document.createElement('div');pane.id='nested-scroll';pane.style.cssText='height:60px;overflow-y:auto';pane.innerHTML='<div style="height:300px">nested</div>';document.body.prepend(pane);})()`);
+  assert.equal(await evaluate(`document.querySelector('#nested-scroll').dispatchEvent(new WheelEvent('wheel',{deltaY:100,bubbles:true,cancelable:true}))`), true);
+  await evaluate(`document.querySelector('#nested-scroll').remove()`);
+  console.log('PASS: pixel/line/page wheel, zoom, horizontal gestures and nested scrollers');
+
+  // Exercise actual history traversal, including a list that arrives after
+  // popstate. This runs in the real isolated preload on Linux and Windows.
+  await evaluate(`history.pushState({},'', '/feed')`);
+  await waitFor(`document.documentElement.classList.contains('cusade-page-feed')`, 'Feed route not ready');
+  await evaluate('window.scrollTo(0,720)');
+  await sleep(100);
+  await evaluate(`history.pushState({},'', '/artist/track')`);
+  await waitFor(`location.pathname==='/artist/track'`, 'Track route not ready');
+  await sleep(100);
+  await evaluate('window.scrollTo(0,0)');
+  await sleep(100);
+  await evaluate(`document.querySelector('#scroll-fixture').style.height='0px';history.back();setTimeout(()=>{document.querySelector('#scroll-fixture').style.height='5000px';},250)`);
+  await waitFor(`location.pathname==='/feed' && Math.abs(scrollY-720)<=1`, 'Back did not restore the delayed feed');
+  await sleep(650);
+  await evaluate('history.forward()');
+  await waitFor(`location.pathname==='/artist/track' && scrollY===0`, 'Forward did not restore track position');
+  await sleep(650);
+  await evaluate('history.back()');
+  await waitFor(`location.pathname==='/feed' && Math.abs(scrollY-720)<=1`, 'Second back lost feed position');
+  await evaluate(`document.body.dispatchEvent(new WheelEvent('wheel',{deltaY:0,bubbles:true,cancelable:true}));window.scrollTo(0,300)`);
+  await sleep(200);
+  assert.equal(await evaluate('scrollY'),300,'Restoration fought user input');
+  await evaluate(`document.querySelector('#scroll-fixture').remove()`);
+  console.log('PASS: back/forward position, delayed list and user cancellation');
+
   win.webContents.debugger.attach('1.3');
   const command = (method, params) => win.webContents.debugger.sendCommand(method, params);
   await command('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
@@ -109,6 +153,7 @@ app.whenReady().then(async () => {
   assert.match(await evaluate(`getComputedStyle(document.querySelector('.playableTile')).transitionDuration`), /0\.36s/);
   await setToggle('respect-system-motion', true);
   await waitFor(`!document.documentElement.classList.contains('cusade-animations')`, 'System reduced motion not respected');
+  assert.equal(await evaluate(`document.body.dispatchEvent(new WheelEvent('wheel',{deltaY:100,bubbles:true,cancelable:true}))`), true);
   await command('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'no-preference' }] });
   await waitFor(`document.documentElement.classList.contains('cusade-animations')`, 'Effects not restored after system preference change');
   console.log('PASS: both system motion preferences and CSS reset override');
@@ -137,6 +182,39 @@ app.whenReady().then(async () => {
   win.webContents.debugger.detach();
   assert.deepEqual(failures.filter(message => !message.includes('ERR_BLOCKED_BY_CLIENT')), []);
   console.log('PASS: Russian header at 800, 960, 1280px; no preload errors');
+  for (const [status, version, ready] of [
+    ['checking', '', false], ['current', '', false], ['error', '', false],
+    ['downloading', '0.5.6', false], ['ready', '0.5.6', true]
+  ]) {
+    win.webContents.send(CHANNEL.showUpdate, { status, version, ready, progress: 42, packageType: 'win', error: status === 'error' ? 'Ошибка сети' : '' });
+    await waitFor(`!!document.querySelector('#cusade-update-host')?.shadowRoot`, 'Update card missing');
+    await sleep(50);
+    const card = await evaluate(`(()=>{const s=document.querySelector('#cusade-update-host').shadowRoot;return {text:s.querySelector('.details').textContent,disabled:s.querySelector('.action').disabled,progress:s.querySelector('progress').hidden,release:s.querySelector('.release').hidden};})()`);
+    assert.equal(card.disabled, ['checking', 'downloading'].includes(status));
+    assert.equal(card.progress, status !== 'downloading');
+    assert.equal(card.release, !version);
+    if (ready) assert.match(card.text, /без мастера установки/);
+    if (status === 'error') assert.equal(card.text, 'Ошибка сети');
+    await evaluate(`document.querySelector('#cusade-update-host').shadowRoot.querySelector('.close').click()`);
+  }
+  console.log('PASS: update checking, up-to-date, error, download progress and restart card');
+  await evaluate(`(()=>{const row=document.createElement('div');row.className='sound';row.id='download-check';row.innerHTML='<a class="soundTitle__title" href="/artist/track"></a><div class="sound__footer"><div class="sc-button-group"></div></div>';document.body.append(row);})()`);
+  await waitFor(`!!document.querySelector('#download-check .cusade-download')`, 'Dynamic download button missing');
+  await evaluate(`document.querySelector('#download-check .cusade-download').remove()`);
+  await waitFor(`!!document.querySelector('#download-check .cusade-download')`, 'Removed download button not restored');
+  win.hide();
+  await sleep(150);
+  await evaluate(`(()=>{const row=document.querySelector('#download-check').cloneNode(true);row.id='download-background';row.querySelector('.cusade-download').remove();document.body.append(row);})()`);
+  await sleep(400);
+  assert.equal(await evaluate(`!!document.querySelector('#download-background .cusade-download')`), false, 'Downloads observer still scans a hidden window');
+  win.show();
+  await waitFor(`!!document.querySelector('#download-background .cusade-download')`, 'Downloads did not catch up on window show');
+  await evaluate(`(()=>{const row=document.querySelector('#download-check').cloneNode(true);row.id='download-href';row.querySelector('.cusade-download').remove();row.querySelector('a').href='/discover';document.body.append(row);})()`);
+  await sleep(350);
+  assert.equal(await evaluate(`!!document.querySelector('#download-href .cusade-download')`),false);
+  await evaluate(`document.querySelector('#download-href a').href='/artist/another-track'`);
+  await waitFor(`!!document.querySelector('#download-href .cusade-download')`, 'Href-only update not scanned');
+  console.log('PASS: dynamic downloads, removed button repair, hidden-window pause, catch-up and href mutations');
 }).catch(error => { console.error(error); process.exitCode = 1; }).finally(() => {
   clearTimeout(timeout);
   autoTranslate.teardown();

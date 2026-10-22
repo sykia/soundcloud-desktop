@@ -184,8 +184,9 @@ function togglePanel() {
       .radius-setting output { color: var(--font-secondary-color, #aaa); text-align: right; font: 12px ui-monospace, monospace; }
       .status { min-height: 0; margin: 8px 0 0; color: var(--font-error-color, #ff9165); font-size: 12px; }
       .status:empty { display: none; }
-      .insights-restore button { margin-top: 9px; padding: 8px 12px; border: 0; border-radius: 7px;
+      .insights-restore button, .check-updates { margin-top: 9px; padding: 8px 12px; border: 0; border-radius: 7px;
         background: var(--cusade-accent, #ff5500); color: #fff; font: 600 12px system-ui; cursor: pointer; }
+      .check-updates:disabled { opacity: .6; cursor: wait; }
       :host(.cusade-animations) { --cusade-hover: 360ms cubic-bezier(.3,.62,.36,1); }
       :host(.cusade-animations) .panel { animation: cusade-panel-in 360ms cubic-bezier(.3,.62,.36,1) both; }
       /* The lift and the colour changes animate, the panel wide shadows do not:
@@ -214,6 +215,7 @@ function togglePanel() {
       </div>
       <div class="section">
         <h3 class="section-title">${ui('Настройки мода', 'Mod settings')}</h3>
+        <button class="check-updates" type="button">${ui('Проверить обновления', 'Check for updates')}</button>
         <div class="insights-restore" hidden><span class="hint"></span><button type="button">${ui('Показать Insights сейчас', 'Show Insights now')}</button></div>
         <label class="setting">
           <span><span class="setting-name">${ui('Скрыть Artist tools', 'Hide Artist tools')}</span>
@@ -298,6 +300,14 @@ function togglePanel() {
       </div>
     </div>`;
   shadow.querySelector('.close').addEventListener('click', closePanel);
+  shadow.querySelector('.check-updates').addEventListener('click', async event => {
+    if (!event.isTrusted) return;
+    const button = event.currentTarget;
+    button.disabled = true;
+    try { await ipcRenderer.invoke(CHANNEL.checkUpdates); }
+    catch (error) { shadow.querySelector('.status').textContent = ui('Не удалось проверить обновления.', 'Could not check for updates.'); }
+    finally { button.disabled = false; }
+  });
   shadow.querySelector('.insights-restore button').addEventListener('click', async () => {
     try {
       await ipcRenderer.invoke(CHANNEL.showInsights);

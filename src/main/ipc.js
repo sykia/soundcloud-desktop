@@ -46,6 +46,11 @@ function register() {
     if (!isMainSoundCloudPage(event.sender)) throw new Error('Unavailable');
     return getSettings();
   });
+  ipcMain.handle(CHANNEL.getWindowActive, event => {
+    if (!isMainSoundCloudPage(event.sender)) throw new Error('Unavailable');
+    const win = getMainWindow();
+    return Boolean(win && win.isVisible() && !win.isMinimized());
+  });
 
   ipcMain.handle(CHANNEL.getSiteLocale, event => {
     if (!isMainSoundCloudPage(event.sender)) throw new Error('Unavailable');
@@ -62,6 +67,14 @@ function register() {
   ipcMain.handle(CHANNEL.runUpdate, event => {
     if (!isMainSoundCloudPage(event.sender)) throw new Error('Unavailable');
     return updates.runUpdateAction();
+  });
+  ipcMain.handle(CHANNEL.checkUpdates, event => {
+    if (!isMainSoundCloudPage(event.sender)) throw new Error('Unavailable');
+    return updates.checkForUpdates(true);
+  });
+  ipcMain.handle(CHANNEL.getUpdateState, event => {
+    if (!isMainSoundCloudPage(event.sender)) throw new Error('Unavailable');
+    return updates.updateState();
   });
 
   ipcMain.handle(CHANNEL.openUpdateRelease, event => {

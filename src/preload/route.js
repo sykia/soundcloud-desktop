@@ -10,6 +10,7 @@ const { ipcRenderer } = require('electron');
 const { CHANNEL } = require('../../shared/ipc.js');
 const { syncPageScope } = require('./page-scope.js');
 const { scheduleLocalization } = require('./localization.js');
+const { installScrollHistory } = require('./scroll-history.js');
 
 // Page transitions. SoundCloud routes inside its SPA with history.pushState, so
 // a route change is caught there; a full page load only gets the intro reveal.
@@ -81,6 +82,7 @@ function onRouteChanged() {
 function installRouteWatch() {
   if (routeWatchReady) return;
   routeWatchReady = true;
+  installScrollHistory();
   routeLastUrl = location.href;
   ipcRenderer.on(CHANNEL.siteNavigation, onRouteChanged);
   addEventListener('popstate', onRouteChanged);

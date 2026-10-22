@@ -11,6 +11,7 @@ const { CHANNEL } = require('../../shared/ipc.js');
 const { state } = require('./state.js');
 const { chooseSourceLanguage } = require('./source-language.js');
 const { hosts } = require('./hosts.js');
+const { isWindowActive, onWindowActivity } = require('./activity.js');
 
 const { inject } = require('./styles.js');
 const {
@@ -144,9 +145,12 @@ onSettingsLoaded.add(() => {
 // page-visible resync and Discord presence, on the original intervals.
 setInterval(() => {
   syncInsightsPlayback();
-  syncVisiblePlayback();
+  if (isWindowActive()) syncVisiblePlayback();
 }, 1000);
-setInterval(syncVisiblePage, 2500);
+setInterval(() => { if (isWindowActive()) syncVisiblePage(); }, 2500);
+onWindowActivity(active => {
+  if (active) { syncVisiblePage(); syncVisiblePlayback(); }
+});
 setInterval(() => {
   syncDiscordPresence();
 }, 5000);
@@ -212,6 +216,10 @@ function boot() {
   installRouteWatch();
   scheduleLocalization();
   loadSettings();
+  ipcRenderer.invoke(CHANNEL.getUpdateState).then(value => {
+    setCurrentUpdateState(value);
+    renderUpdatePanel();
+  }).catch(error => console.error('Could not read update state:', error));
 }
 
 if (document.readyState === 'loading') {

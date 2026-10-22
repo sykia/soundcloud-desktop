@@ -28,6 +28,7 @@ let manualUpdateCheck = false;
 let updateTimer;
 let initialUpdateTimer;
 let refreshHook = null;
+let stopped = false;
 const nixInstallation = isNixInstallation();
 
 function attachRefresh(fn) {
@@ -69,7 +70,6 @@ function publishUpdateState() {
 }
 
 function showUpdatePanel() {
-  if (!availableUpdateVersion) return;
   showMainWindow();
   const contents = getMainWindow()?.webContents;
   if (!contents) return;
@@ -79,20 +79,39 @@ function showUpdatePanel() {
 }
 
 async function checkForUpdates(manual = false) {
-  if (!updater || updateCheckRunning || updateDownloadRunning || updateReady || updateStatus === 'installing') return;
+  if (!updater) {
+    if (manual) {
+      updateStatus = 'unsupported';
+      updateError = 'Автообновление доступно в установленной сборке. Запуск из исходников обновляется через Git.';
+      publishUpdateState();
+      showUpdatePanel();
+    }
+    return updateState();
+  }
+  if (updateCheckRunning || updateDownloadRunning || updateReady || updateStatus === 'installing') {
+    if (manual) showUpdatePanel();
+    return updateState();
+  }
   manualUpdateCheck = manual;
   updateCheckRunning = true;
-  refreshHook?.();
+  updateStatus = 'checking';
+  updateError = '';
+  publishUpdateState();
+  if (manual) showUpdatePanel();
   try {
     await updater.checkForUpdates();
   } catch (error) {
     console.error('Could not check for updates:', error);
+    updateStatus = 'error';
+    updateError = 'Не удалось проверить обновления. Проверьте подключение и повторите попытку.';
+    publishUpdateState();
     if (manual) showUpdateNotice('Не удалось проверить обновления. Попробуйте позже.');
   } finally {
     updateCheckRunning = false;
     manualUpdateCheck = false;
-    refreshHook?.();
+    publishUpdateState();
   }
+  return updateState();
 }
 
 async function runUpdateAction() {
@@ -162,11 +181,20 @@ async function runUpdateAction() {
 }
 
 function setupUpdates() {
+  if (updater) return;
   if (!app.isPackaged || !['win32', 'linux'].includes(process.platform)) return;
+  stopped = false;
   if (nixInstallation) updater = new NixUpdater({ version: app.getVersion(), home: app.getPath('home') });
   else ({ autoUpdater: updater } = require('electron-updater'));
   updater.autoDownload = false;
   updater.autoInstallOnAppQuit = false;
+  // Match the API of the pinned electron-updater 6.x. Keep normal quits and
+  // OS shutdowns free of installation; only the explicit restart button applies it.
+  updater.allowDowngrade = false;
+  if (process.platform === 'win32') {
+    updater.disableDifferentialDownload = false;
+    updater.disableWebInstaller = true;
+  }
   updater.on('update-available', info => {
     const isNewVersion = availableUpdateVersion !== info.version;
     availableUpdateVersion = info.version;
@@ -178,11 +206,18 @@ function setupUpdates() {
       showUpdateNotice(`Доступна версия ${info.version}. Нажмите, чтобы открыть обновление.`, showUpdatePanel);
     }
     publishUpdateState();
+    if (process.platform === 'win32' && !updateReady && !updateDownloadRunning) {
+      setImmediate(() => {
+        if (!stopped && !updateReady && !updateDownloadRunning && updateStatus === 'available') {
+          runUpdateAction().catch(error => console.error('Automatic download failed:', error));
+        }
+      });
+    }
   });
   updater.on('update-not-available', () => {
     availableUpdateVersion = '';
     updateReady = false;
-    updateStatus = 'none';
+    updateStatus = 'current';
     updateError = '';
     if (manualUpdateCheck) showUpdateNotice('Установлена последняя версия.');
     publishUpdateState();
@@ -211,6 +246,10 @@ function setupUpdates() {
         ? 'Не удалось установить обновление. Попробуйте снова или откройте страницу релиза.'
         : 'Не удалось загрузить обновление. Попробуйте снова или откройте страницу релиза.';
       publishUpdateState();
+    } else {
+      updateStatus = 'error';
+      updateError = 'Не удалось проверить обновления. Проверьте подключение и повторите попытку.';
+      publishUpdateState();
     }
   });
   initialUpdateTimer = setTimeout(() => checkForUpdates(), 15000);
@@ -232,6 +271,7 @@ function getAvailableVersion() {
 }
 
 function teardown() {
+  stopped = true;
   clearTimeout(initialUpdateTimer);
   clearInterval(updateTimer);
   updater?.teardown?.();

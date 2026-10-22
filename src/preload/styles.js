@@ -456,7 +456,7 @@ function inject() {
     /* Applied to items the enter observer has seen reach the viewport, so a feed
        that renders hundreds of rows promotes only the visible ones. */
     html.cusade-animations.cusade-enter .cusade-enter-target {
-      animation: cusade-content-enter 400ms cubic-bezier(.3,.62,.36,1) backwards;
+      animation: cusade-scroll-reveal 650ms cubic-bezier(.16,1,.3,1) backwards;
     }
     html.cusade-animations :is(.soundList__item, .searchList__item, .trackList__item,
       .usersList__item, .soundBadgeList__item, .commentBadgeList__item,
@@ -568,6 +568,10 @@ function inject() {
     html.cusade-animations .cusade-route--sweep .cusade-route__bar { opacity: 1; transform: scaleX(1); }
     @keyframes cusade-content-enter {
       from { opacity: 0; transform: translateY(9px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes cusade-scroll-reveal {
+      from { opacity: 0; transform: translateY(28px); }
       to { opacity: 1; transform: translateY(0); }
     }
     @keyframes cusade-action-pop {

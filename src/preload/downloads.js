@@ -3,6 +3,7 @@
 const { ipcRenderer } = require('electron');
 const { CHANNEL } = require('../../shared/ipc.js');
 const { ui } = require('./localization-dict.js');
+const { isWindowActive, onWindowActivity } = require('./activity.js');
 
 const ICON = '<svg viewBox="0 0 24 24" aria-hidden="true" width="18" height="18" fill="none"><path d="M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const DONE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true" width="18" height="18" fill="none"><path d="m4 12 5 5L20 6" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -78,39 +79,32 @@ function addButton(group, getUrl) {
   group.insertBefore(button, more || null);
 }
 
-function scan() {
+function scan(root = document) {
   for (const [selector, getUrl] of TARGETS) {
-    for (const group of document.querySelectorAll(selector)) {
+    const groups = root.matches?.(selector) ? [root, ...root.querySelectorAll(selector)] : root.querySelectorAll(selector);
+    for (const group of groups) {
       if (trackUrl(getUrl(group))) addButton(group, () => getUrl(group));
     }
   }
 }
 
-// A document-wide rescan is only needed when an element was inserted or
-// removed: text churn (timestamps, counters, our own button insertion) can
-// never create or destroy a button group. This keeps the observer from
-// scheduling five document-wide querySelectorAll passes on every text update.
-function needsRescan(records) {
-  for (const record of records) {
-    for (const node of record.addedNodes) {
-      if (node.nodeType === Node.ELEMENT_NODE && !node.classList.contains('cusade-download')) return true;
-    }
-    for (const node of record.removedNodes) {
-      if (node.nodeType === Node.ELEMENT_NODE) return true;
-    }
-  }
-  return false;
-}
-
+// Batch changed track containers instead of rescanning the entire feed.
 function startDownloads() {
-  scan();
   const SCAN_INTERVAL_MS = 250;
   let scheduled = false;
   let lastScan = 0;
+  let timer = 0;
+  let frame = 0;
+  const dirty = new Set();
   function runScan() {
     scheduled = false;
+    if (!isWindowActive() || document.hidden) return;
     lastScan = Date.now();
-    scan();
+    const roots = [...dirty];
+    dirty.clear();
+    for (const root of roots) {
+      if (root.isConnected && !roots.some(parent => parent !== root && parent.contains(root))) scan(root);
+    }
   }
   // At most one rescan per SCAN_INTERVAL_MS, with a trailing run so the last
   // mutation of a burst is always processed. backgroundThrottling is off in
@@ -118,17 +112,45 @@ function startDownloads() {
   // scans are skipped entirely there and a catch-up scan runs when the page
   // becomes visible again.
   function requestScan() {
-    if (scheduled || document.hidden) return;
+    if (scheduled || document.hidden || !isWindowActive()) return;
     const wait = SCAN_INTERVAL_MS - (Date.now() - lastScan);
     scheduled = true;
-    if (wait > 0) setTimeout(runScan, wait);
-    else requestAnimationFrame(runScan);
+    if (wait > 0) timer = setTimeout(runScan, wait);
+    else frame = requestAnimationFrame(runScan);
   }
-  new MutationObserver(records => {
-    if (needsRescan(records)) requestScan();
-  }).observe(document.body, { childList: true, subtree: true });
+  const observer = new MutationObserver(records => {
+    for (const record of records) {
+      if (record.target.closest?.('.cusade-download')) continue;
+      if (record.type === 'childList' && !record.removedNodes.length && record.addedNodes.length &&
+          [...record.addedNodes].every(node => node.nodeType !== Node.ELEMENT_NODE || node.classList.contains('cusade-download'))) continue;
+      const owner = record.target.closest?.('.sound, .trackItem, .soundList__item, .searchItem, .listenEngagement');
+      if (owner) dirty.add(owner);
+      else for (const node of record.addedNodes) {
+        if (node.nodeType === Node.ELEMENT_NODE && !node.classList.contains('cusade-download')) dirty.add(node);
+      }
+      if (dirty.size > 100) { dirty.clear(); dirty.add(document.body); break; }
+    }
+    if (dirty.size) requestScan();
+  });
+  function resume() {
+    if (!isWindowActive() || document.hidden) return;
+    // Catch everything inserted while disconnected, then watch only new work.
+    scan();
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['href'] });
+  }
+  onWindowActivity(active => {
+    if (active) resume();
+    else {
+      observer.disconnect();
+      clearTimeout(timer);
+      cancelAnimationFrame(frame);
+      scheduled = false;
+      dirty.clear();
+    }
+  });
+  resume();
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') requestScan();
+    if (document.visibilityState === 'visible') resume();
   });
 }
 

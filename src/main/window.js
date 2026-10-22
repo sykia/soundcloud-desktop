@@ -128,6 +128,10 @@ function createWindow(hidden = false) {
   });
 
   const contents = mainWindow.webContents;
+  const publishActivity = () => sendToRenderer(CHANNEL.windowActive,
+    mainWindow.isVisible() && !mainWindow.isMinimized());
+  for (const event of ['show', 'hide', 'minimize', 'restore']) mainWindow.on(event, publishActivity);
+  contents.on('did-finish-load', publishActivity);
   // Observe the site's history in Electron, outside the isolated preload world.
   // Subframe navigation must not change the main page's translation context.
   contents.on('did-navigate-in-page', (_event, url, isMainFrame) => {
