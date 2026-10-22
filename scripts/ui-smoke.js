@@ -77,6 +77,10 @@ app.whenReady().then(async () => {
   win = windowModule.getMainWindow();
   win.show();
   win.focus();
+  await waitFor(`document.documentElement.classList.contains('cusade-russian')`, 'Saved Russian setting not initialized');
+  // Xvfb has no window manager to guarantee the first compositor frame on map.
+  // Capture requests a real frame before testing IntersectionObserver reveals.
+  await win.webContents.capturePage();
   await waitFor(`document.documentElement.classList.contains('cusade-russian') && document.querySelector('.playableTile')?.classList.contains('cusade-enter-target')`, 'Existing cards or saved Russian setting not initialized');
   assert.equal(await evaluate(`document.querySelector('h1').textContent`), 'Открывайте треки и плейлисты');
   assert.equal(await evaluate(`document.querySelector('.playableTile__title').textContent`), 'Home');
