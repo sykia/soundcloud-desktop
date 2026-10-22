@@ -6,6 +6,7 @@
 
 const fs = require('node:fs');
 const { once } = require('node:events');
+const { finished } = require('node:stream/promises');
 const { dialog, net, session } = require('electron');
 
 const API = 'https://api-v2.soundcloud.com';
@@ -102,6 +103,7 @@ function parsePlaylist(body, baseUrl) {
 async function writeResponse(response, output, counter) {
   if (!response.body) throw new Error('SoundCloud вернул пустой файл.');
   for await (const chunk of response.body) {
+    if (output.destroyed) throw output.errored || new Error('Не удалось записать файл.');
     counter.bytes += chunk.length;
     if (counter.bytes > MAX_BYTES) throw new Error('Файл слишком большой.');
     if (!output.write(chunk)) await once(output, 'drain');
@@ -110,6 +112,10 @@ async function writeResponse(response, output, counter) {
 
 async function saveSource(source, target) {
   const output = fs.createWriteStream(target, { flags: 'wx' });
+  const closed = new Promise(resolve => output.once('close', resolve));
+  const completed = finished(output);
+  // Observe early filesystem errors even while network requests are pending.
+  completed.catch(() => {});
   const counter = { bytes: 0 };
   try {
     const response = await getResponse(source.url);
@@ -124,9 +130,13 @@ async function saveSource(source, target) {
     }
     if (!counter.bytes) throw new Error('SoundCloud вернул пустой файл.');
     output.end();
-    await once(output, 'finish');
+    await completed;
+    await closed;
   } catch (error) {
     output.destroy();
+    // destroy() may run before the asynchronous open creates the file. Wait
+    // for close before unlinking, otherwise Linux can leave a late .part file.
+    await closed;
     await fs.promises.unlink(target).catch(() => {});
     throw error;
   }
