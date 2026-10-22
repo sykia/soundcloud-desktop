@@ -48,7 +48,8 @@ async function waitFor(expression, message) {
     if (await evaluate(expression)) return;
     await sleep(50);
   }
-  throw new Error(message);
+  const diagnostics = await evaluate(`({url:location.href,ready:document.readyState,classes:document.documentElement.className,hidden:document.hidden,viewport:[innerWidth,innerHeight],tile:document.querySelector('.playableTile')?.getBoundingClientRect().toJSON()})`);
+  throw new Error(`${message}: ${JSON.stringify({ ...diagnostics, visible:win.isVisible(), minimized:win.isMinimized(), failures })}`);
 }
 async function setToggle(id, value) {
   await waitFor(`!!document.querySelector('#cusade-panel-host')?.shadowRoot?.querySelector('#${id}') && !document.querySelector('#cusade-panel-host').shadowRoot.querySelector('#${id}').disabled`, `${id} not ready`);
@@ -74,6 +75,8 @@ app.whenReady().then(async () => {
   ipcMain.handle(CHANNEL.getSettings, async () => { await sleep(250); return settings.getSettings(); });
   windowModule.createWindow();
   win = windowModule.getMainWindow();
+  win.show();
+  win.focus();
   await waitFor(`document.documentElement.classList.contains('cusade-russian') && document.querySelector('.playableTile')?.classList.contains('cusade-enter-target')`, 'Existing cards or saved Russian setting not initialized');
   assert.equal(await evaluate(`document.querySelector('h1').textContent`), 'Открывайте треки и плейлисты');
   assert.equal(await evaluate(`document.querySelector('.playableTile__title').textContent`), 'Home');

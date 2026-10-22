@@ -16,6 +16,7 @@
     "test": "node --test scripts/localization.test.js scripts/localization.integration.test.js scripts/frame-localization.test.js scripts/catalog-generation.test.js scripts/linux-package-install.test.js scripts/downloads.test.js scripts/nix-updates.test.js scripts/updates.test.js",
     "test:ui": "node build.js && electron scripts/ui-smoke.js",
     "test:downloads": "node --test scripts/downloads.test.js",
+    "test:ui:linux": "xvfb-run --auto-servernum npm run test:ui",
     "electron:install": "install-electron --no",
     "build": "node build.js",
     "build:watch": "node build.js --watch",
