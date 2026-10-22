@@ -16,7 +16,7 @@
     "test": "node --test scripts/localization.test.js scripts/localization.integration.test.js scripts/frame-localization.test.js scripts/catalog-generation.test.js scripts/linux-package-install.test.js scripts/downloads.test.js scripts/nix-updates.test.js scripts/updates.test.js",
     "test:ui": "node build.js && electron scripts/ui-smoke.js",
     "test:downloads": "node --test scripts/downloads.test.js",
-    "test:ui:linux": "xvfb-run --auto-servernum npm run test:ui",
+    "test:ui:linux": "xvfb-run --auto-servernum --server-args=\"-screen 0 1280x1024x24\" npm run test:ui",
     "test:release": "npm run check && npm test && npm run test:ui",
     "electron:install": "install-electron --no",
     "build": "node build.js",

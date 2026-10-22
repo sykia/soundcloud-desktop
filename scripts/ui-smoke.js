@@ -3,6 +3,9 @@
 // Runs the real sandboxed preload against a local SoundCloud-shaped fixture.
 // No network, login, or user profile is needed. CI runs this on Linux + Windows.
 const { app, ipcMain, session } = require('electron');
+// Hosted Linux runners have no physical display/GPU. Keep this functional
+// fixture deterministic under Xvfb; production hardware acceleration is untouched.
+if (process.platform === 'linux' && process.env.CI === 'true') app.disableHardwareAcceleration();
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
@@ -78,9 +81,6 @@ app.whenReady().then(async () => {
   win.show();
   win.focus();
   await waitFor(`document.documentElement.classList.contains('cusade-russian')`, 'Saved Russian setting not initialized');
-  // Xvfb has no window manager to guarantee the first compositor frame on map.
-  // Capture requests a real frame before testing IntersectionObserver reveals.
-  await win.webContents.capturePage();
   await waitFor(`document.documentElement.classList.contains('cusade-russian') && document.querySelector('.playableTile')?.classList.contains('cusade-enter-target')`, 'Existing cards or saved Russian setting not initialized');
   assert.equal(await evaluate(`document.querySelector('h1').textContent`), 'Открывайте треки и плейлисты');
   assert.equal(await evaluate(`document.querySelector('.playableTile__title').textContent`), 'Home');
