@@ -186,12 +186,12 @@ app.whenReady().then(async () => {
   assert.ok(savedCompanionPosition.x > .2 && savedCompanionPosition.y < 1, 'Dropped position was not persisted');
   assert.equal(await evaluate(`document.querySelector('#cusade-companion-host').shadowRoot.querySelector('button').dataset.pose`), 'think', 'Dragging incorrectly triggered pet reaction');
   // A replaced SPA card must stop being a support, even if its replacement looks identical.
-  await evaluate(`(()=>{const old=document.querySelector('#companion-platform');const next=old.cloneNode();next.style.top='620px';old.replaceWith(next);const pad=document.createElement('div');pad.id='companion-scroll-pad';pad.style.height='1800px';document.body.append(pad);})()`);
-  await waitFor(`Math.abs(document.querySelector('#cusade-companion-host').getBoundingClientRect().y + 92 - 620)<2 && !document.querySelector('#cusade-companion-host').dataset.airborne`, 'Companion did not fall from removed support');
-  await evaluate('window.scrollTo(0,60)');
+  await evaluate(`(()=>{const old=document.querySelector('#companion-platform');const next=old.cloneNode();next.style.top='600px';old.replaceWith(next);const pad=document.createElement('div');pad.id='companion-scroll-pad';pad.style.height='1800px';document.body.append(pad);})()`);
+  await waitFor(`Math.abs(document.querySelector('#cusade-companion-host').getBoundingClientRect().y + 92 - 600)<2 && !document.querySelector('#cusade-companion-host').dataset.airborne`, 'Companion did not fall from removed support');
+  await evaluate('window.scrollTo(0,40)');
   await waitFor(`Math.abs(document.querySelector('#cusade-companion-host').getBoundingClientRect().y + 92 - 560)<2`, 'Companion did not follow scrolling support');
   await evaluate('window.scrollTo(0,0)');
-  await waitFor(`Math.abs(document.querySelector('#cusade-companion-host').getBoundingClientRect().y + 92 - 620)<2`, 'Companion did not return with support');
+  await waitFor(`Math.abs(document.querySelector('#cusade-companion-host').getBoundingClientRect().y + 92 - 600)<2`, 'Companion did not return with support');
   await evaluate(`document.querySelector('#companion-scroll-pad').remove()`);
   Object.assign(savedCompanionPosition, settings.getSettings().companionPosition);
   assert.equal(require('../shared/settings-schema.js').validateSetting('companionPosition', { x: 5, y: -1 }), false);

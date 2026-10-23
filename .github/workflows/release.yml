@@ -126,5 +126,5 @@ jobs:
             gh release upload "$RELEASE_TAG" release/* --clobber
             gh release edit "$RELEASE_TAG" --draft=false --latest --notes-file "release-notes/$RELEASE_TAG.md"
           else
-          gh release create "$RELEASE_TAG" release/* --target "$GITHUB_SHA" --title "SoundCloud Desktop ${RELEASE_TAG#v}" --notes-file "release-notes/$RELEASE_TAG.md" "${release_flags[@]}"
+            gh release create "$RELEASE_TAG" release/* --target "$GITHUB_SHA" --title "SoundCloud Desktop ${RELEASE_TAG#v}" --notes-file "release-notes/$RELEASE_TAG.md" "${release_flags[@]}"
           fi
