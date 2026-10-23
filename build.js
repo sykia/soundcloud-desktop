@@ -20,6 +20,7 @@ const common = {
   format: 'cjs',
   platform: 'node',
   external: ['electron'],
+  loader: { '.png': 'dataurl' },
   logLevel: 'warning'
 };
 

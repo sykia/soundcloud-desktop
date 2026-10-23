@@ -29,7 +29,17 @@ const isAppIconStyle = value => value === 'orange' || value === 'dark';
 
 const ARTWORK_RADIUS_KEYS = Object.freeze(['avatarRadius', 'trackRadius', 'albumRadius']);
 
+const isCompanionPosition = value => value && typeof value === 'object' &&
+  Number.isFinite(value.x) && value.x >= 0 && value.x <= 1 &&
+  Number.isFinite(value.y) && value.y >= 0 && value.y <= 1;
 const SETTINGS = {
+  panelTheme: { default: 'dark', validate: value => value === 'dark' || value === 'light',
+    coerce: value => value === 'light' ? 'light' : 'dark' },
+  companionPosition: { default: { x: .08, y: 1 }, validate: isCompanionPosition,
+    coerce: value => isCompanionPosition(value) ? { x: value.x, y: value.y } : { x: .08, y: 1 },
+    normalize: value => ({ x: value.x, y: value.y }) },
+  companionEnabled: { default: true, validate: isBoolean, coerce: value => value !== false },
+  companionSounds: { default: true, validate: isBoolean, coerce: value => value !== false },
   hideArtistTools: { default: false, validate: isBoolean, coerce: value => value === true },
   hideNearbyEvents: { default: false, validate: isBoolean, coerce: value => value === true },
   blockAudioAds: { default: false, validate: isBoolean, coerce: value => value === true },

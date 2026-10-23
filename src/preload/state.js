@@ -12,6 +12,10 @@ const {
 } = require('../../shared/constants.js');
 
 const state = {
+  panelTheme: 'dark',
+  companionPosition: { x: .08, y: 1 },
+  companionEnabled: true,
+  companionSounds: true,
   hideArtistTools: false,
   hideNearbyEvents: false,
   blockAudioAds: false,

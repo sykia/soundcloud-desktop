@@ -27,6 +27,7 @@ const { applyMotion, setMotionHooks } = require('./motion.js');
 const { updateEnterWatcher } = require('./enter.js');
 const { installRouteWatch, updateRouteTransition, setIntroPending } = require('./route.js');
 const {
+  updateCompanionControls,
   updatePanelToggle,
   updateNearbyEventsToggle,
   updateAudioAdsToggle,
@@ -49,6 +50,7 @@ const {
 } = require('./visualization.js');
 const { syncHomeLikesButton } = require('./likes.js');
 const { startDownloads } = require('./downloads.js');
+const { syncCompanion } = require('./companion.js');
 const {
   syncInsightsBanner,
   syncInsightsPlayback,
@@ -94,6 +96,7 @@ setMotionHooks({ finishPlaybackSwitch, updateEnterWatcher, updateRouteTransition
 // `.then` body. routeIntroPending keeps the startup veil out of any deliberate
 // toggle, exactly like the original flag did.
 onSettingsLoaded.add(() => {
+  syncCompanion();
   applyArtistToolsVisibility();
   applyNearbyEventsVisibility();
   applyAccentColor();
@@ -101,6 +104,7 @@ onSettingsLoaded.add(() => {
   setIntroPending(true);
   applyMotion();
   setIntroPending(false);
+  updateCompanionControls();
   updatePanelToggle();
   updateNearbyEventsToggle();
   updateAudioAdsToggle();

@@ -6,10 +6,12 @@
 // dependencies on appearance/visualization/likes/insights/presence stay one-way.
 
 const { ipcRenderer } = require('electron');
+const { PANEL_CSS, organizePanel } = require('./panel-layout.js');
 const { CHANNEL } = require('../../shared/ipc.js');
 const { DEFAULT_RADII } = require('../../shared/constants.js');
 const { state } = require('./state.js');
 const { hosts } = require('./hosts.js');
+const { syncCompanion } = require('./companion.js');
 const { ui } = require('./localization-dict.js');
 const { motionActive, systemReducedMotion, applyMotion } = require('./motion.js');
 const {
@@ -24,6 +26,14 @@ const { syncPlaybackVisualization } = require('./visualization.js');
 const { syncHomeLikesButton } = require('./likes.js');
 const { syncDiscordPresence, resetPresence } = require('./presence.js');
 const { syncInsightsBanner, updateInsightsRestoreControl } = require('./insights.js');
+
+function updateCompanionControls() {
+  const shadow = hosts.panelHost?.shadowRoot;
+  for (const [key, id] of [['companionEnabled', 'companion-enabled'], ['companionSounds', 'companion-sounds']]) {
+    const control = shadow?.getElementById(id);
+    if (control) { control.checked = state[key]; control.disabled = !state.settingsLoaded; }
+  }
+}
 
 function updatePanelToggle() {
   const toggle = hosts.panelHost?.shadowRoot.querySelector('#hide-artist-tools');
@@ -147,71 +157,16 @@ function togglePanel() {
 
   const shadow = hosts.panelHost.attachShadow({ mode: 'open' });
   shadow.innerHTML = `
-    <style>
-      * { box-sizing: border-box; }
-      .panel {
-        width: min(340px, calc(100vw - 24px));
-        max-height: calc(100vh - 68px);
-        overflow-y: auto;
-        padding: 18px;
-        border: 1px solid color-mix(in srgb, var(--font-primary-color, #fff) 18%, transparent);
-        border-radius: 12px;
-        background: var(--background-surface-color, #171717);
-        box-shadow: 0 18px 48px #0005;
-        color: var(--font-primary-color, #f5f5f5);
-        font: 14px system-ui, sans-serif;
-      }
-      .top { display: flex; align-items: center; justify-content: space-between; }
-      .title { margin: 0; font-size: 18px; font-weight: 700; }
-      .close { border: 0; background: transparent; color: var(--font-secondary-color, #aaa); cursor: pointer; font: 24px system-ui; line-height: 1; }
-      .close:hover { color: var(--font-primary-color, #fff); }
-      .section { margin-top: 16px; padding-top: 16px; border-top: 1px solid color-mix(in srgb, var(--font-primary-color, #fff) 18%, transparent); }
-      .section-title { margin: 0 0 8px; font-size: 14px; font-weight: 600; }
-      .setting { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; cursor: pointer; }
-      .setting-name { display: block; font-weight: 600; }
-      .hint { display: block; margin-top: 5px; color: var(--font-secondary-color, #aaa); font-size: 12px; line-height: 1.5; }
-      .hint[hidden] { display: none; }
-      input[type="checkbox"] { flex: none; width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--cusade-accent, #ff5500); cursor: pointer; }
-      input:disabled { cursor: wait; }
-      .color-setting { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; }
-      .color-control { display: flex; align-items: center; gap: 8px; }
-      input[type="color"] { width: 42px; height: 34px; padding: 2px; border: 1px solid color-mix(in srgb, var(--font-primary-color, #fff) 25%, transparent); border-radius: 7px; background: var(--button-secondary-background-color, #242424); cursor: pointer; }
-      .text-input { width: 100%; margin-top: 8px; padding: 8px 10px; border: 1px solid color-mix(in srgb, var(--font-primary-color, #fff) 25%, transparent); border-radius: 7px; background: var(--button-secondary-background-color, #242424); color: var(--font-primary-color, #fff); font: inherit; }
-      select.text-input { cursor: pointer; }
-      .color-value { min-width: 68px; color: var(--font-secondary-color, #aaa); font: 12px ui-monospace, monospace; }
-      .radius-setting { display: grid; grid-template-columns: 74px 1fr 35px; align-items: center; gap: 10px; margin-top: 10px; }
-      .radius-setting input { width: 100%; accent-color: var(--cusade-accent, #ff5500); cursor: pointer; }
-      .radius-setting output { color: var(--font-secondary-color, #aaa); text-align: right; font: 12px ui-monospace, monospace; }
-      .status { min-height: 0; margin: 8px 0 0; color: var(--font-error-color, #ff9165); font-size: 12px; }
-      .status:empty { display: none; }
-      .insights-restore button, .check-updates { margin-top: 9px; padding: 8px 12px; border: 0; border-radius: 7px;
-        background: var(--cusade-accent, #ff5500); color: #fff; font: 600 12px system-ui; cursor: pointer; }
-      .check-updates:disabled { opacity: .6; cursor: wait; }
-      :host(.cusade-animations) { --cusade-hover: 360ms cubic-bezier(.3,.62,.36,1); }
-      :host(.cusade-animations) .panel { animation: cusade-panel-in 360ms cubic-bezier(.3,.62,.36,1) both; }
-      /* The lift and the colour changes animate, the panel wide shadows do not:
-         same measured trade as on the page, where an animated shadow repainted
-         the strip around the element on every frame. */
-      :host(.cusade-animations) :is(button, input, .setting, .section) {
-        transition: color var(--cusade-hover), background-color var(--cusade-hover),
-          border-color var(--cusade-hover), filter var(--cusade-hover),
-          transform var(--cusade-hover);
-      }
-      :host(.cusade-animations) :is(.setting, .section):hover { box-shadow: 0 8px 20px #00000029; }
-      :host(.cusade-animations) button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 18px #00000033;
-      }
-      :host(.cusade-animations) button:active { transform: scale(.96); }
-      @keyframes cusade-panel-in {
-        from { opacity: 0; transform: translateY(12px) scale(.982); }
-        to { opacity: 1; transform: none; }
-      }
-    </style>
+    <style>${PANEL_CSS}</style>
     <div class="panel" role="dialog" aria-label="cusade">
       <div class="top">
         <h2 class="title">cusade</h2>
         <button class="close" type="button" aria-label="${ui('Закрыть', 'Close')}">×</button>
+      </div>
+      <div class="section">
+        <h3 class="section-title">${ui('Маленький спутник', 'Little companion')}</h3>
+        <label class="setting"><span><span class="setting-name">${ui('Показывать спутника', 'Show companion')}</span><span class="hint">${ui('Перетаскивайте мышью. Замечает вас и слушает музыку вместе с вами.', 'Drag to move. Notices you and listens to music with you.')}</span></span><input id="companion-enabled" type="checkbox"></label>
+        <label class="setting" style="margin-top:14px"><span><span class="setting-name">${ui('Звуки по нажатию', 'Sounds on click')}</span><span class="hint">${ui('Тихое чириканье, когда вы его гладите.', 'A quiet chirp when you pet it.')}</span></span><input id="companion-sounds" type="checkbox"></label>
       </div>
       <div class="section">
         <h3 class="section-title">${ui('Настройки мода', 'Mod settings')}</h3>
@@ -299,6 +254,24 @@ function togglePanel() {
         <p class="status" aria-live="polite"></p>
       </div>
     </div>`;
+  organizePanel(shadow, ui, closePanel);
+  hosts.panelHost.dataset.theme = state.panelTheme;
+  const themeControl = shadow.getElementById('panel-theme');
+  themeControl.value = state.panelTheme;
+  themeControl.disabled = !state.settingsLoaded;
+  themeControl.addEventListener('change', async () => {
+    const previous = state.panelTheme;
+    state.panelTheme = themeControl.value;
+    hosts.panelHost.dataset.theme = state.panelTheme;
+    themeControl.disabled = true;
+    try { await ipcRenderer.invoke(CHANNEL.set('panelTheme'), state.panelTheme); }
+    catch {
+      state.panelTheme = previous;
+      if (hosts.panelHost) hosts.panelHost.dataset.theme = previous;
+      themeControl.value = previous;
+      shadow.querySelector('.status').textContent = ui('Не удалось сохранить тему.', 'Could not save the theme.');
+    } finally { themeControl.disabled = false; }
+  });
   shadow.querySelector('.close').addEventListener('click', closePanel);
   shadow.querySelector('.check-updates').addEventListener('click', async event => {
     if (!event.isTrusted) return;
@@ -424,12 +397,14 @@ function togglePanel() {
     const previous = state.respectSystemMotion;
     state.respectSystemMotion = respectSystemMotionToggle.checked;
     applyMotion();
+    syncCompanion();
     respectSystemMotionToggle.disabled = true;
     try {
       await ipcRenderer.invoke(CHANNEL.set('respectSystemMotion'), state.respectSystemMotion);
     } catch (error) {
       state.respectSystemMotion = previous;
       applyMotion();
+      syncCompanion();
       shadow.querySelector('.status').textContent = ui('Не удалось сохранить настройку.', 'Could not save the setting.');
       console.error('Could not save the cusade reduced motion setting:', error);
     } finally {
@@ -540,9 +515,13 @@ function togglePanel() {
   });
   for (const key of Object.keys(DEFAULT_RADII)) {
     const slider = shadow.querySelector(`#${key}`);
+    let previewFrame = 0;
     slider.addEventListener('input', () => {
       state.artworkRadii[key] = Number(slider.value);
-      applyArtworkRadii();
+      if (!previewFrame) previewFrame = requestAnimationFrame(() => {
+        previewFrame = 0;
+        applyArtworkRadii();
+      });
     });
     slider.addEventListener('change', async () => {
       const selected = Number(slider.value);
@@ -558,6 +537,23 @@ function togglePanel() {
       } finally {
         updateArtworkRadiusControls();
       }
+    });
+  }
+  for (const [key, id] of [['companionEnabled', 'companion-enabled'], ['companionSounds', 'companion-sounds']]) {
+    const control = shadow.getElementById(id);
+    control.checked = state[key];
+    control.disabled = !state.settingsLoaded;
+    control.addEventListener('change', async () => {
+      const previous = state[key];
+      state[key] = control.checked;
+      control.disabled = true;
+      syncCompanion();
+      try { await ipcRenderer.invoke(CHANNEL.set(key), state[key]); }
+      catch {
+        state[key] = previous;
+        shadow.querySelector('.status').textContent = ui('Не удалось сохранить настройку.', 'Could not save the setting.');
+        syncCompanion();
+      } finally { control.checked = state[key]; control.disabled = false; }
     });
   }
   document.body.appendChild(hosts.panelHost);
@@ -577,6 +573,7 @@ function togglePanel() {
 }
 
 module.exports = {
+  updateCompanionControls,
   updatePanelToggle,
   updateNearbyEventsToggle,
   updateAudioAdsToggle,

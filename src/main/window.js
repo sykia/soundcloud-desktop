@@ -8,14 +8,14 @@
 // never imports tray (tray imports updates and window — one-way edges only).
 
 const path = require('node:path');
-const { BrowserWindow, session, shell } = require('electron');
+const { app, BrowserWindow, session, shell } = require('electron');
 const { HOME_URL } = require('../../shared/constants.js');
 const { CHANNEL } = require('../../shared/ipc.js');
 const { isSoundCloudUrl, isSignInPopupUrl, launchUrl, launchUrlFromArgs } = require('./urls.js');
 const { getSettings } = require('./settings.js');
 const dns = require('./dns.js');
 const discord = require('./discord.js');
-const { iconPath } = require('./icon-style.js');
+const { APP_ID, iconPath, shellIconPath, refreshDesktopIcon } = require('./icon-style.js');
 
 const PAGE_LOAD_TIMEOUT_MS = 30000;
 const DNS_CACHE_TIMEOUT_MS = 3000;
@@ -127,6 +127,7 @@ function createWindow(hidden = false) {
     }
   });
 
+  try { refreshIcon(); } catch (error) { console.error('Could not refresh application icon:', error); }
   const contents = mainWindow.webContents;
   const publishActivity = () => sendToRenderer(CHANNEL.windowActive,
     mainWindow.isVisible() && !mainWindow.isMinimized());
@@ -243,7 +244,16 @@ function createWindow(hidden = false) {
 }
 
 function refreshIcon() {
-  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.setIcon(iconPath());
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.setIcon(iconPath());
+    if (process.platform === 'win32') {
+      mainWindow.setAppDetails({ appId: APP_ID,
+        appIconPath: shellIconPath(), appIconIndex: 0,
+        relaunchCommand: `"${process.execPath}"${app.isPackaged ? '' : ` "${app.getAppPath()}"`}`,
+        relaunchDisplayName: 'SoundCloud Desktop' });
+    }
+  }
+  refreshDesktopIcon();
 }
 
 module.exports = {

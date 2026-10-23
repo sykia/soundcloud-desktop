@@ -13,6 +13,7 @@ const { DEFAULT_RADII, DEFAULT_DISCORD_CLIENT_ID } = require('../../shared/const
 const { isHexColor, isArtworkRadius, isInsightsLayout, isDiscordClientId, isAppIconStyle } =
   require('../../shared/settings-schema.js');
 const { getSettings, saveSettings } = require('./settings.js');
+const { validateSetting, normalizeSetting } = require('../../shared/settings-schema.js');
 const { isMainSoundCloudPage, getMainWindow, sendToRenderer, refreshIcon } = require('./window.js');
 const discord = require('./discord.js');
 const updates = require('./updates.js');
@@ -24,6 +25,8 @@ const downloads = require('./downloads.js');
 const { setAutoStart } = require('./autostart.js');
 
 const BOOLEAN_KEYS = [
+  'companionEnabled',
+  'companionSounds',
   'hideArtistTools',
   'hideNearbyEvents',
   'blockAudioAds',
@@ -34,6 +37,19 @@ const BOOLEAN_KEYS = [
 ];
 
 function register() {
+  ipcMain.handle(CHANNEL.set('panelTheme'), (event, value) => {
+    if (!isMainSoundCloudPage(event.sender) || !validateSetting('panelTheme', value)) throw new Error('Invalid panel theme');
+    saveSettings({ ...getSettings(), panelTheme: value });
+    return value;
+  });
+  ipcMain.handle(CHANNEL.set('companionPosition'), (event, value) => {
+    if (!isMainSoundCloudPage(event.sender) || !validateSetting('companionPosition', value)) {
+      throw new Error('Invalid companion position');
+    }
+    const position = normalizeSetting('companionPosition', value);
+    saveSettings({ ...getSettings(), companionPosition: position });
+    return position;
+  });
   ipcMain.handle(CHANNEL.downloadTrack, async (event, url) => {
     if (!isMainSoundCloudPage(event.sender)) throw new Error('Unavailable');
     try {

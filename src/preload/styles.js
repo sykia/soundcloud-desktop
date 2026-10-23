@@ -59,6 +59,11 @@ function inject() {
   const style = document.createElement('style');
   style.id = 'cusade-page-style';
   style.textContent = `
+    /* Hide the page's scrollbar chrome on both axes without disabling scroll. */
+    html, body { scrollbar-width: none !important; }
+    html::-webkit-scrollbar,
+    body::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
+
     /* Russian labels are wider than SoundCloud's English header. Prevent the
        floated navigation and login buttons from wrapping onto the banner. */
     html.cusade-russian .header,

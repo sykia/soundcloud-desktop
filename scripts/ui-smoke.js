@@ -19,6 +19,9 @@ const autoTranslate = require('../src/main/auto-translate.js');
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'cusade-ui-smoke-'));
 app.setPath('userData', profile);
 app.setPath('sessionData', profile);
+// Native shortcut tests must never touch the user's Desktop or pinned apps.
+app.setPath('desktop', profile);
+app.setPath('appData', profile);
 const failures = [];
 let win;
 let timeout;
@@ -51,7 +54,7 @@ async function waitFor(expression, message) {
     if (await evaluate(expression)) return;
     await sleep(50);
   }
-  const diagnostics = await evaluate(`({url:location.href,ready:document.readyState,classes:document.documentElement.className,hidden:document.hidden,viewport:[innerWidth,innerHeight],tile:document.querySelector('.playableTile')?.getBoundingClientRect().toJSON()})`);
+  const diagnostics = await evaluate(`({url:location.href,ready:document.readyState,classes:document.documentElement.className,companion:(()=>{const h=document.querySelector('#cusade-companion-host');return h?{data:{...h.dataset},rect:h.getBoundingClientRect().toJSON(),pose:h.shadowRoot.querySelector('button').dataset.pose,bubble:h.shadowRoot.querySelector('.bubble').textContent}:null})(),hidden:document.hidden,viewport:[innerWidth,innerHeight],tile:document.querySelector('.playableTile')?.getBoundingClientRect().toJSON()})`);
   throw new Error(`${message}: ${JSON.stringify({ ...diagnostics, visible:win.isVisible(), minimized:win.isMinimized(), failures })}`);
 }
 async function setToggle(id, value) {
@@ -98,6 +101,140 @@ app.whenReady().then(async () => {
   console.log('PASS: isolated-world SPA navigation and subframe guard');
 
   win.webContents.send(CHANNEL.togglePanel);
+  await waitFor("!!document.querySelector('#cusade-panel-host')?.shadowRoot.querySelector('#panel-theme')", 'Settings panel missing');
+  const panelRoot = "document.querySelector('#cusade-panel-host').shadowRoot";
+  assert.equal(await evaluate(panelRoot + ".querySelectorAll('.nav-button').length"), 5);
+  for (let index = 0; index < 5; index++) {
+    await evaluate(panelRoot + ".querySelectorAll('.nav-button')[" + index + "].click()");
+    assert.equal(await evaluate(panelRoot + ".querySelectorAll('.content > section:not([hidden])').length"), 1);
+    assert.equal(await evaluate(panelRoot + ".querySelectorAll('.content > section')[" + index + "].hidden"), false);
+  }
+  await evaluate(panelRoot + ".querySelector('.nav-button').click()");
+  for (const theme of ['light', 'dark']) {
+    await evaluate("(()=>{const control=" + panelRoot + ".querySelector('#panel-theme');control.value='" + theme + "';control.dispatchEvent(new Event('change'));})()");
+    await waitFor(panelRoot + ".querySelector('#panel-theme').disabled === false", 'Theme save did not finish');
+    assert.equal(settings.getSettings().panelTheme, theme);
+    assert.equal(await evaluate("document.querySelector('#cusade-panel-host').dataset.theme"), theme);
+  }
+  win.webContents.send(CHANNEL.togglePanel);
+  win.webContents.send(CHANNEL.togglePanel);
+  await waitFor(panelRoot + ".querySelector('#panel-theme').value === 'dark'", 'Saved theme not restored');
+  assert.equal(require('../shared/settings-schema.js').validateSetting('panelTheme', 'invalid'), false);
+  console.log('PASS: settings navigation, both themes, persistence and reopen');
+
+  // Exercise the actual renderer -> validated IPC -> native window/tray path.
+  const trayModule = require('../src/main/tray.js');
+  const { nativeImage, shell } = require('electron');
+  const { iconPath, shellIconPath } = require('../src/main/icon-style.js');
+  trayModule.createTray();
+  assert.equal(trayModule.hasTray(), true, 'System tray was not created');
+  const nativeSetIcon = win.setIcon.bind(win);
+  const appliedIcons = [];
+  win.setIcon = icon => { nativeSetIcon(icon); appliedIcons.push(icon); };
+  const iconBitmaps = [];
+  const shortcut = path.join(profile, 'SoundCloud Desktop.lnk');
+  if (process.platform === 'win32') {
+    assert.equal(shell.writeShortcutLink(shortcut, 'create', {
+      target: process.execPath, args: '--test-preserve-arguments',
+      appUserModelId: 'io.github.sykia.soundcloud-desktop'
+    }), true);
+  }
+  try {
+    for (const style of ['dark', 'orange']) {
+      await evaluate(`(()=>{const control=${panelRoot}.querySelector('#app-icon-style');control.value='${style}';control.dispatchEvent(new Event('change'));})()`);
+      await waitFor(panelRoot + ".querySelector('#app-icon-style').disabled === false", 'Icon style save did not finish');
+      assert.equal(settings.getSettings().appIconStyle, style);
+      assert.equal(JSON.parse(fs.readFileSync(settings.settingsPath(), 'utf8')).appIconStyle, style);
+      assert.equal(appliedIcons.at(-1), iconPath());
+      for (const size of ['window', 'tray']) {
+        assert.equal(nativeImage.createFromPath(iconPath(size)).isEmpty(), false, `Invalid ${style} ${size} icon`);
+      }
+      iconBitmaps.push(nativeImage.createFromPath(iconPath()).toBitmap());
+      assert.ok(fs.statSync(shellIconPath()).size > 0, 'Shell icon missing outside archive');
+      if (process.platform === 'win32') {
+        const details = shell.readShortcutLink(shortcut);
+        assert.equal(details.icon, shellIconPath(), 'Shortcut icon was not updated');
+        assert.equal(details.target, process.execPath);
+        assert.equal(details.args, '--test-preserve-arguments');
+      }
+    }
+    assert.notDeepEqual(iconBitmaps[0], iconBitmaps[1], 'Styles use identical images');
+    assert.equal(appliedIcons.length, 2, 'Native icon was not refreshed for both styles');
+  } finally { win.setIcon = nativeSetIcon; }
+  console.log('PASS: both icon styles, native window/tray update, decoded assets and persistence');
+
+  await waitFor(`!!document.querySelector('#cusade-companion-host')?.shadowRoot.querySelector('img').naturalWidth`, 'Companion image did not load');
+  await setToggle('companion-sounds', false);
+  assert.equal(settings.getSettings().companionSounds, false);
+  await evaluate(`document.querySelector('#cusade-companion-host').shadowRoot.querySelector('button').click()`);
+  assert.equal(await evaluate(`document.querySelector('#cusade-companion-host').shadowRoot.querySelector('button').dataset.pose`), 'happy');
+  // Native input exercises pointer capture, gravity, platform collision and click suppression.
+  await evaluate(`(()=>{const platform=document.createElement('div');platform.id='companion-platform';platform.style.cssText='position:absolute;left:360px;top:560px;width:360px;height:90px;background:#555;z-index:20';document.body.append(platform);})()`);
+  win.webContents.send(CHANNEL.togglePanel);
+  const companionRect = await evaluate(`document.querySelector('#cusade-companion-host').getBoundingClientRect().toJSON()`);
+  const startX = Math.round(companionRect.x + 54), startY = Math.round(companionRect.y + 48);
+  win.webContents.sendInputEvent({ type: 'mouseMove', x: startX, y: startY });
+  win.webContents.sendInputEvent({ type: 'mouseDown', x: startX, y: startY, button: 'left', clickCount: 1 });
+  win.webContents.sendInputEvent({ type: 'mouseMove', x: startX + 340, y: startY - 180, button: 'left', modifiers: ['leftButtonDown'], movementX: 340, movementY: -180 });
+  await sleep(150); // Holding still cancels the release velocity.
+  win.webContents.sendInputEvent({ type: 'mouseUp', x: startX + 340, y: startY - 180, button: 'left', clickCount: 1 });
+  await waitFor(`document.querySelector('#cusade-companion-host').dataset.support === 'element'`, 'Companion did not land on the platform');
+  assert.ok(Math.abs(await evaluate(`document.querySelector('#cusade-companion-host').getBoundingClientRect().y + 92`) - 560) < 2, 'Feet did not meet the platform');
+  await waitFor(`Math.abs(document.querySelector('#cusade-companion-host').getBoundingClientRect().x - ${companionRect.x + 340}) < 2`, 'Companion did not follow the pointer');
+  for (let attempt = 0; attempt < 30 && settings.getSettings().companionPosition.x < .2; attempt++) await sleep(20);
+  const savedCompanionPosition = { ...settings.getSettings().companionPosition };
+  assert.ok(savedCompanionPosition.x > .2 && savedCompanionPosition.y < 1, 'Dropped position was not persisted');
+  assert.equal(await evaluate(`document.querySelector('#cusade-companion-host').shadowRoot.querySelector('button').dataset.pose`), 'think', 'Dragging incorrectly triggered pet reaction');
+  // A replaced SPA card must stop being a support, even if its replacement looks identical.
+  await evaluate(`(()=>{const old=document.querySelector('#companion-platform');const next=old.cloneNode();next.style.top='620px';old.replaceWith(next);const pad=document.createElement('div');pad.id='companion-scroll-pad';pad.style.height='1800px';document.body.append(pad);})()`);
+  await waitFor(`Math.abs(document.querySelector('#cusade-companion-host').getBoundingClientRect().y + 92 - 620)<2 && !document.querySelector('#cusade-companion-host').dataset.airborne`, 'Companion did not fall from removed support');
+  await evaluate('window.scrollTo(0,60)');
+  await waitFor(`Math.abs(document.querySelector('#cusade-companion-host').getBoundingClientRect().y + 92 - 560)<2`, 'Companion did not follow scrolling support');
+  await evaluate('window.scrollTo(0,0)');
+  await waitFor(`Math.abs(document.querySelector('#cusade-companion-host').getBoundingClientRect().y + 92 - 620)<2`, 'Companion did not return with support');
+  await evaluate(`document.querySelector('#companion-scroll-pad').remove()`);
+  Object.assign(savedCompanionPosition, settings.getSettings().companionPosition);
+  assert.equal(require('../shared/settings-schema.js').validateSetting('companionPosition', { x: 5, y: -1 }), false);
+  win.webContents.send(CHANNEL.togglePanel);
+  await setToggle('companion-enabled', false);
+  assert.equal(await evaluate(`!!document.querySelector('#cusade-companion-host')`), false);
+  assert.equal(settings.getSettings().companionEnabled, false);
+  await setToggle('companion-enabled', true);
+  await waitFor(`!!document.querySelector('#cusade-companion-host')?.shadowRoot.querySelector('img').naturalWidth`, 'Companion did not return');
+  assert.deepEqual(settings.getSettings().companionPosition, savedCompanionPosition);
+  const restoredCompanionX = await evaluate(`document.querySelector('#cusade-companion-host').getBoundingClientRect().x`);
+  assert.ok(Math.abs(restoredCompanionX - (companionRect.x + 340)) < 2, 'Companion did not restore its spot');
+  await evaluate(`(()=>{const badge=document.createElement('div');badge.className='playbackSoundBadge';badge.id='companion-music';badge.innerHTML='<a href="/artist/track">Track</a>';document.body.appendChild(badge);})()`);
+  win.webContents.sendInputEvent({ type: 'mouseMove', x: 800, y: 100 });
+  await waitFor(`document.querySelector('#cusade-companion-host').shadowRoot.querySelector('button').dataset.pose==='listen'`, 'Companion did not notice playback');
+  await evaluate(`document.querySelector('#companion-music').classList.add('paused')`);
+  await waitFor(`document.querySelector('#cusade-companion-host').shadowRoot.querySelector('button').dataset.pose==='think'`, 'Companion did not notice playback pause');
+  await evaluate(`document.querySelector('#companion-music').remove()`);
+  win.hide();
+  await waitFor(`document.querySelector('#cusade-companion-host').hidden`, 'Companion did not pause in hidden window');
+  win.show(); win.focus();
+  await waitFor(`!document.querySelector('#cusade-companion-host').hidden`, 'Companion did not resume');
+  await setToggle('companion-sounds', true);
+  assert.equal(settings.getSettings().companionSounds, true);
+  // Returning to a saved place is followed by a new drop before testing a flick.
+  win.webContents.send(CHANNEL.togglePanel);
+  const throwRect = await evaluate(`document.querySelector('#cusade-companion-host').getBoundingClientRect().toJSON()`);
+  const throwX = Math.round(throwRect.x + 54), throwY = Math.round(throwRect.y + 48);
+  win.webContents.sendInputEvent({ type: 'mouseMove', x: throwX, y: throwY });
+  await sleep(60);
+  win.webContents.sendInputEvent({ type: 'mouseDown', x: throwX, y: throwY, button:'left', clickCount:1 });
+  await waitFor(`!!document.querySelector('#cusade-companion-host').dataset.dragging`, 'Companion pickup failed before flick');
+  await sleep(20);
+  win.webContents.sendInputEvent({ type: 'mouseMove', x: throwX + 90, y: throwY - 65, button:'left', modifiers:['leftButtonDown'] });
+  await waitFor(`document.querySelector('#cusade-companion-host').shadowRoot.querySelector('button').classList.contains('held')`, 'Flick movement was not delivered before release');
+  win.webContents.sendInputEvent({ type: 'mouseUp', x: throwX + 90, y: throwY - 65, button:'left', clickCount:1 });
+  await waitFor(`!!document.querySelector('#cusade-companion-host').dataset.airborne`, 'Fast release did not launch companion');
+  await waitFor(`!document.querySelector('#cusade-companion-host').dataset.airborne`, 'Thrown companion did not settle');
+  assert.ok(await evaluate(`(()=>{const r=document.querySelector('#cusade-companion-host').getBoundingClientRect();return r.x>=0 && r.right<=innerWidth+1 && r.y>=0 && r.bottom<=innerHeight;})()`), 'Thrown companion escaped viewport');
+  await evaluate(`document.querySelector('#companion-platform').remove()`);
+  win.webContents.send(CHANNEL.togglePanel);
+  await setToggle('companion-enabled', false);
+  console.log('PASS: companion pet reaction, native drag, platform landing/removal/scroll, saved position, throw and hidden-window pause');
   await setToggle('animations', false);
   assert.equal(await evaluate(`!!document.querySelector('.cusade-route')`), false);
   assert.equal(await evaluate(`document.querySelectorAll('.cusade-enter-target').length`), 0);

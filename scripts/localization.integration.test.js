@@ -7,6 +7,8 @@ const Module = require('node:module');
 const originalLoad = Module._load;
 let calls = 0;
 Module._load = function (request, parent, isMain) {
+  // Companion DOM and bundled PNG assets are covered by the Electron UI smoke.
+  if (request === './companion.js') return { syncCompanion() {} };
   if (request === 'electron') return { ipcRenderer: {
     on() {}, invoke: async (_channel, _language, labels) => {
       calls += 1;
