@@ -1,3 +1,35 @@
+<!-- project-presentation -->
+<p align="center"><img src="build/icons/128x128.png" alt="SoundCloud Desktop" width="88"></p>
+<h1 align="center">SoundCloud Desktop</h1>
+<p align="center">Музыка, своя статистика и настройки привычного интерфейса.</p>
+<p align="center"><a href="https://github.com/sykia/soundcloud-desktop/releases/latest"><img src="https://img.shields.io/github/v/release/sykia/soundcloud-desktop?style=flat-square&amp;color=db570d" alt="Последний релиз"></a> <strong>Windows x64 · Linux x86_64 · Electron</strong></p>
+<p align="center"><a href="https://github.com/sykia/soundcloud-desktop/releases/latest"><img src="docs/presentation/action.svg" alt="Скачать SoundCloud Desktop" width="280" height="60"></a></p>
+
+Неофициальный настольный клиент SoundCloud с панелью cusade. Сохраняет вход в аккаунт и добавляет настройки поверх сайта.
+
+## Знакомый SoundCloud, больше настроек
+
+| Слушать | Смотреть | Настроить |
+| :--- | :--- | :--- |
+| Лайки в случайном порядке | Визуализация текущего трека | Акцент, скругления и анимации |
+| Воспроизведение в фоне и трей | cusade Insights: статистика прослушиваний | Перевод интерфейса на русский |
+| Discord Rich Presence | Обложка, прогресс и управление | Автозапуск и обновления |
+
+## Как выглядит
+
+<p align="center"><img src="assets/screenshot.png" alt="Реальный интерфейс SoundCloud Desktop" width="860"></p>
+## Начать
+
+1. [Выберите установщик](https://github.com/sykia/soundcloud-desktop/releases/latest): EXE для Windows, DEB/RPM, AppImage или пакет Arch для Linux.
+2. Откройте приложение и войдите в SoundCloud.
+3. Нажмите правой кнопкой на логотип SoundCloud слева вверху и выберите **cusade** — там находятся настройки клиента.
+
+Закрытие окна сворачивает приложение в трей; команда **«Выход»** завершает его полностью. Настройки и статистика хранятся локально. Приложение использует сайт SoundCloud и не является его официальным клиентом.
+
+
+<details>
+<summary><strong>Полная документация, установка и технические подробности</strong></summary>
+
 # SoundCloud Desktop
 
 SoundCloud в отдельном окне для рабочего стола. Приложение сохраняет вход в аккаунт и добавляет несколько настроек интерфейса, которых нет на сайте.
@@ -88,3 +120,9 @@ npm run check
 На NixOS x86_64 установите релиз из исходников: `npm ci`, затем `npm run install:nixos -- 0.6.0`. Используется отдельный профиль `~/.local/share/soundcloud-desktop/nix/profile`; ярлык добавляется в меню приложений. Встроенная кнопка «Обновить через Nix» устанавливает следующую версию с проверкой SHA256 и перезапускает приложение. Системная конфигурация не изменяется.
 
 Для разработки откройте `nix-shell`, затем выполните `npm ci`, `npm run electron:install` и `npm start`. Выход из оболочки — `exit`.
+
+</details>
+
+---
+
+[sykia](https://github.com/sykia) · [TG Mod](https://github.com/sykia/tdesktop) · [Blockyard](https://github.com/sykia/blockyard) · [SoundCloud Desktop](https://github.com/sykia/soundcloud-desktop) · [Umbrella Shell](https://github.com/sykia/umbrella-shell)
