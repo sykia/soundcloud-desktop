@@ -9,12 +9,15 @@
 const fs = require('node:fs');
 const { ipcMain, shell, dialog, clipboard, ClipboardItem, nativeImage, Menu } = require('electron');
 const { CHANNEL } = require('../../shared/ipc.js');
+const { HOME_URL } = require('../../shared/constants.js');
 const { DEFAULT_RADII, DEFAULT_DISCORD_CLIENT_ID } = require('../../shared/constants.js');
 const { isHexColor, isArtworkRadius, isInsightsLayout, isDiscordClientId, isAppIconStyle } =
   require('../../shared/settings-schema.js');
 const { getSettings, saveSettings } = require('./settings.js');
 const { validateSetting, normalizeSetting } = require('../../shared/settings-schema.js');
 const { isMainSoundCloudPage, getMainWindow, sendToRenderer, refreshIcon } = require('./window.js');
+const network = require('./network.js');
+const { isNetworkScreenUrl } = require('./error-screen.js');
 const discord = require('./discord.js');
 const updates = require('./updates.js');
 const tray = require('./tray.js');
@@ -35,6 +38,27 @@ const BOOLEAN_KEYS = [
   'respectSystemMotion',
   'showYourLikesButton'
 ];
+
+// The network channels accept the cusade panel's own page and the local error
+// screen loaded by the main process — nothing else, least of all an arbitrary
+// remote page. The sender must be the main window in both cases.
+function isNetworkScope(sender) {
+  const main = getMainWindow();
+  if (!main || sender !== main.webContents) return false;
+  const url = sender.getURL();
+  return isMainSoundCloudPage(sender) || isNetworkScreenUrl(url);
+}
+
+// After the active configuration changes, reconnect right away: a SoundCloud
+// page reloads through the new settings, the error screen goes back for the
+// real thing.
+function reconnectAfterChange(sender) {
+  const main = getMainWindow();
+  if (!main || main.isDestroyed() || sender !== main.webContents) return;
+  const url = sender.getURL();
+  if (isNetworkScreenUrl(url)) main.webContents.loadURL(HOME_URL);
+  else main.webContents.reload();
+}
 
 function register() {
   ipcMain.handle(CHANNEL.set('panelTheme'), (event, value) => {
@@ -57,6 +81,55 @@ function register() {
     } catch (error) {
       return { error: error.message || 'Не удалось скачать трек.' };
     }
+  });
+
+  // -----------------------------------------------------------------------
+  // Network connection control (cusade panel and the local network screen).
+  // The guard is deliberately stricter than "any cusade page": the sender must
+  // be the main window's own webContents AND either the loaded SoundCloud page
+  // or the load-error screen the main process itself generated. Every payload
+  // is validated in src/main/network.js, credentials arrive only during an
+  // explicit apply, and no other channel ever touches network settings.
+  // -----------------------------------------------------------------------
+  ipcMain.handle(CHANNEL.networkGet, event => {
+    if (!isNetworkScope(event.sender)) throw new Error('Unavailable');
+    return network.getNetworkSnapshot();
+  });
+
+  ipcMain.handle(CHANNEL.networkApply, async (event, patch) => {
+    if (!isNetworkScope(event.sender)) throw new Error('Unavailable');
+    const request = typeof patch === 'object' && patch ? patch : {};
+    const clean = {};
+    for (const key of ['networkMode', 'proxyType', 'proxyHost', 'proxyPort']) {
+      if (Object.hasOwn(request, key)) clean[key] = request[key];
+    }
+    // Credentials are optional and never echoed back to any renderer.
+    if (typeof request.username === 'string' && typeof request.password === 'string') {
+      const stored = await network.storeProxyCredentials(request.username, request.password);
+      if (!stored.stored) {
+        return { ok: false, error: 'credentials-unsupported', message: stored.message };
+      }
+    }
+    const result = await network.applyNetworkSettings(clean);
+    if (result.ok) reconnectAfterChange(event.sender);
+    return result;
+  });
+
+  ipcMain.handle(CHANNEL.networkTest, async event => {
+    if (!isNetworkScope(event.sender)) throw new Error('Unavailable');
+    return network.runDiagnostics();
+  });
+
+  ipcMain.handle(CHANNEL.networkReset, async event => {
+    if (!isNetworkScope(event.sender)) throw new Error('Unavailable');
+    const result = await network.resetNetworkSettings();
+    if (result.ok) reconnectAfterChange(event.sender);
+    return result;
+  });
+
+  ipcMain.handle(CHANNEL.networkReport, async event => {
+    if (!isNetworkScope(event.sender)) throw new Error('Unavailable');
+    return network.exportReport(getMainWindow());
   });
   ipcMain.handle(CHANNEL.getSettings, event => {
     if (!isMainSoundCloudPage(event.sender)) throw new Error('Unavailable');

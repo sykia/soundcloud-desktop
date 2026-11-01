@@ -24,6 +24,7 @@ const ipc = require('./ipc.js');
 const localizationCapture = require('./localization-capture.js');
 const frameLocalization = require('./frame-localization.js');
 const downloads = require('./downloads.js');
+const network = require('./network.js');
 const { installAudioAdRule } = require('./audio-ads.js');
 
 let captureRunning = false;
@@ -86,6 +87,9 @@ if (hasInstanceLock) app.whenReady().then(async () => {
   downloads.watchClientId();
 
   settings.loadSettings();
+  await network.applyStartupNetwork();
+  network.startTrafficObservation();
+  network.wireProxyLogin();
   locale.watchSourceLocale(value => {
     window.sendToRenderer(CHANNEL.siteLocale, value);
     frameLocalization.refresh(window.getMainWindow()?.webContents).catch(() => {});

@@ -13,7 +13,8 @@
   "scripts": {
     "start": "node build.js && electron .",
     "check": "node scripts/check-consistency.js",
-    "test": "node --test scripts/localization.test.js scripts/localization.integration.test.js scripts/frame-localization.test.js scripts/catalog-generation.test.js scripts/linux-package-install.test.js scripts/downloads.test.js scripts/nix-updates.test.js scripts/updates.test.js",
+    "test": "node --test scripts/localization.test.js scripts/localization.integration.test.js scripts/frame-localization.test.js scripts/catalog-generation.test.js scripts/linux-package-install.test.js scripts/downloads.test.js scripts/nix-updates.test.js scripts/updates.test.js scripts/network.test.js",
+    "test:network": "node build.js && electron scripts/network-smoke.js",
     "test:ui": "node build.js && electron scripts/ui-smoke.js",
     "test:downloads": "node --test scripts/downloads.test.js",
     "test:ui:linux": "xvfb-run --auto-servernum --server-args=\"-screen 0 1280x1024x24\" npm run test:ui",

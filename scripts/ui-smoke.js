@@ -103,8 +103,8 @@ app.whenReady().then(async () => {
   win.webContents.send(CHANNEL.togglePanel);
   await waitFor("!!document.querySelector('#cusade-panel-host')?.shadowRoot.querySelector('#panel-theme')", 'Settings panel missing');
   const panelRoot = "document.querySelector('#cusade-panel-host').shadowRoot";
-  assert.equal(await evaluate(panelRoot + ".querySelectorAll('.nav-button').length"), 5);
-  for (let index = 0; index < 5; index++) {
+  assert.equal(await evaluate(panelRoot + ".querySelectorAll('.nav-button').length"), 6);
+  for (let index = 0; index < 6; index++) {
     await evaluate(panelRoot + ".querySelectorAll('.nav-button')[" + index + "].click()");
     assert.equal(await evaluate(panelRoot + ".querySelectorAll('.content > section:not([hidden])').length"), 1);
     assert.equal(await evaluate(panelRoot + ".querySelectorAll('.content > section')[" + index + "].hidden"), false);

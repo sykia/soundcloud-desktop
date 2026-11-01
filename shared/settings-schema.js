@@ -13,6 +13,7 @@ const {
   DEFAULT_RADII,
   DEFAULT_INSIGHTS_LAYOUT
 } = require('./constants.js');
+const { NETWORK_MODES, PROXY_TYPES, isProxyHost, isProxyPort } = require('./network-profile.js');
 
 const isBoolean = value => typeof value === 'boolean';
 const isHexColor = value => typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value);
@@ -26,6 +27,10 @@ const isInsightsLayout = value =>
 const isDiscordClientId = value => typeof value === 'string' && /^\d{17,20}$/.test(value);
 const isAppLanguage = value => value === 'site' || value === 'ru';
 const isAppIconStyle = value => value === 'orange' || value === 'dark';
+// Encrypted proxy credentials (safeStorage blob, base64). Never a plaintext
+// password: only an opaque blob produced by the main process is accepted.
+const isStoredProxyCredentials = value =>
+  typeof value === 'string' && (value === '' || (/^[A-Za-z0-9+/]{8,16384}={0,2}$/.test(value) && value.length % 4 === 0));
 
 const ARTWORK_RADIUS_KEYS = Object.freeze(['avatarRadius', 'trackRadius', 'albumRadius']);
 
@@ -84,7 +89,23 @@ const SETTINGS = {
     default: DEFAULT_RADII.albumRadius,
     validate: isArtworkRadius,
     coerce: value => (isArtworkRadius(value) ? value : DEFAULT_RADII.albumRadius)
-  }
+  },
+  // Network connection: System follows Windows, Direct ignores any proxy,
+  // Custom points the Electron session at a user-provided HTTP/SOCKS proxy.
+  networkMode: {
+    default: 'system',
+    validate: value => NETWORK_MODES.includes(value),
+    coerce: value => (NETWORK_MODES.includes(value) ? value : 'system')
+  },
+  proxyType: {
+    default: 'https',
+    validate: value => PROXY_TYPES.includes(value),
+    coerce: value => (PROXY_TYPES.includes(value) ? value : 'https')
+  },
+  proxyHost: { default: '', validate: isProxyHost, coerce: value => (isProxyHost(value) ? value : '') },
+  proxyPort: { default: 0, validate: isProxyPort, coerce: value => (isProxyPort(value) ? value : 0) },
+  proxyCredentials: { default: '', validate: isStoredProxyCredentials,
+    coerce: value => (isStoredProxyCredentials(value) ? value : '') }
 };
 
 function defaultSettings() {
@@ -125,5 +146,6 @@ module.exports = {
   isInsightsLayout,
   isDiscordClientId,
   isAppLanguage,
-  isAppIconStyle
+  isAppIconStyle,
+  isStoredProxyCredentials
 };

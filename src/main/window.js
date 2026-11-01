@@ -16,6 +16,8 @@ const { getSettings } = require('./settings.js');
 const dns = require('./dns.js');
 const discord = require('./discord.js');
 const { APP_ID, iconPath, shellIconPath, refreshDesktopIcon } = require('./icon-style.js');
+const network = require('./network.js');
+const errorScreen = require('./error-screen.js');
 
 const PAGE_LOAD_TIMEOUT_MS = 30000;
 const DNS_CACHE_TIMEOUT_MS = 3000;
@@ -149,17 +151,13 @@ function createWindow(hidden = false) {
 
   function showLoadError(code, description) {
     if (contents.isDestroyed()) return;
-    const dnsFailure = dns.isDnsError(code);
-    const hint = code === -7
-      ? 'Превышено время ожидания ответа от SoundCloud.'
-      : dnsFailure
-        ? 'Не удалось определить адрес SoundCloud. Если доступ к сайту ограничен сетью, смена DNS не поможет.'
-        : 'Проверьте подключение к интернету и попробуйте ещё раз.';
+    // The classification and the user-facing hint live in the shared pure
+    // table; the screen itself is a local data: page with just a Retry link
+    // (plain navigation, no IPC) and the network section that stays usable
+    // while SoundCloud itself cannot be reached.
+    const language = getSettings().appLanguage === 'ru' ? 'ru' : 'en';
     console.error(`Не удалось открыть SoundCloud (${code}: ${description}). DNS: ${dns.getDnsServerName()}`);
-    const html = `<!doctype html><html lang="ru"><meta charset="utf-8"><title>SoundCloud</title>
-      <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#121216;color:#fff;font:16px system-ui}main{max-width:480px;padding:32px}h1{font-size:24px}p{color:#bbb;line-height:1.5}small{color:#888}a{display:inline-block;margin-top:12px;padding:12px 18px;border-radius:8px;background:#f50;color:#fff;text-decoration:none}</style>
-      <main><h1>SoundCloud не загрузился</h1><p>${hint}</p><small>Код ошибки: ${code}</small><br><a href="${HOME_URL}">Повторить</a></main></html>`;
-    contents.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+    contents.loadURL(errorScreen.buildLoadErrorUrl(code, description, language));
   }
 
   contents.on('did-start-navigation', details => {
@@ -182,10 +180,17 @@ function createWindow(hidden = false) {
     if (isSoundCloudUrl(contents.getURL())) clearLoadTimer();
   });
 
+  contents.on('did-finish-load', () => {
+    if (!contents.isDestroyed() && isSoundCloudUrl(contents.getURL())) {
+      network.recordPageLoad(true, 0, '');
+    }
+  });
+
   contents.on('did-fail-load', async (_event, code, description, url, isMainFrame) => {
     if (!isMainFrame || code === -3 || !isSoundCloudUrl(url) || failureHandled) return;
     failureHandled = true;
     clearLoadTimer();
+    network.recordPageLoad(false, code, description);
     const failedLoadId = loadId;
 
     if (dns.isDnsError(code) && dns.hasDnsFallback()) {

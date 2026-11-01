@@ -12,6 +12,7 @@ const { state } = require('./state.js');
 const { chooseSourceLanguage } = require('./source-language.js');
 const { hosts } = require('./hosts.js');
 const { isWindowActive, onWindowActivity } = require('./activity.js');
+const networkScreen = require('./network-screen.js');
 
 const { inject } = require('./styles.js');
 const {
@@ -210,6 +211,12 @@ document.addEventListener('contextmenu', event => {
 // Boot, deferred to DOMContentLoaded when the preload runs before the document
 // is ready — the same timing guard the original initializeSettings() used.
 function boot() {
+  // The local network error screen is self-contained: it runs without site
+  // styling, translations or settings, binding only its own controls.
+  if (networkScreen.isNetworkScreenPage()) {
+    networkScreen.bindNetworkScreen();
+    return;
+  }
   syncSourceLanguage();
   new MutationObserver(() => syncSourceLanguage()).observe(document.documentElement,
     { attributes: true, attributeFilter: ['lang'] });

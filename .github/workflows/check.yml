@@ -29,6 +29,12 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y xvfb
       - run: npm run check
       - run: npm test
+      - name: Network smoke (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run --auto-servernum npm run test:network
+      - name: Network smoke (Windows)
+        if: runner.os == 'Windows'
+        run: npm run test:network
       - name: UI smoke (Linux)
         if: runner.os == 'Linux'
         run: xvfb-run --auto-servernum npm run test:ui

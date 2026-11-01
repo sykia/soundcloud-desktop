@@ -26,6 +26,7 @@ const { syncPlaybackVisualization } = require('./visualization.js');
 const { syncHomeLikesButton } = require('./likes.js');
 const { syncDiscordPresence, resetPresence } = require('./presence.js');
 const { syncInsightsBanner, updateInsightsRestoreControl } = require('./insights.js');
+const { wireNetworkControls } = require('./network-controls.js');
 
 function updateCompanionControls() {
   const shadow = hosts.panelHost?.shadowRoot;
@@ -251,10 +252,41 @@ function togglePanel() {
           <label class="radius-setting"><span>${ui('Треки', 'Tracks')}</span><input id="trackRadius" type="range" min="0" max="50" step="1" disabled><output id="trackRadius-value">3%</output></label>
           <label class="radius-setting"><span>${ui('Альбомы', 'Albums')}</span><input id="albumRadius" type="range" min="0" max="50" step="1" disabled><output id="albumRadius-value">3%</output></label>
         </div>
+        <div class="section" id="network-section">
+          <h3 class="section-title">${ui('Сеть и подключение', 'Network and connection')}</h3>
+          <label class="hint" for="net-mode">${ui('Режим подключения', 'Connection mode')}</label>
+          <select class="text-input" id="net-mode">
+            <option value="system">${ui('System — как в Windows', 'System — follow Windows')}</option>
+            <option value="direct">${ui('Direct — прямое соединение', 'Direct — no proxy')}</option>
+            <option value="custom">${ui('Custom — свой прокси', 'Custom — your proxy')}</option>
+          </select>
+          <label class="hint" for="net-type">${ui('Тип прокси', 'Proxy type')}</label>
+          <select class="text-input" id="net-type">
+            <option value="http">HTTP</option><option value="https">HTTPS</option>
+            <option value="socks4">SOCKS4</option><option value="socks5">SOCKS5</option>
+          </select>
+          <label class="hint" for="net-host">${ui('Адрес прокси', 'Proxy address')}</label>
+          <input class="text-input" id="net-host" type="text" autocomplete="off" spellcheck="false" placeholder="proxy.example.com">
+          <label class="hint" for="net-port">${ui('Порт', 'Port')}</label>
+          <input class="text-input" id="net-port" type="text" inputmode="numeric" maxlength="5" placeholder="8080">
+          <label class="hint" for="net-username">${ui('Имя пользователя прокси (необязательно)', 'Proxy username (optional)')}</label>
+          <input class="text-input" id="net-username" type="text" autocomplete="off">
+          <label class="hint" for="net-password">${ui('Пароль прокси (необязательно)', 'Proxy password (optional)')}</label>
+          <input class="text-input" id="net-password" type="password" autocomplete="off">
+          <span class="hint">${ui('Учётные данные шифруются средствами системы (Windows DPAPI) и никогда не сохраняются открытым текстом. Трафик, включая вход в SoundCloud, пойдёт через этот прокси — указывайте только сервер, которому доверяете.', 'Credentials are encrypted with OS facilities (Windows DPAPI) and never saved in plaintext. Traffic, including the SoundCloud sign-in, goes through this proxy — only point at a proxy you trust.')}</span>
+          <div class="net-buttons">
+            <button type="button" id="net-test">${ui('Проверить соединение', 'Check connection')}</button>
+            <button type="button" id="net-apply">${ui('Применить', 'Apply')}</button>
+            <button type="button" id="net-reset">${ui('Восстановить настройки', 'Restore settings')}</button>
+            <button type="button" id="net-report">${ui('Сохранить отчёт', 'Save report')}</button>
+          </div>
+          <p id="net-status" class="hint" role="status" aria-live="polite"></p>
+        </div>
         <p class="status" aria-live="polite"></p>
       </div>
     </div>`;
   organizePanel(shadow, ui, closePanel);
+  wireNetworkControls(shadow).catch(error => console.error('Could not load network settings:', error));
   hosts.panelHost.dataset.theme = state.panelTheme;
   const themeControl = shadow.getElementById('panel-theme');
   themeControl.value = state.panelTheme;

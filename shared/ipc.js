@@ -36,6 +36,14 @@ const CHANNEL = {
   exportInsightCard: 'cusade:export-insight-card',
   downloadTrack: 'cusade:download-track',
   setArtworkRadius: 'cusade:set-artwork-radius',
+  // Network connection control. Guarded to the main SoundCloud page or the
+  // local network error screen the main process itself loaded — never to an
+  // arbitrary remote page.
+  networkGet: 'cusade:network:get',
+  networkApply: 'cusade:network:apply',
+  networkTest: 'cusade:network:test',
+  networkReset: 'cusade:network:reset',
+  networkReport: 'cusade:network:report',
   set(key) {
     return `cusade:set-${kebab(key)}`;
   }

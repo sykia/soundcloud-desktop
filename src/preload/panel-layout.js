@@ -45,6 +45,12 @@ input[type=color] { width:36px; height:36px; padding:3px; border:0; border-radiu
 .radius-setting input { width:100%; accent-color:var(--cusade-accent,#ff5500); }
 .radius-setting output { color:var(--panel-muted); font:12px ui-monospace,monospace; text-align:right; }
 .check-updates,.insights-restore button { border:0; border-radius:9px; padding:11px 16px; background:var(--cusade-accent,#ff5500); color:white; font:600 12px system-ui; cursor:pointer; margin-top:10px; }
+.net-buttons { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+.net-buttons button { border:0; border-radius:9px; padding:10px 14px; background:var(--panel-card); color:var(--panel-text); font:600 12px system-ui; cursor:pointer; }
+.net-buttons #net-apply { background:var(--cusade-accent,#ff5500); color:white; }
+.net-buttons button:hover { filter:brightness(1.1); }
+label.hint, .net-buttons + .hint { margin-top:14px; }
+#net-status.ok { color:#86c98a; }
 .status { margin:0; padding:0 26px; color:#ffac8a; font-size:12px; }
 .status:not(:empty) { padding:12px 26px; border-top:1px solid var(--panel-line); }
 .nav-button:hover,.close:hover { background:var(--panel-card); color:var(--panel-text); }
@@ -79,7 +85,8 @@ function organizePanel(shadow, ui, closePanel) {
     ['player', ui('Главная и плеер', 'Home and player'), ui('Элементы страницы и воспроизведение.', 'Page elements and playback.'), ['hide-artist-tools', 'hide-nearby-events', 'block-audio-ads', 'playback-visualization', 'show-your-likes-button']],
     ['companion', ui('Спутник', 'Companion'), ui('Отображение персонажа и звуки.', 'Character visibility and sounds.'), ['companion-enabled']],
     ['discord', 'Discord', ui('Текущий трек в статусе Discord.', 'Current track in your Discord status.'), ['discord-rpc']],
-    ['application', ui('Приложение', 'Application'), ui('Запуск, обновления и ваши Insights.', 'Startup, updates and your Insights.'), ['auto-start']]
+    ['application', ui('Приложение', 'Application'), ui('Запуск, обновления и ваши Insights.', 'Startup, updates and your Insights.'), ['auto-start']],
+    ['network', ui('Сеть и подключение', 'Network and connection'), ui('Режим, прокси, проверка соединения и отчёт.', 'Mode, proxy, connection check and report.'), ['net-test']]
   ];
   const pages = [];
   for (const [id, title, description, controls] of definitions) {
@@ -97,7 +104,7 @@ function organizePanel(shadow, ui, closePanel) {
     for (const controlId of controls) {
       const control = shadow.getElementById(controlId);
       // Entire groups carry their descriptions and dependent controls along.
-      const grouped = ['avatarRadius', 'companion-enabled', 'discord-rpc', 'auto-start'].includes(controlId);
+      const grouped = ['avatarRadius', 'companion-enabled', 'discord-rpc', 'auto-start', 'net-test'].includes(controlId);
       if (grouped) page.append(control.closest('.section'));
       else {
         const card = document.createElement('div');
@@ -140,7 +147,7 @@ function organizePanel(shadow, ui, closePanel) {
   animationCards[1].remove();
   const playerCards = [...pages[1].page.querySelectorAll(':scope > .section')];
   for (const card of playerCards.slice(1)) { playerCards[0].append(...card.childNodes); card.remove(); }
-  const appPage = pages.at(-1).page;
+  const appPage = pages.find(item => item.id === 'application').page;
   const updates = document.createElement('div');
   updates.className = 'section';
   const updateTitle = document.createElement('h3');
