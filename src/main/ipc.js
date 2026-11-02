@@ -22,6 +22,7 @@ const locale = require('./locale.js');
 const autoTranslate = require('./auto-translate.js');
 const insightsStore = require('./insights-store.js');
 const downloads = require('./downloads.js');
+const connection = require('./connection.js');
 const { setAutoStart } = require('./autostart.js');
 
 const BOOLEAN_KEYS = [
@@ -37,6 +38,19 @@ const BOOLEAN_KEYS = [
 ];
 
 function register() {
+  ipcMain.handle(CHANNEL.getConnectionState, event => {
+    if (!isMainSoundCloudPage(event.sender)) throw new Error('Unavailable');
+    return connection.getStatus();
+  });
+  ipcMain.handle(CHANNEL.set('connectionMode'), async (event, mode) => {
+    if (!isMainSoundCloudPage(event.sender) || !validateSetting('connectionMode', mode)) throw new Error('Invalid connection mode');
+    saveSettings({ ...getSettings(), connectionMode: mode });
+    for (const value of ['auto', 'bypass', 'direct']) {
+      const item = Menu.getApplicationMenu()?.getMenuItemById(`connection-${value}`);
+      if (item) item.checked = value === mode;
+    }
+    return connection.setMode(mode);
+  });
   ipcMain.handle(CHANNEL.set('panelTheme'), (event, value) => {
     if (!isMainSoundCloudPage(event.sender) || !validateSetting('panelTheme', value)) throw new Error('Invalid panel theme');
     saveSettings({ ...getSettings(), panelTheme: value });

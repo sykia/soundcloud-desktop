@@ -15,6 +15,7 @@ const insightsStore = require('./insights-store.js');
 const discord = require('./discord.js');
 const autostart = require('./autostart.js');
 const dns = require('./dns.js');
+const connection = require('./connection.js');
 const window = require('./window.js');
 const updates = require('./updates.js');
 const locale = require('./locale.js');
@@ -71,6 +72,7 @@ app.on('child-process-gone', (_event, details) => {
 });
 app.on('before-quit', () => {
   window.setQuitting();
+  connection.stop();
   updates.teardown();
   autoTranslate.teardown();
   insightsStore.flushOnQuit();
@@ -86,6 +88,13 @@ if (hasInstanceLock) app.whenReady().then(async () => {
   downloads.watchClientId();
 
   settings.loadSettings();
+  connection.observeSession();
+  connection.getManager().on('status', status => window.sendToRenderer(CHANNEL.connectionState, status));
+  connection.getManager().on('recovered', ({ reload }) => {
+    if (reload) window.retryFailedConnection(true);
+    else window.sendToRenderer(CHANNEL.connectionRecovered);
+  });
+  await connection.setMode(settings.getSettings().connectionMode);
   locale.watchSourceLocale(value => {
     window.sendToRenderer(CHANNEL.siteLocale, value);
     frameLocalization.refresh(window.getMainWindow()?.webContents).catch(() => {});
@@ -123,6 +132,19 @@ if (hasInstanceLock) app.whenReady().then(async () => {
         { type: 'separator' },
         { role: 'quit', label: 'Выход' }
       ]
+    },
+    {
+      label: 'Подключение',
+      submenu: [
+        ['auto', 'Автоматически'], ['bypass', 'Усиленный обход'], ['direct', 'Напрямую']
+      ].map(([mode, label]) => ({
+        id: `connection-${mode}`, label, type: 'radio', checked: settings.getSettings().connectionMode === mode,
+        click: async () => {
+          settings.saveSettings({ ...settings.getSettings(), connectionMode: mode });
+          await connection.setMode(mode);
+          window.retryFailedConnection(true);
+        }
+      }))
     }
   ]));
 

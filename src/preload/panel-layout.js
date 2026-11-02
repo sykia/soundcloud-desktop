@@ -79,7 +79,7 @@ function organizePanel(shadow, ui, closePanel) {
     ['player', ui('Главная и плеер', 'Home and player'), ui('Элементы страницы и воспроизведение.', 'Page elements and playback.'), ['hide-artist-tools', 'hide-nearby-events', 'block-audio-ads', 'playback-visualization', 'show-your-likes-button']],
     ['companion', ui('Спутник', 'Companion'), ui('Отображение персонажа и звуки.', 'Character visibility and sounds.'), ['companion-enabled']],
     ['discord', 'Discord', ui('Текущий трек в статусе Discord.', 'Current track in your Discord status.'), ['discord-rpc']],
-    ['application', ui('Приложение', 'Application'), ui('Запуск, обновления и ваши Insights.', 'Startup, updates and your Insights.'), ['auto-start']]
+    ['application', ui('Приложение', 'Application'), ui('Подключение, запуск, обновления и ваши Insights.', 'Connection, startup, updates and your Insights.'), ['connection-mode', 'auto-start']]
   ];
   const pages = [];
   for (const [id, title, description, controls] of definitions) {
@@ -97,7 +97,7 @@ function organizePanel(shadow, ui, closePanel) {
     for (const controlId of controls) {
       const control = shadow.getElementById(controlId);
       // Entire groups carry their descriptions and dependent controls along.
-      const grouped = ['avatarRadius', 'companion-enabled', 'discord-rpc', 'auto-start'].includes(controlId);
+      const grouped = ['avatarRadius', 'companion-enabled', 'discord-rpc', 'auto-start', 'connection-mode'].includes(controlId);
       if (grouped) page.append(control.closest('.section'));
       else {
         const card = document.createElement('div');

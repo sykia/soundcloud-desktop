@@ -16,6 +16,7 @@ const onSettingsLoaded = new Set();
 function loadSettings() {
   ipcRenderer.invoke(CHANNEL.getSettings).then(saved => {
     const settings = coerceSettings(saved);
+    state.connectionMode = settings.connectionMode;
     state.companionPosition = { ...settings.companionPosition };
     state.companionEnabled = settings.companionEnabled;
     state.companionSounds = settings.companionSounds;

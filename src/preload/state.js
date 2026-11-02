@@ -12,6 +12,7 @@ const {
 } = require('../../shared/constants.js');
 
 const state = {
+  connectionMode: 'auto',
   panelTheme: 'dark',
   companionPosition: { x: .08, y: 1 },
   companionEnabled: true,

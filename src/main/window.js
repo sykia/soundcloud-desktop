@@ -8,22 +8,32 @@
 // never imports tray (tray imports updates and window — one-way edges only).
 
 const path = require('node:path');
-const { app, BrowserWindow, session, shell } = require('electron');
+const { app, BrowserWindow, shell } = require('electron');
 const { HOME_URL } = require('../../shared/constants.js');
 const { CHANNEL } = require('../../shared/ipc.js');
 const { isSoundCloudUrl, isSignInPopupUrl, launchUrl, launchUrlFromArgs } = require('./urls.js');
 const { getSettings } = require('./settings.js');
 const dns = require('./dns.js');
+const connection = require('./connection.js');
 const discord = require('./discord.js');
 const { APP_ID, iconPath, shellIconPath, refreshDesktopIcon } = require('./icon-style.js');
 
-const PAGE_LOAD_TIMEOUT_MS = 30000;
-const DNS_CACHE_TIMEOUT_MS = 3000;
+const PAGE_LOAD_TIMEOUT_MS = 45000;
 
 let mainWindow;
 let pendingLaunchUrl = null;
 let isQuitting = false;
 let hasTray = () => false;
+let failedConnectionUrl = null;
+
+function retryFailedConnection(force = false) {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  const url = failedConnectionUrl || (force ? mainWindow.webContents.getURL() : null);
+  if (url && isSoundCloudUrl(url)) {
+    failedConnectionUrl = null;
+    mainWindow.loadURL(url).catch(() => {});
+  } else if (force) mainWindow.loadURL(HOME_URL).catch(() => {});
+}
 
 function setHasTray(predicate) {
   hasTray = predicate;
@@ -97,16 +107,6 @@ function onSecondInstance(argv) {
   else if (!argv.includes('--autostart')) showMainWindow();
 }
 
-function withTimeout(promise, timeoutMs) {
-  let timer;
-  return Promise.race([
-    promise,
-    new Promise((_, reject) => {
-      timer = setTimeout(() => reject(new Error('Timed out')), timeoutMs);
-    })
-  ]).finally(() => clearTimeout(timer));
-}
-
 function createWindow(hidden = false) {
   mainWindow = new BrowserWindow({
     title: 'SoundCloud',
@@ -153,12 +153,12 @@ function createWindow(hidden = false) {
     const hint = code === -7
       ? 'Превышено время ожидания ответа от SoundCloud.'
       : dnsFailure
-        ? 'Не удалось определить адрес SoundCloud. Если доступ к сайту ограничен сетью, смена DNS не поможет.'
-        : 'Проверьте подключение к интернету и попробуйте ещё раз.';
+        ? 'Не удалось определить адрес SoundCloud. Подбираем другое подключение.'
+        : 'Соединение прервалось. Приложение автоматически повторяет подключение.';
     console.error(`Не удалось открыть SoundCloud (${code}: ${description}). DNS: ${dns.getDnsServerName()}`);
     const html = `<!doctype html><html lang="ru"><meta charset="utf-8"><title>SoundCloud</title>
       <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#121216;color:#fff;font:16px system-ui}main{max-width:480px;padding:32px}h1{font-size:24px}p{color:#bbb;line-height:1.5}small{color:#888}a{display:inline-block;margin-top:12px;padding:12px 18px;border-radius:8px;background:#f50;color:#fff;text-decoration:none}</style>
-      <main><h1>SoundCloud не загрузился</h1><p>${hint}</p><small>Код ошибки: ${code}</small><br><a href="${HOME_URL}">Повторить</a></main></html>`;
+      <main><h1>Восстанавливаем подключение</h1><p>${hint}</p><p>Окно откроется автоматически после восстановления связи. Режим можно изменить в меню «Подключение» (Alt).</p><small>Код ошибки: ${code}</small><br><a href="${HOME_URL}">Повторить сейчас</a></main></html>`;
     contents.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
   }
 
@@ -174,31 +174,23 @@ function createWindow(hidden = false) {
       failureHandled = true;
       clearLoadTimer();
       contents.stop();
+      failedConnectionUrl = details.url;
+      connection.reportFailure(details.url, { mainFrame: true });
       showLoadError(-7, 'Timed out');
     }, PAGE_LOAD_TIMEOUT_MS);
   });
 
   contents.on('dom-ready', () => {
-    if (isSoundCloudUrl(contents.getURL())) clearLoadTimer();
+    if (isSoundCloudUrl(contents.getURL())) { clearLoadTimer(); failedConnectionUrl = null; }
   });
 
-  contents.on('did-fail-load', async (_event, code, description, url, isMainFrame) => {
+  contents.on('did-fail-load', (_event, code, description, url, isMainFrame) => {
     if (!isMainFrame || code === -3 || !isSoundCloudUrl(url) || failureHandled) return;
     failureHandled = true;
     clearLoadTimer();
     const failedLoadId = loadId;
-
-    if (dns.isDnsError(code) && dns.hasDnsFallback()) {
-      const nextIndex = dns.nextDnsServerIndex();
-      try {
-        dns.configureDnsServer(nextIndex);
-        await withTimeout(session.defaultSession.clearHostResolverCache(), DNS_CACHE_TIMEOUT_MS);
-        if (failedLoadId === loadId && !contents.isDestroyed()) contents.loadURL(url);
-        return;
-      } catch (error) {
-        console.error(`Не удалось переключить DNS на ${dns.getDnsServerName()}:`, error);
-      }
-    }
+    failedConnectionUrl = url;
+    connection.reportFailure(url, { mainFrame: true });
 
     if (failedLoadId === loadId && !contents.isDestroyed()) showLoadError(code, description);
   });
@@ -257,6 +249,7 @@ function refreshIcon() {
 }
 
 module.exports = {
+  retryFailedConnection,
   createWindow,
   showMainWindow,
   openSoundCloudUrl,

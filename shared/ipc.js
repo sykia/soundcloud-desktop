@@ -7,6 +7,9 @@ const kebab = key => key.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)
 // uses CHANNEL.set('hideArtistTools') and the main process registers handlers
 // for the same names.
 const CHANNEL = {
+  getConnectionState: 'cusade:get-connection-state',
+  connectionState: 'cusade:connection-state',
+  connectionRecovered: 'cusade:connection-recovered',
   getSettings: 'cusade:get-settings',
   getSiteLocale: 'cusade:get-site-locale',
   siteLocale: 'cusade:site-locale',

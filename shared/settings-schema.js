@@ -33,6 +33,8 @@ const isCompanionPosition = value => value && typeof value === 'object' &&
   Number.isFinite(value.x) && value.x >= 0 && value.x <= 1 &&
   Number.isFinite(value.y) && value.y >= 0 && value.y <= 1;
 const SETTINGS = {
+  connectionMode: { default: 'auto', validate: value => ['auto', 'bypass', 'direct'].includes(value),
+    coerce: value => ['auto', 'bypass', 'direct'].includes(value) ? value : 'auto' },
   panelTheme: { default: 'dark', validate: value => value === 'dark' || value === 'light',
     coerce: value => value === 'light' ? 'light' : 'dark' },
   companionPosition: { default: { x: .08, y: 1 }, validate: isCompanionPosition,

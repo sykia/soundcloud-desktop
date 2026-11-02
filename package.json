@@ -1,6 +1,6 @@
 {
   "name": "soundcloud-desktop",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "private": true,
   "description": "SoundCloud desktop client with offline Russian interface translation and customization",
   "author": {
@@ -13,21 +13,23 @@
   "scripts": {
     "start": "node build.js && electron .",
     "check": "node scripts/check-consistency.js",
-    "test": "node --test scripts/localization.test.js scripts/localization.integration.test.js scripts/frame-localization.test.js scripts/catalog-generation.test.js scripts/linux-package-install.test.js scripts/downloads.test.js scripts/nix-updates.test.js scripts/updates.test.js",
+    "test": "node --test scripts/localization.test.js scripts/localization.integration.test.js scripts/frame-localization.test.js scripts/catalog-generation.test.js scripts/linux-package-install.test.js scripts/downloads.test.js scripts/nix-updates.test.js scripts/updates.test.js scripts/connection.test.js",
     "test:ui": "node build.js && electron scripts/ui-smoke.js",
     "test:downloads": "node --test scripts/downloads.test.js",
     "test:ui:linux": "xvfb-run --auto-servernum --server-args=\"-screen 0 1280x1024x24\" npm run test:ui",
-    "test:release": "npm run check && npm test && npm run test:ui",
+    "test:release": "npm run check && npm run verify:byedpi && npm test && npm run test:connection && npm run test:ui",
     "electron:install": "install-electron --no",
     "build": "node build.js",
     "build:watch": "node build.js --watch",
     "localization:capture": "node build.js && electron . --capture-localization=/tmp/soundcloud-labels.jsonl",
     "localization:generate": "node scripts/generate-localization-catalog.js",
-    "predist:linux": "node build.js",
+    "predist:linux": "node scripts/verify-byedpi.js && node build.js",
     "dist:linux": "electron-builder --linux AppImage deb rpm pacman --x64 --publish never",
-    "predist:win": "node build.js",
+    "predist:win": "node scripts/verify-byedpi.js && node build.js",
     "dist:win": "electron-builder --win nsis --x64 --publish never",
-    "install:nixos": "node scripts/install-nixos.js"
+    "install:nixos": "node scripts/install-nixos.js",
+    "verify:byedpi": "node scripts/verify-byedpi.js",
+    "test:connection": "electron scripts/connection-smoke.js"
   },
   "devDependencies": {
     "electron": "44.5.1",
@@ -64,6 +66,10 @@
       {
         "from": "build/translation-model",
         "to": "translation-model"
+      },
+      {
+        "from": "build/byedpi",
+        "to": "byedpi"
       }
     ],
     "linux": {

@@ -7,6 +7,7 @@
 
 const { ipcRenderer } = require('electron');
 const { PANEL_CSS, organizePanel } = require('./panel-layout.js');
+const { attachConnectionControls, updateConnectionControls } = require('./connection-ui.js');
 const { CHANNEL } = require('../../shared/ipc.js');
 const { DEFAULT_RADII } = require('../../shared/constants.js');
 const { state } = require('./state.js');
@@ -71,6 +72,7 @@ function updateDiscordControls() {
 }
 
 function updateAutoStartControls() {
+  updateConnectionControls();
   const shadow = hosts.panelHost?.shadowRoot;
   const toggle = shadow?.querySelector('#auto-start');
   const minimized = shadow?.querySelector('#start-minimized');
@@ -230,6 +232,16 @@ function togglePanel() {
             <input id="start-minimized" type="checkbox" disabled>
           </label>
         </div>
+        <div class="section">
+          <label class="setting-name" for="connection-mode">Подключение к SoundCloud</label>
+          <select class="text-input" id="connection-mode" disabled>
+            <option value="auto">Автоматически</option>
+            <option value="bypass">Усиленный обход</option>
+            <option value="direct">Напрямую / системный прокси</option>
+          </select>
+          <span class="hint">Бесплатный встроенный обход для сайта и аудио. При сбоях приложение меняет стратегию и повторяет подключение. VPN не требуется.</span>
+          <span class="hint" id="connection-status" role="status" aria-live="polite">Подключаемся…</span>
+        </div>
         <label class="color-setting">
           <span><span class="setting-name">${ui('Основной цвет', 'Accent color')}</span>
           <span class="hint">${ui('Выберите цвет акцентов SoundCloud.', 'Choose the SoundCloud accent color.')}</span></span>
@@ -255,6 +267,7 @@ function togglePanel() {
       </div>
     </div>`;
   organizePanel(shadow, ui, closePanel);
+  attachConnectionControls(shadow);
   hosts.panelHost.dataset.theme = state.panelTheme;
   const themeControl = shadow.getElementById('panel-theme');
   themeControl.value = state.panelTheme;
