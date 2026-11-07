@@ -847,7 +847,7 @@ Window {
                 width: Math.min(parent.width, 480); heading: "SCrip"
                 Txt { text: "Версия " + Qt.application.version; color: app.muted }
                 Txt { text: app.api.updateAvailable ? "Доступна версия " + app.api.latestVersion : "Установлена последняя версия"; color: app.api.updateAvailable ? app.accent : app.muted }
-                Tool { text: app.api.updateAvailable ? "Открыть загрузку обновления" : app.api.updateChecking ? "Проверяем обновления…" : "Проверить обновления"; enabled: !app.api.updateChecking; onClicked: { if (app.api.updateAvailable) sc.openExternal(app.api.updateUrl); else sc.checkForUpdates() } }
+                Tool { text: app.api.updateAvailable ? "Установить обновление" : app.api.updateChecking ? "Проверяем обновления…" : "Проверить обновления"; enabled: !app.api.updateChecking; onClicked: { sc.checkForUpdates() } }
                 Txt { text: "Независимый клиент SoundCloud"; color: app.muted }
             }
         }

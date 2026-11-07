@@ -76,6 +76,6 @@ endif()
 
 # Тексты лицензий доступны в ресурсах всех платформ и при системной установке.
 qt_add_resources(scrip legal_notices PREFIX "/legal" FILES LICENSE THIRD_PARTY_NOTICES.md TRADEMARKS.md)
-install(TARGETS scrip RUNTIME DESTINATION bin BUNDLE DESTINATION .)
+install(TARGETS scrip RUNTIME DESTINATION bin LIBRARY DESTINATION lib BUNDLE DESTINATION .)
 install(FILES LICENSE DESTINATION share/licenses/scrip)
 install(FILES THIRD_PARTY_NOTICES.md TRADEMARKS.md DESTINATION share/doc/scrip)

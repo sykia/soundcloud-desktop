@@ -23,6 +23,7 @@
 #include <QTcpSocket>
 #include <QUrlQuery>
 #include <QVersionNumber>
+#include <QProcess>
 
 namespace {
 QByteArray callbackPage(bool valid, bool receivedCode) {
@@ -151,8 +152,8 @@ SoundCloud::SoundCloud(QObject *parent, QNetworkAccessManager *network) : QObjec
     connect(&m_callback, &QTcpServer::newConnection, this, &SoundCloud::callbackConnection);
     m_loginTimeout.setSingleShot(true); m_loginTimeout.setInterval(600000);
     connect(&m_loginTimeout, &QTimer::timeout, this, [this] { cancelLogin(); fail("Время ожидания входа истекло. Попробуйте снова."); });
-    QTimer::singleShot(0, this, [this] {
-        checkForUpdates();
+    QTimer::singleShot(0, this, [this, network] {
+        if (!network) checkForUpdates();
         if (m_state.value("configured").toBool() && (!m_useWorker || m_userSession)) connectCatalog();
     });
 }
@@ -719,6 +720,60 @@ void SoundCloud::checkForUpdates() {
         set("latestVersion", remote);
         set("updateAvailable", QVersionNumber::compare(latest, current) > 0);
         set("updateUrl", "https://github.com/sykia/SCrip/releases/latest");
+        if (QVersionNumber::compare(latest, current) <= 0) return;
+        QString suffix;
+#ifdef Q_OS_ANDROID
+        suffix = "-Android-universal.apk";
+#elif defined(Q_OS_WIN)
+        suffix = "-Windows-x64.exe";
+#elif defined(Q_OS_LINUX)
+        suffix = QFileInfo::exists("/etc/arch-release") ? "-x86_64.pkg.tar.zst" : "-amd64.deb";
+#else
+        return;
+#endif
+        for (const auto &entry : release.value("assets").toArray()) {
+            const auto asset = entry.toObject();
+            if (!asset.value("name").toString().endsWith(suffix)) continue;
+            const QString digest = asset.value("digest").toString();
+            const QUrl url(asset.value("browser_download_url").toString());
+            if (!digest.startsWith("sha256:") || url.scheme() != "https" || url.host() != "github.com") continue;
+            set("updateInstalling", true);
+            QNetworkRequest download(url); download.setTransferTimeout(60000);
+            download.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
+            auto *fileReply = m_network->get(download);
+            connect(fileReply, &QNetworkReply::finished, this, [this, fileReply, asset, digest] {
+                fileReply->deleteLater();
+                const auto bytes = fileReply->readAll();
+                if (fileReply->error() != QNetworkReply::NoError ||
+                    "sha256:" + QString::fromLatin1(QCryptographicHash::hash(bytes, QCryptographicHash::Sha256).toHex()) != digest) {
+                    set("updateInstalling", false); fail("Обновление не прошло проверку SHA-256. Установка отменена."); return;
+                }
+                const QString dir = QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/updates";
+                QDir().mkpath(dir);
+                const QString path = dir + "/" + QFileInfo(asset.value("name").toString()).fileName();
+                QSaveFile file(path);
+                if (!file.open(QIODevice::WriteOnly) || file.write(bytes) != bytes.size() || !file.commit()) {
+                    set("updateInstalling", false); fail("Не удалось сохранить обновление."); return;
+                }
+#ifdef Q_OS_WIN
+                if (QProcess::startDetached(path, {"/S", "/AUTORESTART"})) QCoreApplication::quit();
+#elif defined(Q_OS_ANDROID)
+                QDesktopServices::openUrl(QUrl::fromLocalFile(path));
+#elif defined(Q_OS_LINUX)
+                auto *installer = new QProcess(this);
+                const bool arch = path.endsWith(".zst");
+                installer->start("pkexec", arch ? QStringList{"pacman", "-U", "--noconfirm", path} : QStringList{"dpkg", "-i", path});
+                connect(installer, &QProcess::finished, this, [this, installer](int code, QProcess::ExitStatus status) {
+                    installer->deleteLater(); set("updateInstalling", false);
+                    if (code == 0 && status == QProcess::NormalExit) {
+                        QProcess::startDetached(QCoreApplication::applicationFilePath(), {}); QCoreApplication::quit();
+                    } else fail("Не удалось установить обновление. Проверьте системный запрос прав администратора.");
+                });
+#endif
+            });
+            break;
+        }
+
     });
 }
 

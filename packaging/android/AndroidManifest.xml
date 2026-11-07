@@ -4,6 +4,7 @@
     android:installLocation="auto"
     android:versionCode="-- %%INSERT_VERSION_CODE%% --"
     android:versionName="-- %%INSERT_VERSION_NAME%% --">
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />

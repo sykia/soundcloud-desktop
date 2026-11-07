@@ -405,7 +405,7 @@ ApplicationWindow {
                     CheckBox { text: "Плавный переход между треками (3 секунды)"; checked: !!app.api.crossfade; Layout.fillWidth: true; onToggled: sc.setCrossfade(checked) }
                     Caption { text: "SCrip"; font.bold: true; font.pixelSize: 19 }
                     Caption { text: "Версия " + Qt.application.version + (app.api.updateAvailable ? " · доступна " + app.api.latestVersion : ""); color: app.api.updateAvailable ? app.accent : app.muted; font.pixelSize: 13 }
-                    Action { text: app.api.updateAvailable ? "Скачать обновление" : app.api.updateChecking ? "Проверяем обновления…" : "Проверить обновления"; enabled: !app.api.updateChecking; Layout.fillWidth: true; onClicked: { if (app.api.updateAvailable) sc.openExternal(app.api.updateUrl); else sc.checkForUpdates() } }
+                    Action { text: app.api.updateAvailable ? "Установить обновление" : app.api.updateChecking ? "Проверяем обновления…" : "Проверить обновления"; enabled: !app.api.updateChecking; Layout.fillWidth: true; onClicked: { sc.checkForUpdates() } }
                     Caption { text: "Оформление"; font.bold: true; font.pixelSize: 19 }
                     Row {
                         spacing: 14

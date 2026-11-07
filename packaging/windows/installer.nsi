@@ -1,3 +1,4 @@
+!include "FileFunc.nsh"
 Unicode true
 RequestExecutionLevel user
 ManifestDPIAware true
@@ -10,10 +11,10 @@ InstallDir "$LOCALAPPDATA\Programs\SCrip"
 BrandingText "SCrip"
 SetCompressor /SOLID lzma
 Icon "app.ico"
-VIProductVersion "1.3.0.0"
+VIProductVersion "1.4.0.0"
 VIAddVersionKey /LANG=1049 "ProductName" "SCrip"
 VIAddVersionKey /LANG=1049 "FileDescription" "Установка SCrip"
-VIAddVersionKey /LANG=1049 "FileVersion" "1.3.0"
+VIAddVersionKey /LANG=1049 "FileVersion" "1.4.0"
 VIAddVersionKey /LANG=1049 "LegalCopyright" "SCrip"
 !define MUI_ICON "app.ico"
 !define MUI_UNICON "app.ico"
@@ -42,6 +43,7 @@ FunctionEnd
 
 !macro CheckClosed
   IfFileExists "$INSTDIR\SCrip.exe" 0 done
+  StrCpy $1 0
   retry:
   ClearErrors
   FileOpen $0 "$INSTDIR\SCrip.exe" a
@@ -49,7 +51,14 @@ FunctionEnd
   FileClose $0
   Goto done
   locked:
-  IfSilent cancel
+  IfSilent silent_wait
+  Goto prompt
+  silent_wait:
+  IntOp $1 $1 + 1
+  IntCmp $1 10 cancel
+  Sleep 1000
+  Goto retry
+  prompt:
   MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "Закройте SCrip, затем нажмите «Повторить»." IDRETRY retry
   cancel:
   SetErrorLevel 2
@@ -66,7 +75,7 @@ Section
   CreateShortcut "$SMPROGRAMS\SCrip.lnk" "$INSTDIR\SCrip.exe"
   CreateShortcut "$DESKTOP\SCrip.lnk" "$INSTDIR\SCrip.exe"
   WriteRegStr HKCU "${UNKEY}" "DisplayName" "SCrip"
-  WriteRegStr HKCU "${UNKEY}" "DisplayVersion" "1.3.0"
+  WriteRegStr HKCU "${UNKEY}" "DisplayVersion" "1.4.0"
   WriteRegStr HKCU "${UNKEY}" "DisplayIcon" "$INSTDIR\SCrip.exe"
   WriteRegStr HKCU "${UNKEY}" "UninstallString" '"$INSTDIR\Uninstall.exe"'
   WriteRegDWORD HKCU "${UNKEY}" "NoModify" 1
@@ -82,3 +91,12 @@ Section "Uninstall"
   Delete "$INSTDIR\Uninstall.exe"
   RMDir "$INSTDIR"
 SectionEnd
+
+Function .onInstSuccess
+  ${GetParameters} $0
+  ClearErrors
+  ${GetOptions} $0 "/AUTORESTART" $1
+  IfErrors done_restart
+  Exec '"$INSTDIR\SCrip.exe"'
+  done_restart:
+FunctionEnd
