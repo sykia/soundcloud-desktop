@@ -21,7 +21,11 @@ else()
 endif()
 qt_standard_project_setup(REQUIRES 6.5)
 
-qt_add_executable(scrip src/plugins.cpp src/plugins.h src/main.cpp src/soundcloud.cpp src/soundcloud.h src/artworknetwork.cpp src/artworknetwork.h)
+set(executable_options)
+if(ANDROID)
+    list(APPEND executable_options MANUAL_FINALIZATION)
+endif()
+qt_add_executable(scrip ${executable_options} src/plugins.cpp src/plugins.h src/main.cpp src/soundcloud.cpp src/soundcloud.h src/artworknetwork.cpp src/artworknetwork.h)
 set_source_files_properties(${main_qml} PROPERTIES QT_RESOURCE_ALIAS Main.qml)
 set_source_files_properties(qml/assets/blob.png PROPERTIES QT_RESOURCE_ALIAS assets/blob.png)
 qt_add_qml_module(scrip
@@ -93,3 +97,23 @@ qt_add_resources(scrip legal_notices PREFIX "/legal" FILES LICENSE THIRD_PARTY_N
 install(TARGETS scrip RUNTIME DESTINATION bin LIBRARY DESTINATION lib BUNDLE DESTINATION .)
 install(FILES LICENSE DESTINATION share/licenses/scrip)
 install(FILES THIRD_PARTY_NOTICES.md TRADEMARKS.md DESTINATION share/doc/scrip)
+
+if(ANDROID)
+    qt_finalize_executable(scrip)
+    function(scrip_configure_deployment_limits)
+        add_custom_target(scrip_limit_qml_deployment
+            COMMAND ${CMAKE_COMMAND}
+                "-DDEPLOYMENT_FILE=$<TARGET_PROPERTY:scrip,QT_ANDROID_DEPLOYMENT_SETTINGS_FILE>"
+                "-DQML_ROOT=${CMAKE_CURRENT_SOURCE_DIR}/qml/android"
+                -P "${CMAKE_CURRENT_SOURCE_DIR}/packaging/android/limit_qml_deployment.cmake"
+            DEPENDS scrip
+            VERBATIM)
+        if(TARGET scrip_prepare_apk_dir)
+            add_dependencies(scrip_prepare_apk_dir scrip_limit_qml_deployment)
+        endif()
+        if(TARGET qt_internal_scrip_copy_apk_dependencies)
+            add_dependencies(qt_internal_scrip_copy_apk_dependencies scrip_limit_qml_deployment)
+        endif()
+    endfunction()
+    cmake_language(DEFER CALL scrip_configure_deployment_limits)
+endif()
