@@ -4,7 +4,7 @@
 
 <h1 align="center">SCrip</h1>
 
-<p align="center">Неофициальный плеер SoundCloud для Windows и Linux.<br>Ваши лайки, свежие релизы и станции любимых исполнителей — в отдельном приложении.</p>
+<p align="center">SCrip — плеер для Windows и Linux, который работает через официальный API SoundCloud.<br>Ваши лайки, свежие релизы и станции любимых исполнителей — в отдельном приложении.</p>
 
 <p align="center">
   <a href="https://github.com/sykia/SCrip/releases/download/v1.0.0/SCrip-1.0.0-Windows-x64.exe"><img src="https://img.shields.io/badge/Windows_10%2F11-EXE-414650?style=for-the-badge" alt="Скачать для Windows 10 и 11 x64"></a>
