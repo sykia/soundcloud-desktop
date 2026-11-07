@@ -18,8 +18,8 @@
 Мобильная версия с нижней навигацией, мини-плеером и большим экраном текущего трека. Музыка играет в фоне; переключать треки можно из уведомления, с экрана блокировки и через виджет. Следующий трек подготавливается заранее.
 
 <p align="center">
-  <img src="docs/screenshots/android-home.png" width="32%" alt="Главная SCrip на Android">
-  <img src="docs/screenshots/android-player.png" width="32%" alt="Экран воспроизведения SCrip на Android">
+  <img src="docs/screenshots/android-home-frame.svg" width="32%" alt="Главная SCrip на Android">
+  <img src="docs/screenshots/android-player-frame.svg" width="32%" alt="Экран воспроизведения SCrip на Android">
 </p>
 
 [Все изменения с 1.0.0](CHANGELOG.md) · [Скачать релиз 1.3.0](https://github.com/sykia/SCrip/releases/tag/v1.3.0)
