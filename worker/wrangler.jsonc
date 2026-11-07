@@ -1,0 +1,10 @@
+{
+  "name": "scrip-auth",
+  "main": "index.mjs",
+  "compatibility_date": "2026-11-01",
+  "workers_dev": true,
+  "preview_urls": false,
+  "ratelimits": [
+    {"name": "LOGIN_LIMIT", "namespace_id": "43821", "simple": {"limit": 30, "period": 60}}
+  ]
+}

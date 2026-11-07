@@ -1,6 +1,18 @@
-node_modules/
-dist/
-dist-js/
+/build/
+/CMakeUserPresets.json
+*.user
 .DS_Store
-*.log
-coverage/
+
+# Локальные настройки и секреты (реальные секреты хранить вне проекта).
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+/secrets/
+/credentials/
+
+.wrangler/
+.dev.vars*

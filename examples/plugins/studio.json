@@ -1,0 +1,24 @@
+{
+  "api": 1,
+  "id": "studio",
+  "name": "Студия",
+  "groups": [
+    {
+      "label": "Черничный акцент",
+      "accent": "#614899",
+      "coverRadius": 16
+    },
+    {
+      "label": "Портреты исполнителей",
+      "covers": "artist"
+    },
+    {
+      "label": "Моя музыка",
+      "page": "home",
+      "buttons": [
+        {"label": "Любимые треки", "action": "likes"},
+        {"label": "Недавние", "action": "history"}
+      ]
+    }
+  ]
+}

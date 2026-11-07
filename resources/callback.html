@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ru">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Вход в SCrip</title>
+<link rel="icon" href="data:,">
+<style>
+:root { color-scheme: light dark; --paper: #fff; --ink: #26242a; --muted: #605d65; --line: #e9e4e7; --accent: #d43657; --wash: #fff3f5 }
+@media (prefers-color-scheme: dark) {
+  :root { --paper: #252326; --ink: #faf7f8; --muted: #c3bbc0; --line: #403b40; --accent: #ff8298; --wash: #33272c }
+}
+* { box-sizing: border-box }
+body { margin: 0; min-height: 100vh; min-height: 100svh; padding: 24px; display: grid; place-items: center; background: linear-gradient(155deg,var(--wash),var(--paper)); color: var(--ink); font: 16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif }
+main { width: min(100%,420px); padding: clamp(24px,6vw,44px); border: 1px solid var(--line); border-radius: 24px; background: var(--paper); box-shadow: 0 12px 48px #23101d09 }
+header { display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 650; letter-spacing: -.5px }
+.mark { width: 46px; height: 46px; background: var(--accent); mask: url(data:image/png;base64,LOGO_DATA) center/150% no-repeat }
+h1 { margin: 28px 0 10px; font-size: clamp(25px,5vw,31px); letter-spacing: -.035em; line-height: 1.12 }
+p { margin: 0; color: var(--muted) }
+</style>
+<script>if(location.search) history.replaceState(null,"",location.pathname)</script>
+<main><header><span class="mark" aria-hidden="true"></span>SCrip</header>
+<h1>PAGE_TITLE</h1><p>PAGE_MESSAGE</p></main>
+</html>

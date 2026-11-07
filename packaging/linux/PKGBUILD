@@ -1,0 +1,19 @@
+pkgname=scrip
+pkgver=1.0.0
+pkgrel=1
+pkgdesc='Настольный плеер для SoundCloud'
+arch=('x86_64')
+url='https://github.com/sykia/SCrip'
+depends=('qt6-base' 'qt6-declarative' 'qt6-multimedia' 'qt6-multimedia-ffmpeg')
+makedepends=('cmake' 'ninja')
+source=("SCrip-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+build() {
+    cmake -S "SCrip-$pkgver" -B build -G Ninja -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release
+    cmake --build build --parallel 2
+}
+package() {
+    install -Dm755 build/scrip "$pkgdir/usr/bin/scrip"
+    install -Dm644 "SCrip-$pkgver/packaging/linux/scrip.desktop" "$pkgdir/usr/share/applications/scrip.desktop"
+    install -Dm644 "SCrip-$pkgver/packaging/linux/scrip.png" "$pkgdir/usr/share/icons/hicolor/256x256/apps/scrip.png"
+}

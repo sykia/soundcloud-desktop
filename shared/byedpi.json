@@ -1,8 +1,0 @@
-{
-  "version": "0.17.3",
-  "source": "https://github.com/hufrea/byedpi/releases/tag/v0.17.3",
-  "binaries": {
-    "win32-x64": { "file": "ciadpi.exe", "sha256": "eb53ceeeb981cc6735ac24bb1e51e725280b86630e80fdf19ddc4ee4a5b54ef4", "archive": "byedpi-17.3-x86_64-w64.zip", "archiveSha256": "70d2c94147193cb915f9c6eb5144b8d404dacbcfa90bda2383b6b211afafa456" },
-    "linux-x64": { "file": "ciadpi-x86_64", "sha256": "c70e87c6168af1832b21641a98bb53e3500b1daf6a5df8bfd22fac4a9294abda", "archive": "byedpi-17.3-x86_64.tar.gz", "archiveSha256": "98f73c32eacb571ebd88d790f6376ed9e70f02d44c1fe862472ecea75cd7117d" }
-  }
-}

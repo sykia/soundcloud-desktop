@@ -1,0 +1,21 @@
+{
+  "api": 1,
+  "id": "discovery",
+  "name": "Маршруты поиска",
+  "groups": [
+    {
+      "label": "Найти музыку",
+      "page": "home",
+      "buttons": [
+        {
+          "label": "Лента подписок",
+          "action": "feed"
+        },
+        {
+          "label": "Поиск треков",
+          "action": "search"
+        }
+      ]
+    }
+  ]
+}

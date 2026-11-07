@@ -1,0 +1,6 @@
+Package: scrip
+Version: 1.0.0
+Architecture: amd64
+Maintainer: sykia <sykia@users.noreply.github.com>
+Depends: libqt6core6t64 (>= 6.8), libqt6gui6, libqt6widgets6, libqt6multimedia6, libqt6network6, libqt6quick6, libqt6qml6, qml6-module-qtcore, qml6-module-qtquick, qml6-module-qtquick-window, qml6-module-qtquick-controls, qml6-module-qtquick-layouts, qml6-module-qtquick-dialogs, qml6-module-qtquick-templates, qml6-module-qtqml-workerscript, qt6-qpa-plugins, qt6-wayland
+Description: SCrip, a desktop player for SoundCloud

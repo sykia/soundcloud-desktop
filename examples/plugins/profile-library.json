@@ -1,0 +1,21 @@
+{
+  "api": 1,
+  "id": "profile-library",
+  "name": "Полка коллекционера",
+  "groups": [
+    {
+      "label": "Моя коллекция",
+      "page": "profile",
+      "buttons": [
+        {
+          "label": "Любимые треки",
+          "action": "likes"
+        },
+        {
+          "label": "Мои плейлисты",
+          "action": "playlists"
+        }
+      ]
+    }
+  ]
+}
