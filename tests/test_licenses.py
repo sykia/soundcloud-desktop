@@ -59,6 +59,22 @@ class ComplianceTests(unittest.TestCase):
         self.data['components']['app']['source_sha256'] = licenses.digest(source)
         with self.assertRaises((ValueError, tarfile.TarError)): self.run_check()
 
+    def test_packaged_upstream_sources(self):
+        upstream = self.root / 'source.tar'
+        container = self.root / 'package.tar'
+        with tarfile.open(container, 'w') as archive:
+            archive.add(upstream, arcname='upstream.tar')
+        licenses.source_archive(container)
+
+    def test_nested_binary_archive_rejected(self):
+        binary = self.root / 'binary.tar'
+        with tarfile.open(binary, 'w') as archive:
+            archive.add(self.payload / 'app', arcname='library.dll')
+        container = self.root / 'package.tar'
+        with tarfile.open(container, 'w') as archive:
+            archive.add(binary, arcname='upstream.tar')
+        with self.assertRaises(ValueError): licenses.source_archive(container)
+
     def test_path_escape_rejected(self):
         self.data['components']['app']['source'] = '../source.tar'
         with self.assertRaises(ValueError): self.run_check()

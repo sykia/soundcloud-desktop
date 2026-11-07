@@ -16,3 +16,7 @@
 
 .wrangler/
 .dev.vars*
+
+# Кэш локальных Python-проверок.
+__pycache__/
+*.pyc

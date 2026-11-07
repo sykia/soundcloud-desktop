@@ -6,6 +6,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(Qt6 6.5 REQUIRED COMPONENTS Quick Network Multimedia)
+# Для динамического Qt плагины загружаются при запуске; Android deployment
+# сканирует QT_QML_ROOT_PATH. Не сканируем весь репозиторий с build/ и SDK.
+get_target_property(qt_core_type Qt6::Core TYPE)
+set(qml_scan_options)
+if(qt_core_type STREQUAL "SHARED_LIBRARY")
+    list(APPEND qml_scan_options NO_IMPORT_SCAN)
+endif()
 option(SCRIP_MOBILE_PREVIEW "Мобильный интерфейс на компьютере" OFF)
 if(ANDROID OR SCRIP_MOBILE_PREVIEW)
     set(main_qml qml/android/Main.qml)
@@ -18,6 +25,7 @@ qt_add_executable(scrip src/plugins.cpp src/plugins.h src/main.cpp src/soundclou
 set_source_files_properties(${main_qml} PROPERTIES QT_RESOURCE_ALIAS Main.qml)
 set_source_files_properties(qml/assets/blob.png PROPERTIES QT_RESOURCE_ALIAS assets/blob.png)
 qt_add_qml_module(scrip
+    ${qml_scan_options}
     URI SCrip
     VERSION 1.0
     RESOURCES qml/assets/blob.png
@@ -55,11 +63,17 @@ include(CTest)
 if(BUILD_TESTING AND NOT ANDROID)
     find_package(Qt6 REQUIRED COMPONENTS Test)
     qt_add_executable(scrip_tests tests/tst_soundcloud.cpp src/soundcloud.cpp src/soundcloud.h)
+    if(qt_core_type STREQUAL "SHARED_LIBRARY")
+        set_target_properties(scrip_tests PROPERTIES QT_QML_MODULE_NO_IMPORT_SCAN TRUE)
+    endif()
     qt_add_resources(scrip_tests callback_test PREFIX "/" FILES resources/callback.html)
     target_include_directories(scrip_tests PRIVATE src)
     target_link_libraries(scrip_tests PRIVATE Qt6::Test Qt6::Quick Qt6::Network Qt6::Multimedia)
     target_compile_definitions(scrip_tests PRIVATE SCRIP_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
     qt_add_executable(plugin_tests tests/tst_plugins.cpp src/plugins.cpp src/plugins.h)
+    if(qt_core_type STREQUAL "SHARED_LIBRARY")
+        set_target_properties(plugin_tests PROPERTIES QT_QML_MODULE_NO_IMPORT_SCAN TRUE)
+    endif()
     target_include_directories(plugin_tests PRIVATE src)
     target_compile_definitions(plugin_tests PRIVATE SCRIP_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
     target_link_libraries(plugin_tests PRIVATE Qt6::Test)

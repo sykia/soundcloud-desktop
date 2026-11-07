@@ -8,12 +8,16 @@ import re
 import sys
 import tarfile
 import zipfile
+import shutil
+import tempfile
 
 # Только уже рассмотренные простые идентификаторы. Сложные SPDX-выражения требуют ревью.
 ALLOWED = {'GPL-3.0-only', 'GPL-3.0-or-later', 'LGPL-3.0-only', 'LGPL-3.0-or-later',
            'LGPL-2.1-only', 'LGPL-2.1-or-later', 'MIT', 'BSD-2-Clause', 'BSD-3-Clause',
            'Apache-2.0', 'ISC', 'Zlib', 'BSL-1.0', 'CC0-1.0', 'Unlicense',
-           'MPL-2.0', 'Unicode-3.0', 'FTL', 'Libpng', 'libpng-2.0'}
+           'MPL-2.0', 'Unicode-3.0', 'FTL', 'Libpng', 'libpng-2.0',
+           # Проверены по включённым NOTICE: LLVM, bzip2 и libjpeg-turbo.
+           'Apache-2.0 WITH LLVM-exception', 'bzip2-1.0.6', 'BSD-3-Clause AND IJG AND Zlib'}
 
 
 def digest(path):
@@ -30,19 +34,34 @@ def local_file(root, name):
     return path
 
 
-def source_archive(path):
-    if zipfile.is_zipfile(path):
-        with zipfile.ZipFile(path) as archive:
-            names = archive.namelist()
-    else:
-        with tarfile.open(path) as archive:
-            names = [entry.name for entry in archive if entry.isfile()]
-    if any(Path(name).is_absolute() or '..' in Path(name).parts for name in names):
-        raise ValueError('Небезопасные пути в архиве исходников')
-    if not any(Path(name).suffix in {'.c', '.cpp', '.h', '.java', '.rs', '.py', '.qml', '.S'} for name in names):
-        raise ValueError('В архиве не найден исходный код: ' + str(path))
-    if not any(Path(name).name.lower() in {'cmakelists.txt', 'configure', 'makefile', 'cargo.toml', 'build.gradle', 'pkgbuild', 'readme', 'readme.md', 'readme.txt'} for name in names):
-        raise ValueError('Нет инструкций/материалов сборки: ' + str(path))
+def source_archive(path, depth=0):
+    if depth > 3:
+        raise ValueError('Слишком глубокая вложенность архива исходников')
+    is_zip = zipfile.is_zipfile(path)
+    with (zipfile.ZipFile(path) if is_zip else tarfile.open(path)) as archive:
+        names = archive.namelist() if is_zip else [entry.name for entry in archive if entry.isfile()]
+        if any(Path(name).is_absolute() or '..' in Path(name).parts for name in names):
+            raise ValueError('Небезопасные пути в архиве исходников')
+        has_code = any(Path(name).suffix in {'.c', '.cpp', '.h', '.java', '.rs', '.py', '.qml', '.kt', '.kts', '.S'} for name in names)
+        has_build = any(Path(name).name.lower() in {'cmakelists.txt', 'configure', 'makefile', 'cargo.toml', 'build.gradle', 'pkgbuild', 'readme', 'readme.md', 'readme.txt'} for name in names)
+        if has_code and has_build:
+            return
+        # Пакеты исходников MSYS2 содержат upstream tarball, PKGBUILD и патчи.
+        # Проверяем сам вложенный исходный код, а не имя или наличие tarball.
+        for name in names:
+            if not name.endswith(('.tar', '.tar.gz', '.tar.xz', '.tar.bz2', '.tar.zst', '.tar.lz', '.tgz', '.zip')):
+                continue
+            with tempfile.TemporaryDirectory() as temporary:
+                nested = Path(temporary) / 'source'
+                reader = archive.open(name) if is_zip else archive.extractfile(name)
+                with reader, nested.open('wb') as output:
+                    shutil.copyfileobj(reader, output)
+                try:
+                    source_archive(nested, depth + 1)
+                    return
+                except (ValueError, tarfile.TarError, zipfile.BadZipFile):
+                    continue
+    raise ValueError('В архиве нет исходного кода с материалами сборки: ' + str(path))
 
 
 def check(payload, manifest):
