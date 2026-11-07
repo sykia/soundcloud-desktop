@@ -1,0 +1,40 @@
+name: Проверка установщика Windows
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+permissions:
+  contents: read
+jobs:
+  install:
+    runs-on: windows-2022
+    timeout-minutes: 8
+    steps:
+      - name: Скачать релиз, проверить SHA-256 и запустить SCrip
+        shell: pwsh
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $selector = @(if ($env:TAG) { $env:TAG })
+          $release = gh release view @selector --repo $env:GITHUB_REPOSITORY --json assets,tagName | ConvertFrom-Json
+          $asset = @($release.assets | Where-Object name -like '*-Windows-x64.exe')
+          if ($asset.Count -ne 1) { throw 'Ожидался один установщик Windows' }
+          gh release download $release.tagName --repo $env:GITHUB_REPOSITORY --pattern $asset[0].name --dir $env:RUNNER_TEMP
+          $exe = Join-Path $env:RUNNER_TEMP $asset[0].name
+          $hash = (Get-FileHash -LiteralPath $exe).Hash
+          if ("sha256:$hash" -ne $asset[0].digest) { throw 'Контрольная сумма расходится с GitHub' }
+          $setup = Start-Process -FilePath $exe -ArgumentList '/S' -PassThru -Wait
+          if ($setup.ExitCode -ne 0) { throw "Установщик завершился с кодом $($setup.ExitCode)" }
+          $player = Start-Process "$env:LOCALAPPDATA\Programs\SCrip\SCrip.exe" -PassThru
+          try {
+            for ($i = 0; $i -lt 30; $i++) {
+              $player.Refresh()
+              if ($player.HasExited) { throw "SCrip завершился с кодом $($player.ExitCode)" }
+              if ($player.MainWindowHandle -ne 0) { Write-Host 'Окно SCrip открыто'; return }
+              Start-Sleep 1
+            }
+            throw 'Окно SCrip не появилось'
+          } finally {
+            if (!$player.HasExited) { Stop-Process -Id $player.Id }
+          }
