@@ -42,8 +42,15 @@ AndroidMedia::AndroidMedia(SoundCloud *soundcloud, ArtworkNetworkFactory *artwor
     // Позиция обновляется не чаще раза в секунду; кнопки и смена трека — сразу.
     connect(soundcloud, &SoundCloud::changed, this, [this] {
         const auto s = m_soundcloud->state();
-        const QString key = s.value("current").toMap().value("urn").toString() + QString::number(s.value("playing").toBool());
-        if (key != m_track) { m_track = key; publish(); }
+        const QString current = s.value("current").toMap().value("urn").toString();
+        const QString key = current + QString::number(s.value("playing").toBool());
+        if (key != m_track) {
+            const bool changedTrack = !current.isEmpty() && !m_track.startsWith(current);
+            m_track = key;
+            if (changedTrack)
+                QJniObject::callStaticMethod<void>("org/scrip/app/MediaBridge", "preparePlayback", "()V");
+            publish();
+        }
     });
     m_timer.setInterval(1000);
     connect(&m_timer, &QTimer::timeout, this, &AndroidMedia::publish);
@@ -84,6 +91,7 @@ void AndroidMedia::publish() {
     }
     const QJsonObject data{{"title", track.value("title").toString()}, {"artist", user.value("username").toString()},
         {"artwork", m_artworkPath}, {"playing", state.value("playing").toBool()},
+        {"buffering", state.value("buffering").toBool()},
         {"position", state.value("position").toLongLong()}, {"duration", state.value("duration").toLongLong()}};
     const auto json = QString::fromUtf8(QJsonDocument(data).toJson(QJsonDocument::Compact));
     if (json == m_lastState) return;

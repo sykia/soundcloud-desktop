@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
 #endif
     QCoreApplication::setOrganizationName("Qsae");
     QCoreApplication::setApplicationName("SCrip");
-    QCoreApplication::setApplicationVersion("1.3.0");
+    QCoreApplication::setApplicationVersion("1.4.0");
     SoundCloud soundcloud;
     QObject::connect(&soundcloud, &SoundCloud::authorizationRequested, &app, [&soundcloud](const QUrl &url) {
         bool opened = false;

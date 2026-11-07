@@ -49,9 +49,15 @@ public:
     Q_INVOKABLE void like(const QVariantMap &item);
     Q_INVOKABLE void createPlaylist(const QString &title, bool includeCurrent);
     Q_INVOKABLE void openExternal(const QString &url);
+    Q_INVOKABLE void checkForUpdates();
+    Q_INVOKABLE void downloadTrack(const QVariantMap &track);
+    Q_INVOKABLE void downloadLikedTracks();
+    Q_INVOKABLE void playOffline(const QVariantMap &track);
+    Q_INVOKABLE void removeOffline(const QVariantMap &track);
     Q_INVOKABLE void clearError();
     Q_INVOKABLE void setRepeat(bool enabled);
     Q_INVOKABLE void setShuffle(bool enabled);
+    Q_INVOKABLE void setCrossfade(bool enabled);
 signals:
     void changed();
     void signedInChanged();
@@ -70,30 +76,29 @@ private:
     void profile();
     void startTrack(const QVariantMap &track);
     void resolveStream(const QUrl &url, int generation, int redirects = 0);
-    void prefetchNext();
-    QString m_prefetchedId;
-    QUrl m_prefetchedUrl;
-    int m_prefetchGeneration = 0;
+    void prepareNext();
+    void prepareStream(const QUrl &url, int generation, int redirects = 0);
+    void beginCrossfade();
+    void downloadFile(const QVariantMap &track, const QUrl &url, int redirects = 0);
+    void downloadNext();
+    void refreshOffline();
     void callbackConnection();
     void clearSession();
     static QString urn(const QVariantMap &item);
     QVariantMap m_state;
     QNetworkAccessManager *m_network;
     QMediaPlayer m_player;
+    QMediaPlayer m_sparePlayer;
     QMediaPlayer &player() { return *m_activePlayer; }
     QMediaPlayer *m_activePlayer = &m_player;
-#ifdef Q_OS_ANDROID
-    void prepareNext();
-    void prepareStream(const QUrl &url, int generation, int redirects = 0);
-    QMediaPlayer m_sparePlayer;
     QAudioOutput m_preloadAudio;
     QMediaPlayer *m_preloadPlayer = &m_sparePlayer;
     QString m_preloadUrn;
     int m_preloadGeneration = 0;
     int m_preloadIndex = -1;
-#endif
     QAudioOutput m_audio;
     QVariantAnimation m_volumeFade;
+    QVariantAnimation m_crossfade;
     QTcpServer m_callback;
     QTimer m_loginTimeout;
     QString m_configPath, m_sessionPath, m_clientId, m_clientSecret, m_redirect;
@@ -101,6 +106,10 @@ private:
     qint64 m_expires = 0;
     bool m_useWorker = true;
     bool m_userSession = false, m_refreshing = false;
+    QString m_offlinePath;
+    QVariantList m_offlineTracks, m_downloadQueue;
+    bool m_downloadAll = false;
+    bool m_crossfadeStarted = false;
     int m_homeGeneration = 0;
     int m_epoch = 0, m_listing = 0, m_playGeneration = 0, m_queueIndex = -1;
     QList<std::function<void()>> m_waiting;

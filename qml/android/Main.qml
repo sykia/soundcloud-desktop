@@ -47,6 +47,7 @@ ApplicationWindow {
     function time(ms) { let s = Math.floor((ms || 0) / 1000); return Math.floor(s / 60) + ":" + (s % 60).toString().padStart(2, "0") }
     function refresh() {
         if (!sc.signedIn) return
+        if (page === 3 && library === "offline") return
         if (page === 0) sc.loadHome()
         else if (page === 1) sc.browse("feed")
         else if (page === 2) sc.browse(searchKind, search.text)
@@ -228,6 +229,7 @@ ApplicationWindow {
         onClicked: {
             if (queued) sc.playQueue(queueIndex)
             else if (app.page === 2 && app.searchKind === "users") app.openProfile(modelData)
+            else if (app.page === 3 && app.library === "offline") sc.playOffline(modelData)
             else sc.play(modelData)
         }
     }
@@ -308,15 +310,15 @@ ApplicationWindow {
             visible: sc.signedIn && (app.page === 2 || app.page === 3)
             Layout.leftMargin: 20; Layout.rightMargin: 20; Layout.bottomMargin: 12
             Repeater {
-                model: app.page === 2 ? ["Треки", "Плейлисты", "Люди"] : ["Любимые", "Плейлисты", "История"]
+                model: app.page === 2 ? ["Треки", "Плейлисты", "Люди"] : ["Любимые", "Плейлисты", "История", "Офлайн"]
                 Action {
                     required property string modelData
                     required property int index
                     text: modelData; Layout.fillWidth: true
-                    primary: app.page === 2 ? app.searchKind === ["tracks", "sets", "users"][index] : app.library === ["likes", "playlists", "history"][index]
+                    primary: app.page === 2 ? app.searchKind === ["tracks", "sets", "users"][index] : app.library === ["likes", "playlists", "history", "offline"][index]
                     onClicked: {
                         if (app.page === 2) app.searchKind = ["tracks", "sets", "users"][index]
-                        else app.library = ["likes", "playlists", "history"][index]
+                        else app.library = ["likes", "playlists", "history", "offline"][index]
                         app.refresh()
                     }
                 }
@@ -326,6 +328,12 @@ ApplicationWindow {
             visible: sc.signedIn && app.page === 3 && app.library === "playlists"
             text: "Создать плейлист"; Layout.leftMargin: 20; Layout.bottomMargin: 12
             onClicked: createPlaylist.open()
+        }
+        Action {
+            visible: sc.signedIn && app.page === 3 && app.library === "likes"
+            text: app.api.downloadBusy ? "Скачиваем… " + (app.api.downloadProgress || 0) + "% · в очереди " + (app.api.downloadQueueCount || 0) : "Скачать все доступные любимые треки"
+            enabled: !app.api.downloadBusy; Layout.leftMargin: 20; Layout.rightMargin: 20; Layout.bottomMargin: 12
+            onClicked: sc.downloadLikedTracks()
         }
         ScrollView {
             visible: sc.signedIn && app.page === 0
@@ -393,6 +401,11 @@ ApplicationWindow {
                 ColumnLayout {
                     visible: app.page === 5
                     Layout.fillWidth: true; Layout.margins: 18; spacing: 14
+                    Caption { text: "Воспроизведение"; font.bold: true; font.pixelSize: 19 }
+                    CheckBox { text: "Плавный переход между треками (3 секунды)"; checked: !!app.api.crossfade; Layout.fillWidth: true; onToggled: sc.setCrossfade(checked) }
+                    Caption { text: "SCrip"; font.bold: true; font.pixelSize: 19 }
+                    Caption { text: "Версия " + Qt.application.version + (app.api.updateAvailable ? " · доступна " + app.api.latestVersion : ""); color: app.api.updateAvailable ? app.accent : app.muted; font.pixelSize: 13 }
+                    Action { text: app.api.updateAvailable ? "Скачать обновление" : app.api.updateChecking ? "Проверяем обновления…" : "Проверить обновления"; enabled: !app.api.updateChecking; Layout.fillWidth: true; onClicked: { if (app.api.updateAvailable) sc.openExternal(app.api.updateUrl); else sc.checkForUpdates() } }
                     Caption { text: "Оформление"; font.bold: true; font.pixelSize: 19 }
                     Row {
                         spacing: 14
@@ -457,7 +470,7 @@ ApplicationWindow {
             id: tracks
             visible: sc.signedIn && app.page > 0 && app.page < 5
             Layout.fillWidth: true; Layout.fillHeight: true
-            clip: true; model: app.api.tracks || []
+            clip: true; model: app.page === 3 && app.library === "offline" ? app.api.offlineTracks || [] : app.api.tracks || []
             onContentYChanged: if (prefs.autoLoad && app.api.hasMore && !app.api.busy && contentY + height >= contentHeight - 180) sc.more()
             header: Column {
                 width: tracks.width
@@ -488,7 +501,7 @@ ApplicationWindow {
                 Item { height: 8; width: 1 }
             }
             delegate: Track {}
-            Label { anchors.centerIn: parent; width: parent.width - 48; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.Wrap; visible: !tracks.count; color: app.muted; text: app.api.busy ? "Загрузка…" : app.page === 2 ? "Найди то, что хочется услышать" : "Здесь пока нет треков" }
+            Label { anchors.centerIn: parent; width: parent.width - 48; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.Wrap; visible: !tracks.count; color: app.muted; text: app.page === 3 && app.library === "offline" ? "Здесь появятся скачанные треки. Открывайте меню трека в избранном и выбирайте скачивание." : app.api.busy ? "Загрузка…" : app.page === 2 ? "Найди то, что хочется услышать" : "Здесь пока нет треков" }
             footer: Action { visible: !!app.api.hasMore; text: "Показать ещё"; enabled: !app.api.busy; onClicked: sc.more() }
         }
     }
@@ -706,6 +719,8 @@ ApplicationWindow {
         background: Rectangle { color: "white"; radius: 24 }
         contentItem: ColumnLayout {
             Caption { text: app.selectedTrack.title || ""; font.bold: true; Layout.fillWidth: true }
+            Action { visible: !app.selectedTrack.offlinePath; text: app.api.downloadBusy ? "Загрузка " + (app.api.downloadProgress || 0) + "%" : "Скачать для офлайн-прослушивания"; enabled: !app.api.downloadBusy && app.selectedTrack.downloadable !== false; Layout.fillWidth: true; onClicked: { sc.downloadTrack(app.selectedTrack); trackMenu.close() } }
+            Action { visible: !!app.selectedTrack.offlinePath; text: "Удалить скачанный файл"; Layout.fillWidth: true; onClicked: { sc.removeOffline(app.selectedTrack); trackMenu.close() } }
             Action { text: "♡ Нравится / снять лайк"; Layout.fillWidth: true; onClicked: { sc.like(app.selectedTrack); trackMenu.close() } }
             Action { visible: app.selectedQueue >= 0; text: "Играть следующим"; Layout.fillWidth: true; onClicked: { sc.queueNext(app.selectedQueue); trackMenu.close() } }
             Action { visible: app.selectedQueue >= 0; text: "Удалить из очереди"; Layout.fillWidth: true; onClicked: { sc.removeQueue(app.selectedQueue); trackMenu.close() } }

@@ -819,6 +819,7 @@ Window {
                 width: Math.min(parent.width, 480); heading: "Интерфейс"
                 Row { spacing: 12; Txt { text: "Вид медиатеки"; anchors.verticalCenter: parent.verticalCenter } Tool { text: "Обложки"; active: prefs.gridView; onClicked: prefs.gridView = true } Tool { text: "Список"; active: !prefs.gridView; onClicked: prefs.gridView = false } }
                 Row { spacing: 12; Txt { text: "Громкость"; anchors.verticalCenter: parent.verticalCenter } VolumeSlider { width: 180 } }
+                CheckBox { text: "Плавный переход между треками (3 секунды)"; checked: !!app.api.crossfade; onToggled: sc.setCrossfade(checked) }
             }
             FormBlock {
                 width: parent.width; heading: "Форма и движение"
@@ -845,6 +846,8 @@ Window {
             FormBlock {
                 width: Math.min(parent.width, 480); heading: "SCrip"
                 Txt { text: "Версия " + Qt.application.version; color: app.muted }
+                Txt { text: app.api.updateAvailable ? "Доступна версия " + app.api.latestVersion : "Установлена последняя версия"; color: app.api.updateAvailable ? app.accent : app.muted }
+                Tool { text: app.api.updateAvailable ? "Открыть загрузку обновления" : app.api.updateChecking ? "Проверяем обновления…" : "Проверить обновления"; enabled: !app.api.updateChecking; onClicked: { if (app.api.updateAvailable) sc.openExternal(app.api.updateUrl); else sc.checkForUpdates() } }
                 Txt { text: "Независимый клиент SoundCloud"; color: app.muted }
             }
         }

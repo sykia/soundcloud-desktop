@@ -54,7 +54,19 @@ public class PlaybackService extends Service {
         session.setActive(true);
     }
     @Override public int onStartCommand(Intent intent, int flags, int startId) {
-        if (!MediaBridge.ready || !MediaBridge.playing) { stopSelf(); return START_NOT_STICKY; }
+        if (!MediaBridge.ready) { stopSelf(); return START_NOT_STICKY; }
+        // The service can be created just before audio starts. Publish a foreground
+        // notification immediately so Android never treats the Qt process as idle.
+        if (!MediaBridge.playing) {
+            Notification pending = new Notification.Builder(this, CHANNEL)
+                .setSmallIcon(R.drawable.widget_notification).setContentTitle("SCrip")
+                .setContentText("Подготовка воспроизведения…").setOngoing(true)
+                .setContentIntent(MediaBridge.openApp(this)).build();
+            if (Build.VERSION.SDK_INT >= 29) startForeground(NOTIFICATION, pending, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
+            else startForeground(NOTIFICATION, pending);
+            foreground = true;
+            return START_NOT_STICKY;
+        }
         publish(); return START_NOT_STICKY;
     }
     void publish() {
