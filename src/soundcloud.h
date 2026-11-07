@@ -70,12 +70,28 @@ private:
     void profile();
     void startTrack(const QVariantMap &track);
     void resolveStream(const QUrl &url, int generation, int redirects = 0);
+    void prefetchNext();
+    QString m_prefetchedId;
+    QUrl m_prefetchedUrl;
+    int m_prefetchGeneration = 0;
     void callbackConnection();
     void clearSession();
     static QString urn(const QVariantMap &item);
     QVariantMap m_state;
     QNetworkAccessManager *m_network;
     QMediaPlayer m_player;
+    QMediaPlayer &player() { return *m_activePlayer; }
+    QMediaPlayer *m_activePlayer = &m_player;
+#ifdef Q_OS_ANDROID
+    void prepareNext();
+    void prepareStream(const QUrl &url, int generation, int redirects = 0);
+    QMediaPlayer m_sparePlayer;
+    QAudioOutput m_preloadAudio;
+    QMediaPlayer *m_preloadPlayer = &m_sparePlayer;
+    QString m_preloadUrn;
+    int m_preloadGeneration = 0;
+    int m_preloadIndex = -1;
+#endif
     QAudioOutput m_audio;
     QVariantAnimation m_volumeFade;
     QTcpServer m_callback;

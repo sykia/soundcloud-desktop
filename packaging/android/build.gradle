@@ -1,0 +1,102 @@
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+
+    dependencies {
+        //noinspection AndroidGradlePluginVersion
+        classpath 'com.android.tools.build:gradle:8.10.1'
+    }
+}
+
+repositories {
+    google()
+    mavenCentral()
+}
+
+apply plugin: qtGradlePluginType
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
+    //noinspection GradleDependency
+    implementation 'androidx.core:core:1.16.0'
+}
+
+// Gradle читает .properties как ISO-8859-1. androiddeployqt записывает путь
+// к Qt в UTF-8, поэтому восстанавливаем его для каталогов с кириллицей.
+def qtJavaDirectory = new File(qtAndroidDir)
+if (!qtJavaDirectory.isDirectory()) {
+    qtJavaDirectory = new File(new String(qtAndroidDir.getBytes("ISO-8859-1"), "UTF-8"))
+}
+if (!new File(qtJavaDirectory, "src/org/qtproject/qt/android/bindings/QtApplication.java").isFile()) {
+    throw new GradleException("Не найдены Java-классы Qt: " + qtJavaDirectory)
+}
+
+android {
+    /*******************************************************
+     * The following variables:
+     * - androidBuildToolsVersion,
+     * - androidCompileSdkVersion
+     * - qtAndroidDir - holds the path to qt android files
+     *                   needed to build any Qt application
+     *                   on Android.
+     * - qtGradlePluginType - whether to build an app or a library
+     *
+     * are defined in gradle.properties file. This file is
+     * updated by QtCreator and androiddeployqt tools.
+     * Changing them manually might break the compilation!
+     *******************************************************/
+
+    namespace = androidPackageName
+    compileSdkVersion androidCompileSdkVersion
+    buildToolsVersion androidBuildToolsVersion
+    ndkVersion = androidNdkVersion
+
+    sourceSets {
+        main {
+            manifest.srcFile 'AndroidManifest.xml'
+            java.srcDirs = [qtJavaDirectory.toString() + '/src', 'src', 'java']
+            aidl.srcDirs = [qtJavaDirectory.toString() + '/src', 'src', 'aidl']
+            res.srcDirs = [qtJavaDirectory.toString() + '/res', 'res']
+            resources.srcDirs = ['resources']
+            renderscript.srcDirs = ['src']
+            assets.srcDirs = ['assets']
+            jniLibs.srcDirs = ['libs']
+       }
+    }
+
+    tasks.withType(JavaCompile) {
+        options.incremental = true
+        options.compilerArgs += ['-Xlint:all']
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    lintOptions {
+        abortOnError = false
+    }
+
+    aaptOptions {
+        // Do not compress Qt binary resources file
+        noCompress 'rcc'
+    }
+
+    packaging {
+        jniLibs {
+            // Сжатие уменьшает универсальный APK. Android извлекает библиотеки
+            // при установке; их ELF-выравнивание 16 КБ сохраняется.
+            useLegacyPackaging = true
+        }
+    }
+
+    defaultConfig {
+        resConfig "en"
+        minSdkVersion qtMinSdkVersion
+        targetSdkVersion qtTargetSdkVersion
+        ndk.abiFilters = qtTargetAbiList.split(",")
+    }
+}

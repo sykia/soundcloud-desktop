@@ -91,7 +91,7 @@ SoundCloud::SoundCloud(QObject *parent, QNetworkAccessManager *network) : QObjec
             m_expires = s.value("expires_at").toVariant().toLongLong(); m_userSession = s.value("user_session").toBool();
         }
     }
-    m_player.setAudioOutput(&m_audio);
+    player().setAudioOutput(&m_audio);
     QSettings preferences;
     m_audio.setVolume(preferences.value("player/volume", 0.7).toDouble());
     set("volume", m_audio.volume());
@@ -99,18 +99,32 @@ SoundCloud::SoundCloud(QObject *parent, QNetworkAccessManager *network) : QObjec
     connect(&m_volumeFade, &QVariantAnimation::valueChanged, this, [this](const QVariant &level) {
         m_audio.setVolume(level.toFloat());
     });
-    connect(&m_player, &QMediaPlayer::positionChanged, this, [this](qint64 p) { set("position", p); });
-    connect(&m_player, &QMediaPlayer::durationChanged, this, [this](qint64 d) { set("duration", d); });
-    connect(&m_player, &QMediaPlayer::playbackStateChanged, this, [this] { set("playing", m_player.playbackState() == QMediaPlayer::PlayingState); });
-    connect(&m_player, &QMediaPlayer::errorOccurred, this, [this](QMediaPlayer::Error e, const QString &) {
-        if (e != QMediaPlayer::NoError) { set("buffering", false); fail("Не удалось воспроизвести трек. Проверьте сеть или выберите другой трек."); }
-    });
-    connect(&m_player, &QMediaPlayer::mediaStatusChanged, this, [this](QMediaPlayer::MediaStatus s) {
-        set("buffering", s == QMediaPlayer::LoadingMedia || s == QMediaPlayer::BufferingMedia);
-        if (s == QMediaPlayer::EndOfMedia) {
-            if (m_state.value("repeat").toBool()) startTrack(m_state.value("current").toMap()); else next();
-        }
-    });
+    QList<QMediaPlayer *> players{&m_player};
+#ifdef Q_OS_ANDROID
+    players.append(&m_sparePlayer);
+    m_preloadAudio.setMuted(true);
+    m_preloadPlayer->setAudioOutput(&m_preloadAudio);
+#endif
+    for (auto *media : players) {
+        connect(media, &QMediaPlayer::positionChanged, this, [this, media](qint64 p) { if (media == m_activePlayer) set("position", p); });
+        connect(media, &QMediaPlayer::durationChanged, this, [this, media](qint64 d) { if (media == m_activePlayer) set("duration", d); });
+        connect(media, &QMediaPlayer::playbackStateChanged, this, [this, media] { if (media == m_activePlayer) set("playing", media->playbackState() == QMediaPlayer::PlayingState); });
+        connect(media, &QMediaPlayer::errorOccurred, this, [this, media](QMediaPlayer::Error e, const QString &) {
+            if (media == m_activePlayer && e != QMediaPlayer::NoError) { set("buffering", false); fail("Не удалось воспроизвести трек. Проверьте сеть или выберите другой трек."); }
+        });
+        connect(media, &QMediaPlayer::mediaStatusChanged, this, [this, media](QMediaPlayer::MediaStatus status) {
+#ifdef Q_OS_ANDROID
+            if (media != m_activePlayer) {
+                if (status == QMediaPlayer::BufferedMedia && media->playbackState() == QMediaPlayer::PlayingState) { media->pause(); if (media->position() > 0) media->setPosition(0); }
+                return;
+            }
+#endif
+            set("buffering", status == QMediaPlayer::LoadingMedia || status == QMediaPlayer::BufferingMedia);
+            if (status == QMediaPlayer::EndOfMedia) {
+                if (m_state.value("repeat").toBool()) startTrack(m_state.value("current").toMap()); else next();
+            }
+        });
+    }
     connect(&m_callback, &QTcpServer::newConnection, this, &SoundCloud::callbackConnection);
     m_loginTimeout.setSingleShot(true); m_loginTimeout.setInterval(600000);
     connect(&m_loginTimeout, &QTimer::timeout, this, [this] { cancelLogin(); fail("Время ожидания входа истекло. Попробуйте снова."); });
@@ -303,9 +317,14 @@ void SoundCloud::callbackConnection() {
     }
 }
 void SoundCloud::clearSession() {
+    ++m_prefetchGeneration; m_prefetchedId.clear(); m_prefetchedUrl.clear();
     ++m_homeGeneration; set("home", QVariantList{}); set("homeBusy", false); set("homeError", "");
     set("savingTrack", false); set("loadingDestinations", false); set("destinations", QVariantList{}); set("destinationNext", "");
-    ++m_epoch; ++m_listing; ++m_playGeneration; m_player.stop(); m_player.setSource(QUrl{});
+#ifdef Q_OS_ANDROID
+    ++m_preloadGeneration; m_preloadUrn.clear(); m_preloadIndex = -1;
+    m_preloadPlayer->stop(); m_preloadPlayer->setSource(QUrl{});
+#endif
+    ++m_epoch; ++m_listing; ++m_playGeneration; player().stop(); player().setSource(QUrl{});
     m_access.clear(); m_refresh.clear(); m_expires = 0; m_userSession = false; m_refreshing = false; m_waiting.clear();
     QFile::remove(m_sessionPath); m_queue.clear(); m_queueIndex = -1; m_nextHref.clear();
     set("queue", m_queue); set("queueIndex", -1); set("buffering", false); set("current", QVariantMap{}); set("tracks", QVariantList{}); set("profile", QVariantMap{});
@@ -492,6 +511,9 @@ void SoundCloud::openPlaylist(const QVariantMap &item) {
 void SoundCloud::enqueue(const QVariantMap &item) {
     if (!urn(item).startsWith("soundcloud:tracks:")) return;
     m_queue.append(item); set("queue", m_queue);
+#ifdef Q_OS_ANDROID
+    prepareNext();
+#endif
 }
 void SoundCloud::play(const QVariantMap &item) {
     if (item.value("kind").toString() == "playlist" || urn(item).startsWith("soundcloud:playlists:")) { openPlaylist(item); return; }
@@ -512,26 +534,38 @@ void SoundCloud::moveQueue(int from, int to) {
     m_state["queueIndex"] = m_queueIndex;
     m_state["queue"] = m_queue;
     emit changed();
+#ifdef Q_OS_ANDROID
+    prepareNext();
+#endif
 }
 void SoundCloud::queueNext(int index) {
     if (index < 0 || index >= m_queue.size() || index == m_queueIndex) return;
     moveQueue(index, index < m_queueIndex ? m_queueIndex : m_queueIndex + 1);
     m_forceNext = true;
+#ifdef Q_OS_ANDROID
+    prepareNext();
+#endif
 }
 void SoundCloud::removeQueue(int index) {
     if (index < 0 || index >= m_queue.size()) return;
     m_queue.removeAt(index); if (index <= m_queueIndex) --m_queueIndex;
     set("queue", m_queue); set("queueIndex", m_queueIndex);
+#ifdef Q_OS_ANDROID
+    prepareNext();
+#endif
 }
 void SoundCloud::next() {
     if (m_queue.isEmpty()) return;
     int index = m_queueIndex + 1;
     if (!m_forceNext && m_state.value("shuffle").toBool() && m_queue.size() > 1) { do { index = QRandomGenerator::global()->bounded(int(m_queue.size())); } while (index == m_queueIndex); }
+#ifdef Q_OS_ANDROID
+    if (m_preloadIndex >= 0 && m_preloadIndex < m_queue.size() && urn(m_queue[m_preloadIndex].toMap()) == m_preloadUrn) index = m_preloadIndex;
+#endif
     if (index < m_queue.size()) playQueue(index);
 }
-void SoundCloud::previous() { if (m_player.position() > 3000) m_player.setPosition(0); else if (m_queueIndex > 0) playQueue(m_queueIndex - 1); }
-void SoundCloud::togglePlayback() { if (m_player.playbackState() == QMediaPlayer::PlayingState) m_player.pause(); else if (!m_player.source().isEmpty()) m_player.play(); }
-void SoundCloud::seek(qint64 position) { if (m_player.isSeekable()) m_player.setPosition(qBound(qint64(0), position, m_player.duration())); }
+void SoundCloud::previous() { if (player().position() > 3000) player().setPosition(0); else if (m_queueIndex > 0) playQueue(m_queueIndex - 1); }
+void SoundCloud::togglePlayback() { if (player().playbackState() == QMediaPlayer::PlayingState) player().pause(); else if (!player().source().isEmpty()) player().play(); }
+void SoundCloud::seek(qint64 position) { if (player().isSeekable()) player().setPosition(qBound(qint64(0), position, player().duration())); }
 void SoundCloud::volume(double value) {
     const double target = qBound(0.0, value, 1.0);
     if (target == m_state.value("volume").toDouble()) return;
@@ -543,14 +577,45 @@ void SoundCloud::volume(double value) {
     QSettings().setValue("player/volume", target);
 }
 void SoundCloud::setRepeat(bool enabled) { set("repeat", enabled); }
-void SoundCloud::setShuffle(bool enabled) { set("shuffle", enabled); }
+void SoundCloud::setShuffle(bool enabled) { set("shuffle", enabled);
+#ifdef Q_OS_ANDROID
+    prepareNext();
+#endif
+}
 void SoundCloud::startTrack(const QVariantMap &track) {
     m_forceNext = false;
     if (!urn(track).startsWith("soundcloud:tracks:")) return;
-    clearError(); ++m_playGeneration; m_player.stop(); m_player.setSource(QUrl{});
+    clearError(); ++m_playGeneration;
+#ifdef Q_OS_ANDROID
+    const bool prepared = urn(track) == m_preloadUrn && !m_preloadPlayer->source().isEmpty() && m_preloadPlayer->error() == QMediaPlayer::NoError;
+    ++m_preloadGeneration;
+    player().stop(); player().setSource(QUrl{});
+    if (prepared) {
+        player().setAudioOutput(nullptr);
+        m_preloadPlayer->setAudioOutput(nullptr);
+        std::swap(m_activePlayer, m_preloadPlayer);
+        player().setAudioOutput(&m_audio);
+        m_preloadPlayer->setAudioOutput(&m_preloadAudio);
+    }
+    m_preloadUrn.clear(); m_preloadIndex = -1;
+#else
+    player().stop(); player().setSource(QUrl{});
+#endif
     set("current", track); set("position", 0); set("duration", track.value("duration"));
     if (track.value("access").toString() == "blocked" || track.value("streamable") == false) { fail("Этот трек недоступен для воспроизведения через API."); return; }
+#ifdef Q_OS_ANDROID
+    if (prepared) {
+        set("buffering", player().mediaStatus() != QMediaPlayer::BufferedMedia);
+        player().setPosition(0); player().play(); prepareNext(); return;
+    }
+#endif
     const int generation = m_playGeneration; set("buffering", true);
+    if (m_prefetchedId == urn(track) && !m_prefetchedUrl.isEmpty()) {
+        const auto url = m_prefetchedUrl;
+        m_prefetchedId.clear(); m_prefetchedUrl.clear();
+        resolveStream(url, generation);
+        return;
+    }
     request(apiPath("tracks", urn(track)) + "/streams", [this, generation](QJsonDocument doc) {
         if (generation != m_playGeneration) return;
         auto object = doc.object(); QString url = object.value("hls_aac_160_url").toString();
@@ -564,7 +629,7 @@ void SoundCloud::resolveStream(const QUrl &url, int generation, int redirects) {
     if (generation != m_playGeneration) return;
     if (url.scheme() != "https" || redirects > 5 || !url.userInfo().isEmpty()) { set("buffering", false); fail("Недопустимый адрес аудиопотока."); return; }
     // CDN SoundCloud выдаёт подписанные URL. OAuth передаём только API, никогда стороннему хосту.
-    if (url.host() != "api.soundcloud.com") { m_player.setSource(url); m_player.play(); return; }
+    if (url.host() != "api.soundcloud.com") { player().setSource(url); player().play(); prefetchNext(); return; }
     QNetworkRequest req(url); req.setRawHeader("Authorization", "OAuth " + m_access.toUtf8()); req.setTransferTimeout(20000);
     req.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
     auto *reply = m_network->get(req);
@@ -577,6 +642,24 @@ void SoundCloud::resolveStream(const QUrl &url, int generation, int redirects) {
         if (!nextUrl.isEmpty()) { resolveStream(QUrl(nextUrl), generation, redirects + 1); return; }
         set("buffering", false); fail("Не удалось получить адрес потока SoundCloud. Попробуйте другой трек.");
     });
+}
+void SoundCloud::prefetchNext() {
+    const int generation = ++m_prefetchGeneration;
+    m_prefetchedId.clear(); m_prefetchedUrl.clear();
+    if (m_state.value("shuffle").toBool() || m_queueIndex + 1 >= m_queue.size()) return;
+    const auto track = m_queue.at(m_queueIndex + 1).toMap();
+    const auto id = urn(track);
+    if (!id.startsWith("soundcloud:tracks:") || track.value("access").toString() == "blocked" || track.value("streamable") == false) return;
+    request(apiPath("tracks", id) + "/streams", [this, generation, id](QJsonDocument doc) {
+        if (generation != m_prefetchGeneration) return;
+        const auto object = doc.object();
+        QString url = object.value("hls_aac_160_url").toString();
+        if (url.isEmpty()) url = object.value("hls_mp3_128_url").toString();
+        if (url.isEmpty()) url = object.value("preview_mp3_128_url").toString();
+        if (QUrl(url).scheme() != "https") return;
+        m_prefetchedId = id;
+        m_prefetchedUrl = QUrl(url);
+    }, "GET", {}, true, [](QString) {});
 }
 void SoundCloud::like(const QVariantMap &item) {
     if (!m_state.value("signedIn").toBool()) { fail("Войдите в аккаунт, чтобы менять избранное."); return; }
@@ -604,3 +687,55 @@ void SoundCloud::createPlaylist(const QString &title, bool includeCurrent) {
 void SoundCloud::openExternal(const QString &value) {
     QUrl url(value); if (url.scheme() == "https" && (url.host() == "soundcloud.com" || url.host().endsWith(".soundcloud.com"))) QDesktopServices::openUrl(url);
 }
+
+#ifdef Q_OS_ANDROID
+// Готовим только один следующий поток. Ошибки фоновой загрузки не прерывают текущий трек.
+void SoundCloud::prepareNext() {
+    const int generation = ++m_preloadGeneration;
+    m_preloadPlayer->stop(); m_preloadPlayer->setSource(QUrl{});
+    m_preloadUrn.clear(); m_preloadIndex = -1;
+    if (m_queueIndex < 0 || m_queue.isEmpty() || player().source().isEmpty()) return;
+    int index = m_queueIndex + 1;
+    if (!m_forceNext && m_state.value("shuffle").toBool() && m_queue.size() > 1) {
+        do { index = QRandomGenerator::global()->bounded(int(m_queue.size())); } while (index == m_queueIndex);
+    }
+    if (index >= m_queue.size()) return;
+    const auto track = m_queue[index].toMap();
+    if (track.value("access").toString() == "blocked" || track.value("streamable") == false) return;
+    m_preloadIndex = index; m_preloadUrn = urn(track);
+    request(apiPath("tracks", m_preloadUrn) + "/streams", [this, generation](QJsonDocument doc) {
+        if (generation != m_preloadGeneration) return;
+        const auto object = doc.object();
+        QString url = object.value("hls_aac_160_url").toString();
+        if (url.isEmpty()) url = object.value("hls_mp3_128_url").toString();
+        if (url.isEmpty()) url = object.value("preview_mp3_128_url").toString();
+        if (!url.isEmpty()) prepareStream(QUrl(url), generation);
+    }, "GET", {}, true, [](QString) {});
+}
+void SoundCloud::prepareStream(const QUrl &url, int generation, int redirects) {
+    if (generation != m_preloadGeneration || url.scheme() != "https" || redirects > 5 || !url.userInfo().isEmpty()) return;
+    if (url.host() != "api.soundcloud.com") {
+        m_preloadPlayer->setSource(url);
+        // Запускаем без звука до заполнения буфера, затем приостанавливаем у начала.
+        m_preloadPlayer->play();
+        QTimer::singleShot(4000, this, [this, generation] {
+            if (generation != m_preloadGeneration) return;
+            m_preloadPlayer->pause(); m_preloadPlayer->setPosition(0);
+        });
+        return;
+    }
+    QNetworkRequest req(url);
+    req.setRawHeader("Authorization", "OAuth " + m_access.toUtf8());
+    req.setTransferTimeout(20000);
+    req.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
+    auto *reply = m_network->get(req);
+    connect(reply, &QNetworkReply::finished, this, [this, reply, url, generation, redirects] {
+        reply->deleteLater();
+        if (generation != m_preloadGeneration || reply->error() != QNetworkReply::NoError) return;
+        auto redirect = reply->attribute(QNetworkRequest::RedirectionTargetAttribute).toUrl();
+        if (!redirect.isEmpty()) { prepareStream(url.resolved(redirect), generation, redirects + 1); return; }
+        const auto next = QJsonDocument::fromJson(reply->readAll()).object().value("url").toString();
+        if (!next.isEmpty()) prepareStream(QUrl(next), generation, redirects + 1);
+    });
+}
+#endif

@@ -10,10 +10,10 @@ InstallDir "$LOCALAPPDATA\Programs\SCrip"
 BrandingText "SCrip"
 SetCompressor /SOLID lzma
 Icon "app.ico"
-VIProductVersion "1.0.0.0"
+VIProductVersion "1.3.0.0"
 VIAddVersionKey /LANG=1049 "ProductName" "SCrip"
 VIAddVersionKey /LANG=1049 "FileDescription" "Установка SCrip"
-VIAddVersionKey /LANG=1049 "FileVersion" "1.0.0"
+VIAddVersionKey /LANG=1049 "FileVersion" "1.3.0"
 VIAddVersionKey /LANG=1049 "LegalCopyright" "SCrip"
 !define MUI_ICON "app.ico"
 !define MUI_UNICON "app.ico"
@@ -66,7 +66,7 @@ Section
   CreateShortcut "$SMPROGRAMS\SCrip.lnk" "$INSTDIR\SCrip.exe"
   CreateShortcut "$DESKTOP\SCrip.lnk" "$INSTDIR\SCrip.exe"
   WriteRegStr HKCU "${UNKEY}" "DisplayName" "SCrip"
-  WriteRegStr HKCU "${UNKEY}" "DisplayVersion" "1.0.0"
+  WriteRegStr HKCU "${UNKEY}" "DisplayVersion" "1.3.0"
   WriteRegStr HKCU "${UNKEY}" "DisplayIcon" "$INSTDIR\SCrip.exe"
   WriteRegStr HKCU "${UNKEY}" "UninstallString" '"$INSTDIR\Uninstall.exe"'
   WriteRegDWORD HKCU "${UNKEY}" "NoModify" 1

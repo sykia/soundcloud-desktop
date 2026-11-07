@@ -1,5 +1,5 @@
 pkgname=scrip
-pkgver=1.0.0
+pkgver=1.3.0
 pkgrel=1
 pkgdesc='Настольный плеер для SoundCloud'
 arch=('x86_64')
