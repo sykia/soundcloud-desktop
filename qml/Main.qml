@@ -426,7 +426,7 @@ Window {
                 readonly property bool hasTrack: !!app.api.current.urn || !!app.api.current.id
                 readonly property bool narrow: width < 790
                 x: 0; anchors.bottom: parent.bottom
-                width: shell.width - sidebar.width - 2; height: 84
+                width: shell.width - musicArea.x - 1; height: 84
                 color: app.chosenTheme ? app.panel : "#fcfcfd"; radius: shell.radius
                 Rectangle { width: parent.width; height: parent.radius; color: parent.color }
                 Rectangle { width: parent.radius; height: parent.height; color: parent.color }
@@ -434,7 +434,7 @@ Window {
 
                 RowLayout {
                     anchors.fill: parent; anchors.leftMargin: player.narrow ? 14 : 24
-                    anchors.rightMargin: anchors.leftMargin; spacing: player.narrow ? 8 : 16
+                    anchors.rightMargin: player.narrow ? 14 : 24; spacing: player.narrow ? 8 : 16
                     Rectangle {
                         Layout.preferredWidth: 50; Layout.preferredHeight: 50
                         radius: app.artworkRadius; color: Qt.tint("#faf9fa", Qt.alpha(app.accent, 0.09))
@@ -471,9 +471,15 @@ Window {
                     }
                     Item { Layout.fillWidth: true; Layout.preferredWidth: player.narrow ? 0 : 48 }
                     LikeButton { showHint: false; visible: player.hasTrack; track: app.api.current }
-                    Tool { showHint: false; symbol: "list"; text: "Очередь воспроизведения"; active: app.dockedInspector || queuePopup.opened; onClicked: app.toggleInspector() }
-                    Glyph { visible: !player.narrow; name: "volume"; width: 18; height: 18; ink: app.muted }
-                    VolumeSlider { visible: !player.narrow; Layout.preferredWidth: 96 }
+                    RowLayout {
+                        Layout.fillWidth: false
+                        Layout.minimumWidth: implicitWidth
+                        Layout.maximumWidth: implicitWidth
+                        spacing: 12
+                        Tool { showHint: false; symbol: "list"; text: "Очередь воспроизведения"; active: app.dockedInspector || queuePopup.opened; onClicked: app.toggleInspector() }
+                        Glyph { visible: !player.narrow; name: "volume"; Layout.preferredWidth: 18; Layout.preferredHeight: 18; ink: app.muted }
+                        VolumeSlider { visible: !player.narrow; Layout.minimumWidth: 96; Layout.preferredWidth: 96; Layout.maximumWidth: 96 }
+                    }
                 }
             }
         }
