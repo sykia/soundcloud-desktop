@@ -303,7 +303,7 @@ Window {
             id: detailColumn
             visible: sc.signedIn && app.dockedInspector
             x: parent.width - app.inspectorWidth - 1; y: 1
-            width: app.inspectorWidth; height: parent.height - 100
+            width: app.inspectorWidth; height: parent.height - y - player.height - 1
             color: app.chosenTheme ? app.panel : "#fafafa"; radius: shell.radius
             Rectangle { width: 14; height: parent.height; color: parent.color }
             Rectangle { width: 1; height: parent.height; color: "#eaeaec" }
