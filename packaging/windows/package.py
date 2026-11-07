@@ -4,11 +4,13 @@ from pathlib import Path, PureWindowsPath
 import re
 import shutil
 import subprocess
+import sys
 from tempfile import TemporaryDirectory
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("payload", type=Path)
 parser.add_argument("output", type=Path)
+parser.add_argument("--compliance-manifest", type=Path, help="Проверенный пофайловый манифест с исходниками и уведомлениями")
 parser.add_argument("--makensis", default="makensis")
 parser.add_argument("--sign-certificate", help="SHA-1 отпечаток сертификата подписи кода в хранилище пользователя Windows")
 parser.add_argument("--timestamp-url", help="HTTPS-адрес RFC 3161 сервиса издателя сертификата")
@@ -33,6 +35,13 @@ if not any(payload.rglob("ffmpegmediaplugin.dll")):
     parser.error("Для потоков SoundCloud добавьте в сборку медиаплагин Qt FFmpeg и его библиотеки")
 if output.is_relative_to(payload):
     parser.error("Укажите путь результата за пределами каталога приложения")
+if not args.compliance_manifest:
+    parser.error("Для выпуска нужен --compliance-manifest: исходники и лицензии всех поставляемых компонентов")
+repository = Path(__file__).resolve().parents[2]
+for name in ("LICENSE", "THIRD_PARTY_NOTICES.md", "TRADEMARKS.md"):
+    shutil.copy2(repository / name, payload / name)
+subprocess.run([sys.executable, str(repository / "scripts/check_licenses.py"),
+                "--payload", str(payload), "--manifest", str(args.compliance_manifest.resolve())], check=True)
 output.parent.mkdir(parents=True, exist_ok=True)
 filelist = output.with_suffix(".uninstall.nsh")
 with filelist.open("w", encoding="utf-8-sig") as manifest:

@@ -1,0 +1,43 @@
+name: Лицензии и материалы релиза
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  release:
+    types: [published]
+permissions:
+  contents: read
+jobs:
+  repository:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python scripts/check_licenses.py --repo .
+      - run: python -m unittest discover -s tests -p 'test_licenses.py'
+  release-materials:
+    if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y p7zip-full libarchive-tools
+      - name: Скачать материалы соответствующего релиза
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        shell: bash
+        run: |
+          set -eu
+          args=()
+          if [ -n "$TAG" ]; then args+=("$TAG"); fi
+          mkdir -p build/compliance build/release-assets
+          gh release download "${args[@]}" --repo "$GITHUB_REPOSITORY" --dir build/release-assets
+          cp build/release-assets/compliance.tar.gz build/compliance.tar.gz
+          python - <<'PY'
+          import tarfile
+          with tarfile.open('build/compliance.tar.gz') as archive:
+              archive.extractall('build/compliance', filter='data')
+          PY
+          python scripts/audit_release.py --assets build/release-assets --materials build/compliance

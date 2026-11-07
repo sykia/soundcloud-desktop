@@ -73,3 +73,9 @@ if(BUILD_TESTING AND NOT ANDROID)
     add_test(NAME soundcloud COMMAND scrip_tests)
     set_tests_properties(soundcloud PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 endif()
+
+# Тексты лицензий доступны в ресурсах всех платформ и при системной установке.
+qt_add_resources(scrip legal_notices PREFIX "/legal" FILES LICENSE THIRD_PARTY_NOTICES.md TRADEMARKS.md)
+install(TARGETS scrip RUNTIME DESTINATION bin BUNDLE DESTINATION .)
+install(FILES LICENSE DESTINATION share/licenses/scrip)
+install(FILES THIRD_PARTY_NOTICES.md TRADEMARKS.md DESTINATION share/doc/scrip)

@@ -59,3 +59,5 @@ adb install -r build/android/android-build/build/outputs/apk/debug/android-build
 Сторонние библиотеки сохраняют собственные лицензии. Подробнее — [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 SCrip — независимое приложение, не являющееся официальным продуктом SoundCloud.
+
+Авторские права: Copyright (c) 2026 sykia. [Название и оригинальный логотип](TRADEMARKS.md) сохраняют авторство; их копирование и изменение допускаются по GPL без дополнительных ограничений. [Материалы для законного выпуска](licensing/README.md).

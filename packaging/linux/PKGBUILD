@@ -1,6 +1,7 @@
 pkgname=scrip
 pkgver=1.3.0
 pkgrel=1
+license=('GPL-3.0-only')
 pkgdesc='Настольный плеер для SoundCloud'
 arch=('x86_64')
 url='https://github.com/sykia/SCrip'
@@ -13,6 +14,9 @@ build() {
     cmake --build build --parallel 2
 }
 package() {
+    install -Dm644 "SCrip-$pkgver/LICENSE" "$pkgdir/usr/share/licenses/scrip/LICENSE"
+    install -Dm644 "SCrip-$pkgver/THIRD_PARTY_NOTICES.md" "$pkgdir/usr/share/doc/scrip/THIRD_PARTY_NOTICES.md"
+    install -Dm644 "SCrip-$pkgver/TRADEMARKS.md" "$pkgdir/usr/share/doc/scrip/TRADEMARKS.md"
     install -Dm755 build/scrip "$pkgdir/usr/bin/scrip"
     install -Dm644 "SCrip-$pkgver/packaging/linux/scrip.desktop" "$pkgdir/usr/share/applications/scrip.desktop"
     install -Dm644 "SCrip-$pkgver/packaging/linux/scrip.png" "$pkgdir/usr/share/icons/hicolor/256x256/apps/scrip.png"
