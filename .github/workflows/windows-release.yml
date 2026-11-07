@@ -8,7 +8,7 @@ permissions:
 jobs:
   install:
     runs-on: windows-2022
-    timeout-minutes: 8
+    timeout-minutes: 20
     steps:
       - name: Скачать релиз, проверить SHA-256 и запустить SCrip
         shell: pwsh
@@ -24,6 +24,12 @@ jobs:
           $exe = Join-Path $env:RUNNER_TEMP $asset[0].name
           $hash = (Get-FileHash -LiteralPath $exe).Hash
           if ("sha256:$hash" -ne $asset[0].digest) { throw 'Контрольная сумма расходится с GitHub' }
+          $scanner = Join-Path $env:ProgramFiles 'Windows Defender\MpCmdRun.exe'
+          if (!(Test-Path -LiteralPath $scanner)) { throw 'Сканер Defender недоступен' }
+          Update-MpSignature -ErrorAction Stop
+          Get-MpComputerStatus | Select-Object AntivirusSignatureVersion, AntivirusSignatureLastUpdated | Format-List
+          & $scanner -Scan -ScanType 3 -File $exe -DisableRemediation
+          if ($LASTEXITCODE -ne 0) { throw "Defender не подтвердил чистую проверку (код $LASTEXITCODE). Установка остановлена." }
           $setup = Start-Process -FilePath $exe -ArgumentList '/S' -PassThru -Wait
           if ($setup.ExitCode -ne 0) { throw "Установщик завершился с кодом $($setup.ExitCode)" }
           $player = Start-Process "$env:LOCALAPPDATA\Programs\SCrip\SCrip.exe" -PassThru
